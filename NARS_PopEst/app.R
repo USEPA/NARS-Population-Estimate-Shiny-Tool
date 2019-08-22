@@ -43,7 +43,12 @@ ui <- fluidPage(
       radioButtons("disp","Display",
                    choices = c(Head = 'head',
                                All = 'all'),
-                   selected='head')
+                   selected='head'),
+      
+      selectizeInput("siteVar","Site variable", choices=NULL, multiple=FALSE),
+      selectizeInput("weightVar","Weight variable", choices=NULL, multiple=FALSE),
+      selectizeInput("respVar","Response variable(s)", choices=NULL, multiple=TRUE),
+      selectizeInput("subpopVar","Subpopulation variable(s)", choices=NULL, multiple=TRUE)
       
    ),
       # Show a plot of the generated distribution
@@ -53,23 +58,34 @@ ui <- fluidPage(
     )
   )
 # Define server logic required to draw a histogram
-server <- function(input, output) {
+server <- function(input, output, session) {
    
-   output$contents <- renderTable({
-      
-     # input$file1 will be NULL initially. After the user selects
-     # and uploads a file, head of that data file by default,
-     # or all rows if selected, will be shown.
-     req(input$file1)
-     
-     df <- read.csv(input$file1$datapath,
-                    header = input$header,
-                    sep = input$sep)
-     
+   
+  dataIn <- reactive({
+    file1 <- input$file1
+    req(file1)
+    df <- read.csv(input$file1$datapath,
+                   header = input$header,
+                   sep = input$sep)
+    vars <- colnames(df)
+    
+    updateSelectizeInput(session, "weightVar", "Select weight variable", choices=vars)
+    updateSelectizeInput(session, 'respVar', 'Select up to 5 response variables', choices=vars, selected = NULL, 
+                         options = list(maxItems=5))
+    updateSelectizeInput(session, 'siteVar', 'Select site variable', choices=vars)
+    updateSelectizeInput(session, 'subpopVar', 'Select up to 5 subpopulation variables', choices=vars, selected=NULL,
+                         options = list(maxItems=5))
+    
+    df
+  })
+  
+  
+  output$contents <- renderTable({
+  
      if(input$disp == 'head'){
-       return(head(df))
+       return(head(dataIn()))
      } else{
-       return(df)
+       return(dataIn())
      }
       
    })
