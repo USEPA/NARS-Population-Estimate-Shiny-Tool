@@ -14,63 +14,82 @@ source("global.r")
 ui <- fluidPage(
    
    # Application title
-   titlePanel("NARS Population Estimate Calculation Tool"),
+   navbarPage(title="NARS Population Estimate Calculation Tool",
+              selected='prepdata',position='static-top',
    
-   # Sidebar panel for inputs
-   
-      fluidRow(
-        # Input: Select a file ---
-        column(3,
-            fileInput(inputId='file1', buttonLabel='Browse...', 
-                  label='Select CSV file for analysis',
-                  multiple=FALSE, accept=c('text/csv','text/comma-separated-values,text/plain','.csv')
-                  ),
-            # Horizontal line ----
-            tags$hr(),
-            # Input: checkbox if file has header, default to TRUE ----
-            checkboxInput('header','Header',TRUE),
-            # Input: Select delimiter ----
-            radioButtons("sep","Separator",
-                         choices = c(Comma = ",",
-                                     Semicolon = ";",
-                                     Tab = "\t"),
-                         selected = ","),
+      tabPanel(title='Prepare Data for Analysis',value="prepdata",
+          # Sidebar panel for inputs
+       
+          fluidRow(
+            # Input: Select a file ---
+            column(3,
+                fileInput(inputId='file1', buttonLabel='Browse...', 
+                      label='Select CSV file for analysis',
+                      multiple=FALSE, accept=c('text/csv','text/comma-separated-values,text/plain','.csv')
+                      ),
+                # Horizontal line ----
+                tags$hr(),
+                # Input: checkbox if file has header, default to TRUE ----
+                checkboxInput('header','Header',TRUE),
+                # Input: Select delimiter ----
+                radioButtons("sep","Separator",
+                             choices = c(Comma = ",",
+                                         Semicolon = ";",
+                                         Tab = "\t"),
+                             selected = ","),
+                
+                # Horizontal line
+                tags$hr(),
+                
+                # Input: Select number of rows to display ----
+                radioButtons("disp","Display",
+                             choices = c(Head = 'head',
+                                         All = 'all'),
+                             selected='head')),
             
-            # Horizontal line
-            tags$hr(),
+            column(4,
+              selectizeInput("siteVar","Select site variable", choices=NULL, multiple=FALSE),
+              selectizeInput("coordxVar","Select the X coordinate variable (or longitude)", choices=NULL, multiple=FALSE),
+              selectizeInput("coordyVar","Select the Y coordinate variable (or latitude)", choices=NULL, multiple=FALSE),
+              selectizeInput("weightVar","Select weight variable", choices=NULL, multiple=FALSE),
+              selectizeInput("respVar","Select up to 5 response variables", choices=NULL, multiple=TRUE),
+              selectizeInput("subpopVar","Select up to 5 subpopulation variables", choices=NULL, multiple=TRUE),
+              checkboxInput('natpop','Include national estimates?',TRUE)
+            ),
             
-            # Input: Select number of rows to display ----
-            radioButtons("disp","Display",
-                         choices = c(Head = 'head',
-                                     All = 'all'),
-                         selected='head')),
+            column(4,
+                   checkboxInput('locvar',"Use local neighborhood variance"),
+                   conditionalPanel(condition = 'input.locvar == true',
+                                    checkboxInput("xy", "Convert latitude/longitude \nto Albers Projection (This is necessary \nif using local neighborhood variance.)",
+                                FALSE),
+                                     conditionalPanel(condition = "input.xy == true",
+                                                      selectInput('sph',"Spheroid options",list('GRS80','Clarke1866','WGS84')),
+                                                      textInput('clon','Center longitude (dec. deg.)',value=-96),
+                                                      textInput('clat','Center latitude (dec. deg.)',value=23),
+                                                      textInput('sp1','Standard parallel 1 (dec. deg.)',value=29.5),
+                                                      textInput('sp2','Standard parallel 2 (dec. deg.)',value=45.5)))
+            )
+         ),
+         
+          actionButton("subsetBtn", "Prepare data for analysis"),
+       
+          # Show a table of the data
+          tableOutput("contents")
+          
         
-      column(4,
-        selectizeInput("siteVar","Select site variable", choices=NULL, multiple=FALSE),
-        selectizeInput("coordxVar","Select the Albers X coordinate variable", choices=NULL, multiple=FALSE),
-        selectizeInput("coordyVar","Select the Albers Y coordinate variable", choices=NULL, multiple=FALSE),
-        selectizeInput("weightVar","Select weight variable", choices=NULL, multiple=FALSE),
-        selectizeInput("respVar","Select up to 5 response variables", choices=NULL, multiple=TRUE),
-        selectizeInput("subpopVar","Select up to 5 subpopulation variables", choices=NULL, multiple=TRUE),
-        checkboxInput('natpop','Include national estimates?',TRUE)
       ),
       
-      column(2,
-             radioButtons("xy", "Convert latitude/longitude \nto Albers Projection",
-                          choices = c(Yes = 'latlong', No = 'utm'),
-                          selected = 'utm')
+      tabPanel(title="Run Population Estimates",value="runest",
+          fluidRow(     
+             column(6,
+               radioButtons("analytype","Type of Analysis (pick one)",
+                            choices = c(Categorical = 'categ', Continuous = 'contin'),
+                            selected='categ')))
+          #     )
+          # )
       )
-      
-      
-   ),
-   
-      actionButton("subsetBtn", "Show selected data"),
-   
-      # Show a table of the data
-      tableOutput("contents")
-      
-    
-  )
+     )
+   )
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
    
@@ -86,8 +105,8 @@ server <- function(input, output, session) {
     updateSelectizeInput(session, "weightVar", "Select weight variable", choices=vars)
     updateSelectizeInput(session, 'respVar', 'Select up to 5 response variables', choices=vars, selected = NULL, 
                          options = list(maxItems=5))
-    updateSelectizeInput(session, 'coordxVar', 'Select the Albers X coordinate variable', choices=vars, selected = NULL)
-    updateSelectizeInput(session, 'coordyVar', 'Select the Albers Y coordinate variable', choices=vars, selected = NULL)
+    updateSelectizeInput(session, 'coordxVar', 'Select the X coordinate variable (or longitude)', choices=vars, selected = NULL)
+    updateSelectizeInput(session, 'coordyVar', 'Select the Y coordinate variable (or latitude)', choices=vars, selected = NULL)
     updateSelectizeInput(session, 'siteVar', 'Select site variable', choices=vars)
     updateSelectizeInput(session, 'subpopVar', 'Select up to 5 subpopulation variables', choices=vars, selected=NULL,
                          options = list(maxItems=5))
@@ -95,36 +114,29 @@ server <- function(input, output, session) {
     df
   })
   
-  # dataOut <- eventReactive(input$subsetBtn,{
-  #   if(input$subsetBtn > 0){
-  #     df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar, input$subpopVar))
-  #   }else{
-  #     df1 <- dataIn()
-  #   }
-  # }
-  #   
-  # )
-  # 
-  # output$contents <- renderTable({
-  # 
-  #    # if(input$disp == 'head'){
-  #    #   return(head(dataIn()))
-  #    # } else{
-  #    #   return(dataIn())
-  #    # }
-  #   return(head(dataIn()))
-  #  })
-  # 
-  # output$dataOut <- renderTable({
-  #   dataIn() %>%
-  #     subset(select=input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar, input$subpopVar) %>%
-  #     head 
-  # })
-  
+  dataOut <- eventReactive(input$subsetBtn,{
+    if(input$subsetBtn > 0){
+      df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar, input$subpopVar))
+      if(input$xy == TRUE){
+        xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
+                              as.numeric(input$clon),as.numeric(input$clat),
+                              as.numeric(input$sp1),as.numeric(input$sp2))
+        
+        df1 <- cbind(df1,xyCoord)
+         
+      }else{
+        df1 <- mutate(df1, xcoord = eval(as.name(input$coordxVar)), ycoord = eval(as.name(input$coordyVar))) 
+      }
+    }else{
+      df1 <- dataIn()
+    }
+  }
+
+  )
+
   output$contents <- renderTable({
     if(input$subsetBtn > 0){
-      dataIn() %>%
-        subset(select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar, input$subpopVar)) %>%
+      dataOut() %>%
         head 
     }else{
       if(input$disp == 'head'){
@@ -133,7 +145,7 @@ server <- function(input, output, session) {
         return(dataIn())
       }
     }
-  })
+  }, digits=5)
 
   session$onSessionEnded(function() {
     stopApp()
