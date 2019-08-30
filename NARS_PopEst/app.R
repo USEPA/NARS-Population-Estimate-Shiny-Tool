@@ -81,12 +81,16 @@ ui <- fluidPage(
       
       tabPanel(title="Run Population Estimates",value="runest",
           fluidRow(     
-             column(6,
-               radioButtons("analytype","Type of Analysis (pick one)",
+             column(3,
+               radioButtons("atype","Type of Analysis (pick one)",
                             choices = c(Categorical = 'categ', Continuous = 'contin'),
-                            selected='categ')))
-          #     )
-          # )
+                            selected='categ'),
+             actionButton('runBtn', "Run population estimates")),
+            
+             column(6,
+                    tableOutput("popest"))
+          )
+
       )
      )
    )
@@ -125,7 +129,11 @@ server <- function(input, output, session) {
         df1 <- cbind(df1,xyCoord)
          
       }else{
-        df1 <- mutate(df1, xcoord = eval(as.name(input$coordxVar)), ycoord = eval(as.name(input$coordyVar))) 
+        #df1 <- dplyr::rename(df1, c(input$coordxVar='xcoord',input$coordyVar='ycoord'))
+        df1 <- mutate(df1, xcoord = eval(as.name(input$coordxVar)), ycoord = eval(as.name(input$coordyVar)),
+                      siteID = eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
+          subset(select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar))
+        
       }
     }else{
       df1 <- dataIn()
@@ -146,6 +154,21 @@ server <- function(input, output, session) {
       }
     }
   }, digits=5)
+  
+  output$popest <- renderTable({
+    if(input$runBtn > 0){
+      dfIn <- dataOut() %>%
+        mutate(Active=TRUE)
+      
+      if(input$atype=='categ'){
+        cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                               subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                               design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
+                               data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')
+      }
+    }
+  })
+  
 
   session$onSessionEnded(function() {
     stopApp()
