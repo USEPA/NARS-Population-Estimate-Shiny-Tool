@@ -85,7 +85,14 @@ ui <- fluidPage(
                radioButtons("atype","Type of Analysis (pick one)",
                             choices = c(Categorical = 'categ', Continuous = 'contin'),
                             selected='categ'),
-             actionButton('runBtn', "Run population estimates")),
+             
+             conditionalPanel(condition = "input.atype == 'contin'",
+                              radioButtons("cdf_pct", "Show CDF or percentile results",
+                                           choices = c(CDF = 'cdf', Percentiles = 'pct'),
+                                           selected = 'pct')),
+             
+             actionButton('runBtn', "Run population estimates"),
+             downloadButton("dwnldcsv","Save Results as .csv file")),
             
              column(6,
                     tableOutput("popest"))
@@ -103,7 +110,8 @@ server <- function(input, output, session) {
     req(file1)
     df <- read.csv(input$file1$datapath,
                    header = input$header,
-                   sep = input$sep)
+                   sep = input$sep,
+                   stringsAsFactors=F)
     vars <- colnames(df)
     
     updateSelectizeInput(session, "weightVar", "Select weight variable", choices=vars)
@@ -126,7 +134,9 @@ server <- function(input, output, session) {
                               as.numeric(input$clon),as.numeric(input$clat),
                               as.numeric(input$sp1),as.numeric(input$sp2))
         
-        df1 <- cbind(df1,xyCoord)
+        df1 <- cbind(df1,xyCoord) %>%
+          mutate(siteID=eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
+          subset(select=c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar))
          
       }else{
         #df1 <- dplyr::rename(df1, c(input$coordxVar='xcoord',input$coordyVar='ycoord'))
@@ -155,21 +165,77 @@ server <- function(input, output, session) {
     }
   }, digits=5)
   
-  output$popest <- renderTable({
+  dataEst <- reactive({
     if(input$runBtn > 0){
       dfIn <- dataOut() %>%
         mutate(Active=TRUE)
       
       if(input$atype=='categ'){
-        cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                               subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
-                               design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                               data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')
+        if(input$locvar == TRUE){
+          cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                       subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                       design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
+                       data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')
+        }else{
+          cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                       subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                       design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
+                       data.cat=subset(dfIn,select=c('siteID',input$respVar)))
+        }
+      }else{
+        if(length(input$respVar)>1){
+          dfIn[,input$respVar] <- lapply(dfIn[,input$respVar], as.numeric)
+        }else{
+          dfIn[,input$respVar] <- as.numeric(dfIn[,input$respVar])
+        }
+        
+        if(input$locvar==TRUE){
+          if(input$cdf_pct=='cdf'){
+            cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                          subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                          design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
+                          data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$CDF
+          }else{
+            cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                          subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                          design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
+                          data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$Pct
+          }
+        }else{
+          if(input$cdf_pct=='cdf'){
+            cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                                      subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                                      design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
+                                      data.cont=subset(dfIn,select=c('siteID',input$respVar)))$CDF
+            
+          }else{
+            cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                                      subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                                      design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
+                                      data.cont=subset(dfIn,select=c('siteID',input$respVar)))$Pct
+          }
+          
+        }
       }
+      
     }
   })
   
-
+  # Output the population estimates to a table
+  output$popest <- renderTable({
+    dataEst()
+    
+  })
+  
+  output$dwnldcsv <- downloadHandler(
+    filename = function() {
+      paste("PopulationEstimateOutput_",Sys.Date(), ".csv", sep = "")
+    },
+    content = function(file) {
+      write.csv(dataEst(), file, row.names = FALSE)
+    }
+  )
+  
   session$onSessionEnded(function() {
     stopApp()
   })  
