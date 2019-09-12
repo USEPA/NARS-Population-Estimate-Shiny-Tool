@@ -12,7 +12,7 @@ source("global.r")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-   
+   shinyjs::useShinyjs(),
    # Application title
    navbarPage(title="NARS Population Estimate Calculation Tool",
               selected='prepdata',position='static-top',
@@ -54,7 +54,7 @@ ui <- fluidPage(
               selectizeInput("weightVar","Select weight variable", choices=NULL, multiple=FALSE),
               selectizeInput("respVar","Select up to 5 response variables", choices=NULL, multiple=TRUE),
               selectizeInput("subpopVar","Select up to 5 subpopulation variables", choices=NULL, multiple=TRUE),
-              checkboxInput('natpop','Include national estimates?',TRUE)
+              checkboxInput('natpop','Only national estimates?',FALSE)
             ),
             
             column(4,
@@ -92,6 +92,8 @@ ui <- fluidPage(
                                            selected = 'pct')),
              
              actionButton('runBtn', "Run population estimates"),
+             hr(),
+             
              downloadButton("dwnldcsv","Save Results as .csv file")),
             
              column(6,
@@ -104,7 +106,7 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
    
-   
+  #shinyjs::disable("dwnldcsv")
   dataIn <- reactive({
     file1 <- input$file1
     req(file1)
@@ -153,9 +155,11 @@ server <- function(input, output, session) {
   )
 
   output$contents <- renderTable({
+    
     if(input$subsetBtn > 0){
       dataOut() %>%
         head 
+      
     }else{
       if(input$disp == 'head'){
         return(head(dataIn()))
@@ -170,6 +174,8 @@ server <- function(input, output, session) {
       dfIn <- dataOut() %>%
         mutate(Active=TRUE)
       
+    withProgress(message="Calculating estimates",detail="This might take a while...",
+                   value=0,{  
       if(input$atype=='categ'){
         if(input$locvar == TRUE){
           cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
@@ -217,15 +223,22 @@ server <- function(input, output, session) {
           
         }
       }
-      
+     
+      })
     }
+    
   })
+  
+  
   
   # Output the population estimates to a table
   output$popest <- renderTable({
-    dataEst()
     
+        dataEst()
   })
+
+  
+  observe({shinyjs::toggleState('dwnldcsv',length(dataEst())!=0)})
   
   output$dwnldcsv <- downloadHandler(
     filename = function() {
@@ -239,6 +252,7 @@ server <- function(input, output, session) {
   session$onSessionEnded(function() {
     stopApp()
   })  
+  
 }
 
 # Run the application 
