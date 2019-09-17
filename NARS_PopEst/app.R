@@ -11,7 +11,7 @@ source("global.r")
 
 
 # Define UI for application that draws a histogram
-ui <- fluidPage(
+ui <- fluidPage(theme = shinytheme("united"),
    shinyjs::useShinyjs(),
    # Application title
    navbarPage(title="NARS Population Estimate Calculation Tool",
