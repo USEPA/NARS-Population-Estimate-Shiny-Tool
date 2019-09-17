@@ -49,12 +49,14 @@ ui <- fluidPage(
             
             column(4,
               selectizeInput("siteVar","Select site variable", choices=NULL, multiple=FALSE),
-              selectizeInput("coordxVar","Select the X coordinate variable (or longitude)", choices=NULL, multiple=FALSE),
-              selectizeInput("coordyVar","Select the Y coordinate variable (or latitude)", choices=NULL, multiple=FALSE),
+              selectizeInput("coordxVar","Select the X coordinate variable (or longitude) \n(required only for local neighborhood variance)", 
+                             choices=NULL, multiple=FALSE),
+              selectizeInput("coordyVar","Select the Y coordinate variable (or latitude) \n(required only for local neighborhood variance)", 
+                             choices=NULL, multiple=FALSE),
               selectizeInput("weightVar","Select weight variable", choices=NULL, multiple=FALSE),
-              selectizeInput("respVar","Select up to 5 response variables", choices=NULL, multiple=TRUE),
-              selectizeInput("subpopVar","Select up to 5 subpopulation variables", choices=NULL, multiple=TRUE),
-              checkboxInput('natpop','Only national estimates?',FALSE)
+              selectizeInput("respVar","Select up to 10 response variables", choices=NULL, multiple=TRUE),
+              selectizeInput("subpopVar","Select up to 10 subpopulation variables \n(required if not national estimates only)", choices=NULL, multiple=TRUE),
+              checkboxInput('natpop','Only national estimates? Select if no \nsubpopulations of interest',FALSE)
             ),
             
             column(4,
@@ -117,13 +119,15 @@ server <- function(input, output, session) {
     vars <- colnames(df)
     
     updateSelectizeInput(session, "weightVar", "Select weight variable", choices=vars)
-    updateSelectizeInput(session, 'respVar', 'Select up to 5 response variables', choices=vars, selected = NULL, 
-                         options = list(maxItems=5))
-    updateSelectizeInput(session, 'coordxVar', 'Select the X coordinate variable (or longitude)', choices=vars, selected = NULL)
-    updateSelectizeInput(session, 'coordyVar', 'Select the Y coordinate variable (or latitude)', choices=vars, selected = NULL)
+    updateSelectizeInput(session, 'respVar', 'Select up to 10 response variables', choices=vars, selected = NULL, 
+                         options = list(maxItems=10))
+    updateSelectizeInput(session, 'coordxVar', "Select the X coordinate variable (or longitude) \n(required only for local neighborhood variance)", 
+                         choices=vars, selected = NULL)
+    updateSelectizeInput(session, 'coordyVar', "Select the Y coordinate variable (or latitude) \n(required only for local neighborhood variance)", 
+                         choices=vars, selected = NULL)
     updateSelectizeInput(session, 'siteVar', 'Select site variable', choices=vars)
-    updateSelectizeInput(session, 'subpopVar', 'Select up to 5 subpopulation variables', choices=vars, selected=NULL,
-                         options = list(maxItems=5))
+    updateSelectizeInput(session, 'subpopVar', 'Select up to 10 subpopulation variables \n(required if not national estimates only)', choices=vars, selected=NULL,
+                         options = list(maxItems=10))
     
     df
   })
@@ -185,8 +189,8 @@ server <- function(input, output, session) {
         }else{
           cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                        subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
-                       design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                       data.cat=subset(dfIn,select=c('siteID',input$respVar)))
+                       design=subset(dfIn,select=c('siteID','wgt')),
+                       data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')
         }
       }else{
         if(length(input$respVar)>1){
@@ -211,14 +215,14 @@ server <- function(input, output, session) {
           if(input$cdf_pct=='cdf'){
             cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                                       subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
-                                      design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                                      data.cont=subset(dfIn,select=c('siteID',input$respVar)))$CDF
+                                      design=subset(dfIn,select=c('siteID','wgt')),
+                                      data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$CDF
             
           }else{
             cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                                       subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
-                                      design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                                      data.cont=subset(dfIn,select=c('siteID',input$respVar)))$Pct
+                                      design=subset(dfIn,select=c('siteID','wgt')),
+                                      data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$Pct
           }
           
         }
@@ -242,7 +246,15 @@ server <- function(input, output, session) {
   
   output$dwnldcsv <- downloadHandler(
     filename = function() {
-      paste("PopulationEstimateOutput_",Sys.Date(), ".csv", sep = "")
+      if(input$atype=='categ'){
+        paste("Categorical_PopEstOutput_",Sys.Date(), ".csv", sep = "")
+      }else{
+        if(input$cdf_pct=='cdf'){
+          paste("Continuous_CDF_Output_",Sys.Date(), ".csv", sep = "")
+        }else{
+          paste("Continuous_Percentiles_Output_",Sys.Date(), ".csv", sep = "")
+        }
+      }
     },
     content = function(file) {
       write.csv(dataEst(), file, row.names = FALSE)
