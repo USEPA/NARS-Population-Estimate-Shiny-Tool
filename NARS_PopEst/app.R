@@ -87,7 +87,7 @@ ui <- fluidPage(theme = shinytheme("united"),
           fluidRow(     
              column(3,
                radioButtons("atype","Type of Analysis (pick one)",
-                            choices = c(Categorical = 'categ', Continuous = 'contin'),
+                            choices = c('Categorical ( for character variables)' = 'categ', 'Continuous (for numeric variables)' = 'contin'),
                             selected='categ'),
              
              conditionalPanel(condition = "input.atype == 'contin'",
@@ -121,7 +121,7 @@ server <- function(input, output, session) {
     vars <- colnames(df)
     
     updateSelectizeInput(session, "weightVar", "Select weight variable", choices=vars)
-    updateSelectizeInput(session, 'respVar', 'Select up to 10 response variables - must all be either categorical or numeric', choices=vars, selected = NULL, 
+    updateSelectizeInput(session, 'respVar', 'Select up to 10 response variables - All must be either categorical or numeric', choices=vars, selected = NULL, 
                          options = list(maxItems=10))
     updateSelectizeInput(session, 'coordxVar', "Select the X coordinate variable (or longitude) \n(required only for local neighborhood variance)", 
                          choices=vars, selected = NULL)
@@ -135,8 +135,24 @@ server <- function(input, output, session) {
   })
   
   dataOut <- eventReactive(input$subsetBtn,{
-    if(input$subsetBtn > 0){
+    if(input$subsetBtn > 0){ # Add more to this section to test for variable types 
       if(input$natpop == FALSE){
+        # Use function below to validate input variables as the appropriate type and to make sure the selections do not overlap
+        validate(
+          need(input$subpopVar %nin% c(input$siteVar,input$coordxVar,input$coordyVar,input$weightVar,input$respVar),
+               "Subpopulation variable(s) cannot overlap with other variable selections."),
+          need(input$respVar %nin% c(input$siteVar,input$coordxVar,input$coordyVar,input$subpopVar,input$weightVar),
+               "Response variable(s) cannot overlap with other variable selections."),
+          need(input$weightVar %nin% c(input$siteVar,input$coordxVar,input$coordyVar,input$subpopVar,input$respVar),
+               "Weight variable cannot overlap with other variable selections."),
+          need(input$siteVar %nin% c(input$coordxVar,input$coordyVar,input$respVar,input$subpopVar,input$weightVar),
+               'Site variable cannot overlap with other variable selections.'),
+          need(input$coordxVar %nin% c(input$siteVar,input$coordyVar,input$respVar,input$subpopVar,input$weightVar), 
+               "X-coordinate variable cannot overlap with other variable selections."),
+          need(input$coordyVar %nin% c(input$siteVar,input$coordxVar,input$respVar,input$subpopVar,input$weightVar), 
+               "Y-coordinate variable cannot overlap with other variable selections.")
+        )
+        
         df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar, input$subpopVar))
         if(input$xy == TRUE){
           xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
@@ -148,13 +164,26 @@ server <- function(input, output, session) {
             subset(select=c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar))
          
         }else{
-          #df1 <- dplyr::rename(df1, c(input$coordxVar='xcoord',input$coordyVar='ycoord'))
           df1 <- mutate(df1, xcoord = eval(as.name(input$coordxVar)), ycoord = eval(as.name(input$coordyVar)),
                         siteID = eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
             subset(select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar))
           
         } 
       }else{
+        # Use function below to validate input variables as the appropriate type and to make sure the selections do not overlap
+        validate(
+          need(input$respVar %nin% c(input$siteVar,input$coordxVar,input$coordyVar,input$weightVar),
+               "Response variable(s) cannot overlap with other variable selections."),
+          need(input$weightVar %nin% c(input$siteVar,input$coordxVar,input$coordyVar,input$respVar),
+               "Weight variable cannot overlap with other variable selections."),
+          need(input$siteVar %nin% c(input$coordxVar,input$coordyVar,input$respVar,input$weightVar),
+               'Site variable cannot overlap with other variable selections.'),
+          need(input$coordxVar %nin% c(input$siteVar,input$coordyVar,input$respVar,input$weightVar), 
+               "X-coordinate variable cannot overlap with other variable selections."),
+          need(input$coordyVar %nin% c(input$siteVar,input$coordxVar,input$respVar,input$weightVar), 
+               "Y-coordinate variable cannot overlap with other variable selections.")
+        )
+        
         df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar))
         if(input$xy == TRUE){
           xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
@@ -162,16 +191,27 @@ server <- function(input, output, session) {
                                 as.numeric(input$sp1),as.numeric(input$sp2))
           
           df1 <- cbind(df1,xyCoord) %>%
-            mutate(siteID=eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
+            mutate(siteID=eval(as.name(input$siteVar)), wgt = as.numeric(eval(as.name(input$weightVar)))) %>%
             subset(select=c('siteID','wgt','xcoord','ycoord',input$respVar))
           
         }else{
           #df1 <- dplyr::rename(df1, c(input$coordxVar='xcoord',input$coordyVar='ycoord'))
-          df1 <- mutate(df1, xcoord = eval(as.name(input$coordxVar)), ycoord = eval(as.name(input$coordyVar)),
-                        siteID = eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
+          df1 <- mutate(df1, xcoord = as.numeric(eval(as.name(input$coordxVar))), ycoord = as.numeric(eval(as.name(input$coordyVar))),
+                        siteID = eval(as.name(input$siteVar)), wgt = as.numeric(eval(as.name(input$weightVar)))) %>%
             subset(select = c('siteID','wgt','xcoord','ycoord',input$respVar))
         } 
+
       }
+      # Look for missing values among coordinates, weights, and response variables.
+      validate(
+        need(!any(is.na(df1$xcoord)), "Non-numeric or missing values for x coordinates."),
+        need(!any(is.na(df1$ycoord)), "Non-numeric or missing values for y coordinates."),
+        need(!any(is.na(df1$wgt)), "Non-numeric or missing values for weights"),
+        need(nrow(df1[complete.cases(df1[,input$respVar]),])==nrow(df1),'There are missing values among response variables.')
+      )
+      
+      df1
+      
     }else{
       df1 <- dataIn()
     }
@@ -236,6 +276,11 @@ server <- function(input, output, session) {
           dfIn[,input$respVar] <- as.numeric(dfIn[,input$respVar])
         }
         
+        validate(
+          need(nrow(dfIn[complete.cases(dfIn[,input$respVar]),])==nrow(dfIn),'There are non-numeric values among response variables.')
+        )
+        
+        
         if(input$locvar==TRUE){
           if(input$natpop == FALSE){
             if(input$cdf_pct=='cdf'){
@@ -292,8 +337,7 @@ server <- function(input, output, session) {
         }
       }
      
-      })
-#    }
+    })
     
   })
   
@@ -301,7 +345,6 @@ server <- function(input, output, session) {
   
   # Output the population estimates to a table
   output$popest <- renderTable({
-    
         dataEst()
   })
 
