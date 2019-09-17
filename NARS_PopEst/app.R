@@ -54,8 +54,10 @@ ui <- fluidPage(
               selectizeInput("coordyVar","Select the Y coordinate variable (or latitude) \n(required only for local neighborhood variance)", 
                              choices=NULL, multiple=FALSE),
               selectizeInput("weightVar","Select weight variable", choices=NULL, multiple=FALSE),
-              selectizeInput("respVar","Select up to 10 response variables", choices=NULL, multiple=TRUE),
-              selectizeInput("subpopVar","Select up to 10 subpopulation variables \n(required if not national estimates only)", choices=NULL, multiple=TRUE),
+              selectizeInput("respVar","Select up to 10 response variables - must all be either categorical or numeric", choices=NULL, multiple=TRUE),
+              conditionalPanel(condition = 'input.natpop == false',
+                               selectizeInput("subpopVar","Select up to 10 subpopulation variables \n(required if not national estimates only)", 
+                                              choices=NULL, multiple=TRUE)),
               checkboxInput('natpop','Only national estimates? Select if no \nsubpopulations of interest',FALSE)
             ),
             
@@ -93,7 +95,7 @@ ui <- fluidPage(
                                            choices = c(CDF = 'cdf', Percentiles = 'pct'),
                                            selected = 'pct')),
              
-             actionButton('runBtn', "Run population estimates"),
+             actionButton('runBtn', "Run/Refresh population estimates"),
              hr(),
              
              downloadButton("dwnldcsv","Save Results as .csv file")),
@@ -119,7 +121,7 @@ server <- function(input, output, session) {
     vars <- colnames(df)
     
     updateSelectizeInput(session, "weightVar", "Select weight variable", choices=vars)
-    updateSelectizeInput(session, 'respVar', 'Select up to 10 response variables', choices=vars, selected = NULL, 
+    updateSelectizeInput(session, 'respVar', 'Select up to 10 response variables - must all be either categorical or numeric', choices=vars, selected = NULL, 
                          options = list(maxItems=10))
     updateSelectizeInput(session, 'coordxVar', "Select the X coordinate variable (or longitude) \n(required only for local neighborhood variance)", 
                          choices=vars, selected = NULL)
@@ -134,22 +136,41 @@ server <- function(input, output, session) {
   
   dataOut <- eventReactive(input$subsetBtn,{
     if(input$subsetBtn > 0){
-      df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar, input$subpopVar))
-      if(input$xy == TRUE){
-        xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
-                              as.numeric(input$clon),as.numeric(input$clat),
-                              as.numeric(input$sp1),as.numeric(input$sp2))
-        
-        df1 <- cbind(df1,xyCoord) %>%
-          mutate(siteID=eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
-          subset(select=c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar))
+      if(input$natpop == FALSE){
+        df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar, input$subpopVar))
+        if(input$xy == TRUE){
+          xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
+                                as.numeric(input$clon),as.numeric(input$clat),
+                                as.numeric(input$sp1),as.numeric(input$sp2))
+          
+          df1 <- cbind(df1,xyCoord) %>%
+            mutate(siteID=eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
+            subset(select=c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar))
          
+        }else{
+          #df1 <- dplyr::rename(df1, c(input$coordxVar='xcoord',input$coordyVar='ycoord'))
+          df1 <- mutate(df1, xcoord = eval(as.name(input$coordxVar)), ycoord = eval(as.name(input$coordyVar)),
+                        siteID = eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
+            subset(select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar))
+          
+        } 
       }else{
-        #df1 <- dplyr::rename(df1, c(input$coordxVar='xcoord',input$coordyVar='ycoord'))
-        df1 <- mutate(df1, xcoord = eval(as.name(input$coordxVar)), ycoord = eval(as.name(input$coordyVar)),
-                      siteID = eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
-          subset(select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar))
-        
+        df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar))
+        if(input$xy == TRUE){
+          xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
+                                as.numeric(input$clon),as.numeric(input$clat),
+                                as.numeric(input$sp1),as.numeric(input$sp2))
+          
+          df1 <- cbind(df1,xyCoord) %>%
+            mutate(siteID=eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
+            subset(select=c('siteID','wgt','xcoord','ycoord',input$respVar))
+          
+        }else{
+          #df1 <- dplyr::rename(df1, c(input$coordxVar='xcoord',input$coordyVar='ycoord'))
+          df1 <- mutate(df1, xcoord = eval(as.name(input$coordxVar)), ycoord = eval(as.name(input$coordyVar)),
+                        siteID = eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
+            subset(select = c('siteID','wgt','xcoord','ycoord',input$respVar))
+        } 
       }
     }else{
       df1 <- dataIn()
@@ -161,6 +182,8 @@ server <- function(input, output, session) {
   output$contents <- renderTable({
     
     if(input$subsetBtn > 0){
+      shinyjs::disable('dwnldcsv')
+      
       dataOut() %>%
         head 
       
@@ -173,25 +196,39 @@ server <- function(input, output, session) {
     }
   }, digits=5)
   
-  dataEst <- reactive({
-    if(input$runBtn > 0){
-      dfIn <- dataOut() %>%
-        mutate(Active=TRUE)
+  dataEst <- eventReactive(input$runBtn,{
+  #if(input$runBtn > 0){
+    dfIn <- dataOut() %>%
+    mutate(Active=TRUE)
       
     withProgress(message="Calculating estimates",detail="This might take a while...",
                    value=0,{  
       if(input$atype=='categ'){
         if(input$locvar == TRUE){
-          cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                       subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
-                       design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                       data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')
+          if(input$natpop == FALSE){
+            cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                         subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                         design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
+                         data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')
+          }else{
+            cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                         design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
+                         data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')
+            
+          }
         }else{
-          cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                       subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
-                       design=subset(dfIn,select=c('siteID','wgt')),
-                       data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')
+          if(input$natpop == FALSE){
+            cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                         subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                         design=subset(dfIn,select=c('siteID','wgt')),
+                         data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')
+          }else{
+            cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                         design=subset(dfIn,select=c('siteID','wgt')),
+                         data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')
+          }
         }
+        
       }else{
         if(length(input$respVar)>1){
           dfIn[,input$respVar] <- lapply(dfIn[,input$respVar], as.numeric)
@@ -200,36 +237,63 @@ server <- function(input, output, session) {
         }
         
         if(input$locvar==TRUE){
-          if(input$cdf_pct=='cdf'){
-            cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                          subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
-                          design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                          data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$CDF
+          if(input$natpop == FALSE){
+            if(input$cdf_pct=='cdf'){
+              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                            subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                            design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
+                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$CDF
+            }else{
+              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                            subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                            design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
+                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$Pct
+            }
           }else{
-            cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                          subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
-                          design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                          data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$Pct
+            if(input$cdf_pct=='cdf'){
+              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                            design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
+                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$CDF
+            }else{
+              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                            design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
+                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$Pct
+            }
+            
           }
         }else{
-          if(input$cdf_pct=='cdf'){
-            cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                                      subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
-                                      design=subset(dfIn,select=c('siteID','wgt')),
-                                      data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$CDF
-            
+          if(input$natpop == FALSE){
+            if(input$cdf_pct=='cdf'){
+              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                                        subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                                        design=subset(dfIn,select=c('siteID','wgt')),
+                                        data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$CDF
+              
+            }else{
+              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                                        subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                                        design=subset(dfIn,select=c('siteID','wgt')),
+                                        data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$Pct
+            }
           }else{
-            cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                                      subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
-                                      design=subset(dfIn,select=c('siteID','wgt')),
-                                      data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$Pct
+            if(input$cdf_pct=='cdf'){
+              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                            design=subset(dfIn,select=c('siteID','wgt')),
+                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$CDF
+              
+            }else{
+              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+                            design=subset(dfIn,select=c('siteID','wgt')),
+                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$Pct
+            }
+            
           }
           
         }
       }
      
       })
-    }
+#    }
     
   })
   
