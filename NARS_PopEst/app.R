@@ -206,7 +206,7 @@ server <- function(input, output, session) {
       validate(
         need(!any(is.na(df1$xcoord)), "Non-numeric or missing values for x coordinates."),
         need(!any(is.na(df1$ycoord)), "Non-numeric or missing values for y coordinates."),
-        need(!any(is.na(df1$wgt)), "Non-numeric or missing values for weights"),
+        need(!any(is.na(df1$wgt)), "Non-numeric or missing values for weights."),
         need(nrow(df1[complete.cases(df1[,input$respVar]),])==nrow(df1),'There are missing values among response variables.')
       )
       
@@ -340,7 +340,6 @@ server <- function(input, output, session) {
     })
     
   })
-  
   
   
   # Output the population estimates to a table
