@@ -64,7 +64,7 @@ ui <- fluidPage(theme = shinytheme("united"),
             column(4,
                    checkboxInput('locvar',"Use local neighborhood variance"),
                    conditionalPanel(condition = 'input.locvar == true',
-                                    checkboxInput("xy", "Convert latitude/longitude \nto Albers Projection (This is necessary \nif using local neighborhood variance.)",
+                                    checkboxInput("xy", "Convert latitude/longitude \nto Albers Projection (This is necessary \nif using local neighborhood variance.). Current projection information:",
                                 FALSE),
                                      conditionalPanel(condition = "input.xy == true",
                                                       selectInput('sph',"Spheroid options",list('GRS80','Clarke1866','WGS84')),
@@ -161,12 +161,14 @@ server <- function(input, output, session) {
           
           df1 <- cbind(df1,xyCoord) %>%
             mutate(siteID=eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
-            subset(select=c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar))
+            subset(select=c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar)) %>%
+            mutate(National='National')
          
         }else{
           df1 <- mutate(df1, xcoord = eval(as.name(input$coordxVar)), ycoord = eval(as.name(input$coordyVar)),
                         siteID = eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
-            subset(select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar))
+            subset(select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar)) %>%
+            mutate(National='National')
           
         } 
       }else{
@@ -247,7 +249,7 @@ server <- function(input, output, session) {
         if(input$locvar == TRUE){
           if(input$natpop == FALSE){
             cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                         subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                         subpop=subset(dfIn,select=c('siteID','National',input$subpopVar)),
                          design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
                          data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')
           }else{
@@ -259,7 +261,7 @@ server <- function(input, output, session) {
         }else{
           if(input$natpop == FALSE){
             cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                         subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                         subpop=subset(dfIn,select=c('siteID','National',input$subpopVar)),
                          design=subset(dfIn,select=c('siteID','wgt')),
                          data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')
           }else{
@@ -285,12 +287,12 @@ server <- function(input, output, session) {
           if(input$natpop == FALSE){
             if(input$cdf_pct=='cdf'){
               cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                            subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                            subpop=subset(dfIn,select=c('siteID','National',input$subpopVar)),
                             design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
                             data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$CDF
             }else{
               cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                            subpop=subset(dfIn,select=c('siteID',input$subpopVar)),
+                            subpop=subset(dfIn,select=c('siteID','National',input$subpopVar)),
                             design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
                             data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$Pct
             }
