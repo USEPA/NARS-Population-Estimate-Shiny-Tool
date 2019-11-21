@@ -83,29 +83,28 @@ ui <- fluidPage(theme = shinytheme("united"),
                                     checkboxInput("xy", "Convert latitude/longitude \nto Albers Projection (This is necessary \nif using local neighborhood variance.). Current projection information:",
                                 FALSE),
                                      conditionalPanel(condition = "input.xy == true",
-                                                      selectInput('proj',"Projection options (otherwise provide as x and y coordinates)",
-                                                                  list('GRS80 (as used in NARS)','GRS80','Clarke1866','WGS84')),
-                                                      conditionalPanel(condition = "input.proj == 'GRS80 (as used in NARS)'",
-                                                               p("ellipsoid: GRS80 \nCenter longitude: -96 \nCenter latitude: 37.5 \nStandard parallel 1: 29.5 \nStandard parallel 2: 45.5")),
-                                                      conditionalPanel(condition = "input.proj != 'GRS80 (as used in NARS)'",
-                                                                       #selectInput('sph',"Spheroid options",list('GRS80','Clarke1866','WGS84')),
+                                                      selectInput('proj',"Projection options (otherwise provide as x and y coordinates). If selecting other than GRS80 (standard NARS), supply necessary projection information.)",
+                                                                  list('GRS80 (standard NARS)','Other')),
+                                                                       selectInput('sph',"Spheroid options",list('GRS80','Clarke1866','WGS84')),
                                                                        textInput('clon','Center longitude (dec. deg.)',value=-96),
                                                                        textInput('clat','Center latitude (dec. deg.)',value=23),
                                                                        textInput('sp1','Standard parallel 1 (dec. deg.)',value=29.5),
-                                                                       textInput('sp2','Standard parallel 2 (dec. deg.)',value=45.5)))
-                   )
+                                                                       textInput('sp2','Standard parallel 2 (dec. deg.)',value=45.5)
+                                                                       )
+                                                      )
+                   
                                                       ,
                    conditionalPanel(condition = "input.locvar == 'srs'",
                                     selectizeInput("stratumVar", "Select the stratum variable in order to calculate variance based on a simple random sample",
                                                    choices=NULL, multiple=FALSE))
-            )
+            )  
          ),
          
           actionButton("subsetBtn", "Prepare data for analysis - necessary to run estimates"),
        
           # Show a table of the data
           tableOutput("contents")
-          
+        
         
       ),
       
@@ -154,14 +153,31 @@ server <- function(input, output, session) {
     updateSelectizeInput(session, 'coordyVar', "Select the Y coordinate variable (or latitude) \n(required only for local neighborhood variance)", 
                          choices=vars, selected = NULL)
     updateSelectizeInput(session, 'siteVar', 'Select site variable', choices=vars)
-    if(input$local ==TRUE){
-      updateSelectizeInput(session, 'subpopVar', 'Select up to 10 subpopulation variables \n(required if not national estimates only)', choices=vars, selected=NULL,
+    updateSelectizeInput(session, 'subpopVar', 'Select up to 10 subpopulation variables \n(required if not national estimates only)', choices=vars, selected=NULL,
                          options = list(maxItems=10))
-    }else{
     updateSelectizeInput(session, "stratumVar", "Select the stratum variable in order to calculate variance based on a simple random sample",
                          choices=vars)
-    }
+    
     df
+  })
+  
+  observe({
+    x <- input$proj
+    
+    if(x=='GRS80 (standard NARS)'){
+      updateSelectInput(session, 'sph', choices='GRS80')
+      updateTextInput(session, 'clon', value = 96)
+      updateTextInput(session, 'clat', value = 37.5)
+      updateTextInput(session, 'sp1', value = 29.5)
+      updateTextInput(session, 'sp2', value = 45.5)
+    }else if(x=='Other'){
+      updateSelectInput(session, 'sph', choices=x)
+      updateTextInput(session, 'clon', value = 96)
+      updateTextInput(session, 'clat', value = 23)
+      updateTextInput(session, 'sp1', value = 29.5)
+      updateTextInput(session, 'sp2', value = 45.5)
+      
+    }
   })
   
   dataOut <- eventReactive(input$subsetBtn,{
@@ -309,7 +325,7 @@ server <- function(input, output, session) {
     withProgress(message="Calculating estimates",detail="This might take a while...",
                    value=0,{  
       if(input$atype=='categ'){
-        if(input$locvar == TRUE){
+        if(input$locvar == 'local'){
           if(input$natpop == FALSE){
             cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                          subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
@@ -341,12 +357,12 @@ server <- function(input, output, session) {
           dfIn[,input$respVar] <- as.numeric(dfIn[,input$respVar])
         }
         
-        validate(
-          need(nrow(dfIn[complete.cases(dfIn[,input$respVar]),])==nrow(dfIn),'There are non-numeric values among response variables.')
-        )
+        # validate(
+        #   need(nrow(dfIn[complete.cases(dfIn[,input$respVar]),])==nrow(dfIn),'There are non-numeric values among response variables.')
+        # )
+        # 
         
-        
-        if(input$locvar==TRUE){
+        if(input$locvar=='local'){
           if(input$natpop == FALSE){
             if(input$cdf_pct=='cdf'){
               cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
