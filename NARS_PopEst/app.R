@@ -145,6 +145,11 @@ server <- function(input, output, session) {
                    stringsAsFactors=F)
     vars <- colnames(df)
     
+    df
+  })
+  
+  observe({
+    vars <- colnames(dataIn())
     updateSelectizeInput(session, "weightVar", "Select weight variable", choices=vars)
     updateSelectizeInput(session, 'respVar', 'Select up to 10 response variables - All must be either categorical or numeric', choices=vars, selected = NULL, 
                          options = list(maxItems=10))
@@ -158,21 +163,22 @@ server <- function(input, output, session) {
     updateSelectizeInput(session, "stratumVar", "Select the stratum variable in order to calculate variance based on a simple random sample",
                          choices=vars)
     
-    df
   })
+    
+
   
   observe({
     x <- input$proj
     
     if(x=='GRS80 (standard NARS)'){
       updateSelectInput(session, 'sph', choices='GRS80')
-      updateTextInput(session, 'clon', value = 96)
+      updateTextInput(session, 'clon', value = -96)
       updateTextInput(session, 'clat', value = 37.5)
       updateTextInput(session, 'sp1', value = 29.5)
       updateTextInput(session, 'sp2', value = 45.5)
     }else if(x=='Other'){
       updateSelectInput(session, 'sph', choices=x)
-      updateTextInput(session, 'clon', value = 96)
+      updateTextInput(session, 'clon', value = -96)
       updateTextInput(session, 'clat', value = 23)
       updateTextInput(session, 'sp1', value = 29.5)
       updateTextInput(session, 'sp2', value = 45.5)
@@ -212,7 +218,7 @@ server <- function(input, output, session) {
                 df1 <- cbind(df1,xyCoord) %>%
                   mutate(siteID=eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
                   subset(select=c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar)) %>%
-                  mutate(National='National')
+                  mutate(allSites='All Sites')
                 
               }else{
                 df1 <- mutate(df1, xcoord = eval(as.name(input$coordxVar)), ycoord = eval(as.name(input$coordyVar)),
@@ -283,12 +289,11 @@ server <- function(input, output, session) {
         } 
 
       }
-      # Look for missing values among coordinates, weights, and response variables.
+      # Look for missing values among coordinates and weights only - response and subpopulation variables can have missing values
       validate(
         need(!any(is.na(df1$xcoord)), "Non-numeric or missing values for x coordinates."),
         need(!any(is.na(df1$ycoord)), "Non-numeric or missing values for y coordinates."),
         need(!any(is.na(df1$wgt)), "Non-numeric or missing values for weights.")
-#        need(nrow(df1[complete.cases(df1[,input$respVar]),])==nrow(df1),'There are missing values among response variables.')
       )
       
       df1
