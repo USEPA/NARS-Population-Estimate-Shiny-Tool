@@ -13,20 +13,50 @@ source("global.r")
 # Define UI for application that draws a histogram
 ui <- fluidPage(theme = shinytheme("united"),
    shinyjs::useShinyjs(),
-   # Application title
+   # Application title 
    navbarPage(title="NARS Population Estimate Calculation Tool",
               selected='instructions',position='static-top',
+      # Panel with instructions for using this tool
       tabPanel(title='Instructions for Use',value='instructions',
-               p('This Shiny app allows for calculation of population estimates as performed for the National Aquatic Resource Surveys. Estimates based on categorical and continuous variables are possible. '),
+               h2("Overview"),
+               p('This Shiny app allows for calculation of population estimates as performed for the National Aquatic Resource Surveys (NARS). Estimates based on categorical and continuous variables are possible. This app does not include all possible options but does allow typical settings used by NARS for creating population estimates.'),
+               h3("Instructions for Use"),
+               h4("Prepare Data for Analysis tab"),
+               tags$ol(
+                 tags$li("Select data file and upload."),
+                 tags$li("The variables in that file will populate dropdown lists on that tab."),
+                 tags$li("Select variables to serve as site IDs, weights, response variables, and subpopulations (if desired). If only overall or 'national' estimates are desired, check the box for overall analysis."),
+                tags$li("Select the type of variance you want to use.",
+                        tags$ul(
+                        tags$li("For simple random sample variance, select a stratum variable to better estimate variance."), 
+                        tags$li("For local neighborhood variance (as used in NARS estimates), select coordinate variables (either in latitude/longitude or Albers projection). If coordinates are in latitude and longitude, you must provide projection information in order to convert them to Albers projection."))),
+               tags$li("Click on the button above the data to subset the data before proceeding to the Run Population Estimates tab")
+               ),
                br(),
-               p('Minimum requirements: All variables must be contained in one file. Only delimited files, such as comma- and tab-delimited, are accepted for upload.'),
+               h4("Run Population Estimates"),
+               tags$ol(
+                 tags$li("Select the type of analysis (categorical or continuous)."),
+                 tags$li("For continuous analysis, select either CDFs (cumulative distribution functions) or Percentiles."),
+                 tags$li("Click on the Run/Refresh Population Estimates button. Depending on the number of responses, subpopulations, and type of analysis, it may take a few minutes."),
+                 tags$li("If desired, download results to a comma-delimited file by clicking the Save Results button.")
+               )
+               ,
                br(),
-               p('Contact Karen Blocksom at blocksom.karen@epa.gov with questions or feedback. '),
+               h4("Minimum requirements:"),
+               tags$ul(
+                         tags$li("All variables must be contained in one file and include site IDs, weights, response variables, subpopulations (if any), and coordinates or design stratum (depending on type of variance desired)." ),
+                         tags$li("Only delimited files, such as comma- and tab-delimited, are accepted for upload."),
+                         tags$li("If local neighborhood variance is desired, coordinates must be provided, either in latitude/longitude (decimal degrees) or Albers projection. If provided in latitude/longitude, projection information is needed to convert values. If these come from NARS, they are most likely in the default format."),
+                         tags$li("If variance based on a simple random sample is desired (or if coordinates or projection information are not available), the design stratum is needed to better estimate variance.")
+                       ),
+               br(),
+               p('Contact Karen Blocksom at blocksom.karen@epa.gov with questions or feedback.'),
                br(),
                h3('Disclaimer'),
                p('The United States Environmental Protection Agency (EPA) GitHub project code is provided on an "as is" basis and the user assumes responsibility for its use.  EPA has relinquished control of the information and no longer has responsibility to protect the integrity , confidentiality, or availability of the information.  Any reference to specific commercial products, processes, or services by service mark, trademark, manufacturer, or otherwise, does not constitute or imply their endorsement, recommendation or favoring by EPA.  The EPA seal and logo shall not be used in any manner to imply endorsement of any commercial product or activity by EPA or the United States Government.')),
+
+      # Panel to import and select data to analyze
       tabPanel(title='Prepare Data for Analysis',value="prepdata",
-          # Sidebar panel for inputs
        
           fluidRow(
             # Input: Select a file ---
@@ -49,31 +79,30 @@ ui <- fluidPage(theme = shinytheme("united"),
                 # Horizontal line
                 tags$hr(),
                 
-                # Input: Select number of rows to display ----
+                # Input: Select number of rows to display 
                 radioButtons("disp","Display",
                              choices = c(Head = 'head',
                                          All = 'all'),
                              selected='head')),
-            
+            # Provide dropdown menus to allow user to select site, weight, and response variables from those in the imported dataset
             column(4,
               selectizeInput("siteVar","Select site variable", choices=NULL, multiple=FALSE),
-              # selectizeInput("coordxVar","Select the X coordinate variable (or longitude) \n(required only for local neighborhood variance)", 
-              #                choices=NULL, multiple=FALSE),
-              # selectizeInput("coordyVar","Select the Y coordinate variable (or latitude) \n(required only for local neighborhood variance)", 
-              #                choices=NULL, multiple=FALSE),
               selectizeInput("weightVar","Select weight variable", choices=NULL, multiple=FALSE),
               selectizeInput("respVar","Select up to 10 response variables - must all be either categorical or numeric", choices=NULL, multiple=TRUE),
+
+              # If national estimates box is NOT checked, show subpopulation dropdown list              
               conditionalPanel(condition = 'input.natpop == false',
                                selectizeInput("subpopVar","Select up to 10 subpopulation variables \n(required if not national estimates only)", 
                                               choices=NULL, multiple=TRUE)),
               checkboxInput('natpop','Only overall (all sites) estimates? Select if no \nsubpopulations of interest',FALSE)
             ),
-            
+            # Set up type of variance to use in estimates: local or SRS
             column(4,
                    radioButtons('locvar',"Type of variance estimate to use (select one)",
                                 choices = c('Local neighborhood variance' = 'local',
                                             'Simple Random Sample (requires stratum)' = 'srs'),
                                 select = 'srs'),
+                   # If local, user must select x and y coordinates and convert to Albers if in lat/long
                    conditionalPanel(condition = "input.locvar == 'local'",
                                     selectizeInput("coordxVar","Select the X coordinate variable (or longitude) \n(required only for local neighborhood variance)", 
                                                    choices=NULL, multiple=FALSE),
@@ -82,6 +111,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                                     
                                     checkboxInput("xy", "Convert latitude/longitude \nto Albers Projection (This is necessary \nif using local neighborhood variance.). Current projection information:",
                                 FALSE),
+                                # If conversion from lat/long is needed, provide default as NARS typical projection info, otherwise allow user to enter
                                      conditionalPanel(condition = "input.xy == true",
                                                       selectInput('proj',"Projection options (otherwise provide as x and y coordinates). If selecting other than GRS80 (standard NARS), supply necessary projection information.)",
                                                                   list('GRS80 (standard NARS)','Other')),
@@ -91,40 +121,41 @@ ui <- fluidPage(theme = shinytheme("united"),
                                                                        textInput('sp1','Standard parallel 1 (dec. deg.)',value=29.5),
                                                                        textInput('sp2','Standard parallel 2 (dec. deg.)',value=45.5)
                                                                        )
-                                                      )
+                                                      ),
                    
-                                                      ,
+                   # Select stratum if Simple Random Sample                                 
                    conditionalPanel(condition = "input.locvar == 'srs'",
                                     selectizeInput("stratumVar", "Select the stratum variable in order to calculate variance based on a simple random sample",
                                                    choices=NULL, multiple=FALSE))
             )  
          ),
-         
-          actionButton("subsetBtn", "Prepare data for analysis - necessary to run estimates"),
+          # Press button to subset data for analysis - must click here first
+          actionButton("subsetBtn", "Click HERE to prepare data for population estimates"),
        
           # Show a table of the data
           tableOutput("contents")
         
         
       ),
-      
+      # Tab to run population estimates
       tabPanel(title="Run Population Estimates",value="runest",
           fluidRow(     
-             column(3,
+             column(3, 
+               # User must select categorical or continuous variable analysis, depending on response variables selected
                radioButtons("atype","Type of Analysis (pick one)",
                             choices = c('Categorical ( for character variables)' = 'categ', 'Continuous (for numeric variables)' = 'contin'),
                             selected='categ'),
-             
+             # If continuous analysis selected, select whether CDFs or percentiles are desired.  
              conditionalPanel(condition = "input.atype == 'contin'",
                               radioButtons("cdf_pct", "Show CDF or percentile results",
                                            choices = c(CDF = 'cdf', Percentiles = 'pct'),
                                            selected = 'pct')),
-             
+             # Once data are prepared, user needs to click to run estimates, or rerun estimates on refreshed data
              actionButton('runBtn', "Run/Refresh population estimates"),
              hr(),
-             
+             # Click to download results into a comma-delimited file
              downloadButton("dwnldcsv","Save Results as .csv file")),
-            
+             # Show results here
              column(6,
                     tableOutput("popest"))
           )
@@ -136,6 +167,7 @@ ui <- fluidPage(theme = shinytheme("united"),
 server <- function(input, output, session) {
    
   #shinyjs::disable("dwnldcsv")
+  # Read in data file as selected
   dataIn <- reactive({
     file1 <- input$file1
     req(file1)
@@ -147,7 +179,7 @@ server <- function(input, output, session) {
     
     df
   })
-  
+  # Use current dataset to refresh dropdown list of variables.
   observe({
     vars <- colnames(dataIn())
     updateSelectizeInput(session, "weightVar", "Select weight variable", choices=vars)
@@ -166,7 +198,7 @@ server <- function(input, output, session) {
   })
     
 
-  
+  # The default type of projection is NARS standard, but if users select any other option, default values change and user can change
   observe({
     x <- input$proj
     
@@ -185,7 +217,7 @@ server <- function(input, output, session) {
       
     }
   })
-  
+  # Once subset button is clicked, validate selections to make sure any variable only occurs in set of selections
   dataOut <- eventReactive(input$subsetBtn,{
     if(input$subsetBtn > 0){ # Add more to this section to test for variable types 
       if(input$natpop == FALSE){
@@ -200,7 +232,7 @@ server <- function(input, output, session) {
           need(input$siteVar %nin% c(input$respVar,input$subpopVar,input$weightVar),
                'Site variable cannot overlap with other variable selections.')
           )
-     
+          # If local variance selected, make sure x and y coordinate variables do not overlap with any already selected     
           if(input$locvar == 'local'){
             validate(
               need(input$coordxVar %nin% c(input$siteVar,input$coordyVar,input$respVar,input$subpopVar,input$weightVar),
@@ -208,32 +240,35 @@ server <- function(input, output, session) {
               need(input$coordyVar %nin% c(input$siteVar,input$coordxVar,input$respVar,input$subpopVar,input$weightVar),
                  "Y-coordinate variable cannot overlap with other variable selections.")
               )
-              
+              # For conversion to Albers projection, select necessary variables and use geodalbers function from spsurvey
               df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar, input$subpopVar))
               if(input$xy == TRUE){
                 xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
                                       as.numeric(input$clon),as.numeric(input$clat),
                                       as.numeric(input$sp1),as.numeric(input$sp2))
-                
+                # Combine x and y coordinates back with set of selected variables, select 
                 df1 <- cbind(df1,xyCoord) %>%
+                  subset(select=c(input$siteVar,'xcoord','ycoord',input$weightVar,input$respVar,input$subpopVar)) %>%
                   mutate(siteID=eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
                   subset(select=c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar)) %>%
                   mutate(allSites='All Sites')
-                
+               # If conversion not needed, select variables and rename them to required names 
               }else{
-                df1 <- mutate(df1, xcoord = eval(as.name(input$coordxVar)), ycoord = eval(as.name(input$coordyVar)),
+                df1 <- subset(df1, select=c(input$siteVar,input$coordxVar,input$coordyVar,input$weightVar,input$respVar,input$subpopVar)) %>%
+                  mutate(xcoord = eval(as.name(input$coordxVar)), ycoord = eval(as.name(input$coordyVar)),
                               siteID = eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
                   subset(select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar)) %>%
                   mutate(allSites='All Sites')
                 
               } 
-            
+          # If local variance not used (SRS selected), need stratum variable but not coordinates 
           }else{
+            # validate variable for stratum to make sure it does not overlap with other variables selected
             validate(
               need(input$stratumVar %nin% c(input$siteVar,input$respVar,input$subpopVar,input$weightVar),
                    "Stratum variable cannot overlap with other variable selections.")
               )
-            
+            # Subset the data to the variables selected, then rename any to required names.
             df1 <- subset(dataIn(), select=c(input$siteVar, input$stratumVar, input$weightVar, input$respVar, input$subpopVar))
 
             
@@ -245,48 +280,60 @@ server <- function(input, output, session) {
           }
        
         
-
+      # If All Sites only estimates selected, changes selection of data for analysis
       }else{
         # Use function below to validate input variables as the appropriate type and to make sure the selections do not overlap
         validate(
-          need(input$respVar %nin% c(input$siteVar,input$coordxVar,input$coordyVar,input$weightVar),
+          need(input$respVar %nin% c(input$siteVar,input$weightVar),
                "Response variable(s) cannot overlap with other variable selections."),
-          need(input$weightVar %nin% c(input$siteVar,input$coordxVar,input$coordyVar,input$respVar),
+          need(input$weightVar %nin% c(input$siteVar,input$respVar),
                "Weight variable cannot overlap with other variable selections."),
-          need(input$siteVar %nin% c(input$coordxVar,input$coordyVar,input$respVar,input$weightVar),
+          need(input$siteVar %nin% c(input$respVar,input$weightVar),
                'Site variable cannot overlap with other variable selections.')
         )
+        # if local neighborhood variance used here, make sure coordinates variables do not overlap with other selections
         if(input$locvar == 'local'){
           validate(
-            need(input$coordxVar %nin% c(input$siteVar,input$coordyVar,input$respVar,input$subpopVar,input$weightVar),
+            need(input$coordxVar %nin% c(input$siteVar,input$coordyVar,input$respVar,input$weightVar),
                  "X-coordinate variable cannot overlap with other variable selections."),
-            need(input$coordyVar %nin% c(input$siteVar,input$coordxVar,input$respVar,input$subpopVar,input$weightVar),
+            need(input$coordyVar %nin% c(input$siteVar,input$coordxVar,input$respVar,input$weightVar),
                  "Y-coordinate variable cannot overlap with other variable selections.")
           )
+          # Subset the data to selected variables
+          df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar))
+          # If conversion from lat/long is necessary, convert, then rename variables with required names
+          if(input$xy == TRUE){
+            xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
+                                  as.numeric(input$clon),as.numeric(input$clat),
+                                  as.numeric(input$sp1),as.numeric(input$sp2))
+            
+            df1 <- cbind(df1,xyCoord) %>%
+              mutate(siteID=eval(as.name(input$siteVar)), wgt = as.numeric(eval(as.name(input$weightVar)))) %>%
+              subset(select=c('siteID','wgt','xcoord','ycoord',input$respVar))
+            
+          }else{ # Conversion is not necessary, so just rename and subset variables
+            
+            df1 <- mutate(df1, xcoord = as.numeric(eval(as.name(input$coordxVar))), ycoord = as.numeric(eval(as.name(input$coordyVar))),
+                          siteID = eval(as.name(input$siteVar)), wgt = as.numeric(eval(as.name(input$weightVar)))) %>%
+              subset(select = c('siteID','wgt','xcoord','ycoord',input$respVar))
+          } 
+          
+        # if SRS selected, make sure stratum does not overlap with other variable selections
         }else{
           validate(
-            need(input$stratumVar %nin% c(input$siteVar,input$respVar,input$subpopVar,input$weightVar),
+            need(input$stratumVar %nin% c(input$siteVar,input$respVar,input$weightVar),
                  "Stratum variable cannot overlap with other variable selections.")
           )
+          
+          # subset to the variables needed
+          df1 <- subset(dataIn(), select = c(input$siteVar, input$weightVar, input$stratumVar, input$respVar)) %>%
+            mutate(siteID = eval(as.name(input$siteVar)), wgt = as.numeric(eval(as.name(input$weightVar))), stratum = eval(as.name(input$stratumVar))) %>%
+            subset(select = c('siteID','wgt','stratum',input$respVar))
+          
         }
         
-        
-        df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar))
-        if(input$xy == TRUE){
-          xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
-                                as.numeric(input$clon),as.numeric(input$clat),
-                                as.numeric(input$sp1),as.numeric(input$sp2))
-          
-          df1 <- cbind(df1,xyCoord) %>%
-            mutate(siteID=eval(as.name(input$siteVar)), wgt = as.numeric(eval(as.name(input$weightVar)))) %>%
-            subset(select=c('siteID','wgt','xcoord','ycoord',input$respVar))
-          
-        }else{
-          #df1 <- dplyr::rename(df1, c(input$coordxVar='xcoord',input$coordyVar='ycoord'))
-          df1 <- mutate(df1, xcoord = as.numeric(eval(as.name(input$coordxVar))), ycoord = as.numeric(eval(as.name(input$coordyVar))),
-                        siteID = eval(as.name(input$siteVar)), wgt = as.numeric(eval(as.name(input$weightVar)))) %>%
-            subset(select = c('siteID','wgt','xcoord','ycoord',input$respVar))
-        } 
+        # If all sites data coordinates need to be converted to Albers projection - NEED TO ADD STRATUM VAR HERE
+    
 
       }
       # Look for missing values among coordinates and weights only - response and subpopulation variables can have missing values
@@ -297,14 +344,14 @@ server <- function(input, output, session) {
       )
       
       df1
-      
+    # This is what shows up before the subset button is clicked  
     }else{
       df1 <- dataIn()
     }
   }
 
   )
-
+  # Show table on data prep tab to 5 digits
   output$contents <- renderTable({
     
     if(input$subsetBtn > 0){
@@ -322,97 +369,93 @@ server <- function(input, output, session) {
     }
   }, digits=5)
   
+  # Calculate population estimates 
   dataEst <- eventReactive(input$runBtn,{
-  #if(input$runBtn > 0){
     dfIn <- dataOut() %>%
     mutate(Active=TRUE)
-      
+    # Show progress bar for a certain about of time while calculations are running  
     withProgress(message="Calculating estimates",detail="This might take a while...",
                    value=0,{  
+      # User selected categorical analysis, set up cat.analysis function depending on previous selections
       if(input$atype=='categ'){
-        if(input$locvar == 'local'){
-          if(input$natpop == FALSE){
+        if(input$locvar == 'local'){ # Local neighborhood variance selected
+          if(input$natpop == FALSE){ # Not overall analysis,  includes subpopulations
             cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                          subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                          design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
                          data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')
-          }else{
+          }else{ # No subpopulations selected
             cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                          design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
                          data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')
             
           }
-        }else{
-          if(input$natpop == FALSE){
+        }else{ # SRS variance
+          if(input$natpop == FALSE){ # Not overall analysis, includes subpopulations
             cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                          subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                          design=subset(dfIn,select=c('siteID','wgt','stratum')),
                          data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')
-          }else{
+          }else{ # No subpopulations selected
             cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                          design=subset(dfIn,select=c('siteID','wgt','stratum')),
                          data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')
           }
         }
         
-      }else{
-        if(length(input$respVar)>1){
+      }else{ # continuous analysis selected, begin by converting to numeric
+        if(length(input$respVar)>1){ # if more than one response variable selected
           dfIn[,input$respVar] <- lapply(dfIn[,input$respVar], as.numeric)
-        }else{
+        }else{ # If only one response variable selected
           dfIn[,input$respVar] <- as.numeric(dfIn[,input$respVar])
         }
         
-        # validate(
-        #   need(nrow(dfIn[complete.cases(dfIn[,input$respVar]),])==nrow(dfIn),'There are non-numeric values among response variables.')
-        # )
-        # 
-        
-        if(input$locvar=='local'){
-          if(input$natpop == FALSE){
-            if(input$cdf_pct=='cdf'){
+        if(input$locvar=='local'){ # Local neighborhood variance selected
+          if(input$natpop == FALSE){ # Subpopulations selected
+            if(input$cdf_pct=='cdf'){ # Produce CDFs
               cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                             design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
                             data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$CDF
-            }else{
+            }else{ # Just produce percentiles
               cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                             design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
                             data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$Pct
             }
-          }else{
-            if(input$cdf_pct=='cdf'){
+          }else{ # No subpopulations selected, only overall analysis
+            if(input$cdf_pct=='cdf'){ # CDFs of interest
               cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
                             data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$CDF
-            }else{
+            }else{ # Percentiles of interest
               cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
                             data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$Pct
             }
             
           }
-        }else{
-          if(input$natpop == FALSE){
-            if(input$cdf_pct=='cdf'){
+        }else{ # SRS variance selected
+          if(input$natpop == FALSE){ # Subpopulations selected
+            if(input$cdf_pct=='cdf'){ # CDFs of interest
               cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                                         subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                                         design=subset(dfIn,select=c('siteID','wgt','stratum')),
                                         data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$CDF
               
-            }else{
+            }else{ # Percentiles of interest
               cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                                         subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                                         design=subset(dfIn,select=c('siteID','wgt','stratum')),
                                         data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$Pct
             }
-          }else{
-            if(input$cdf_pct=='cdf'){
+          }else{ # No subpopulations selected
+            if(input$cdf_pct=='cdf'){ # CDFs 
               cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             design=subset(dfIn,select=c('siteID','wgt','stratum')),
                             data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$CDF
               
-            }else{
+            }else{ # Percentiles
               cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             design=subset(dfIn,select=c('siteID','wgt','stratum')),
                             data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$Pct
@@ -433,9 +476,9 @@ server <- function(input, output, session) {
         dataEst()
   })
 
-  
+  # Only enable download button once population estimates are produced
   observe({shinyjs::toggleState('dwnldcsv',length(dataEst())!=0)})
-  
+  # Name output file based on type of analysis selected and write to comma-delimited file
   output$dwnldcsv <- downloadHandler(
     filename = function() {
       if(input$atype=='categ'){
