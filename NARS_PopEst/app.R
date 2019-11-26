@@ -46,7 +46,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                tags$ul(
                          tags$li("All variables must be contained in one file and include site IDs, weights, response variables, subpopulations (if any), and coordinates or design stratum (depending on type of variance desired)." ),
                          tags$li("Only delimited files, such as comma- and tab-delimited, are accepted for upload."),
-                         tags$li("If local neighborhood variance is desired, coordinates must be provided, either in latitude/longitude (decimal degrees) or Albers projection. If provided in latitude/longitude, projection information is needed to convert values. If these come from NARS, they are most likely in the default format."),
+                         tags$li("If local neighborhood variance is desired, coordinates must be provided, either in latitude/longitude (decimal degrees) or Albers projection. If provided in latitude/longitude, projection information is needed to convert values. Only spheroid need be supplied for conversion."),
                          tags$li("If variance based on a simple random sample is desired (or if coordinates or projection information are not available), the design stratum is needed to better estimate variance.")
                        ),
                br(),
@@ -133,6 +133,7 @@ ui <- fluidPage(theme = shinytheme("united"),
           actionButton("subsetBtn", "Click HERE to prepare data for population estimates"),
        
           # Show a table of the data
+          h4("Analysis Output"),
           tableOutput("contents")
         
         
@@ -156,7 +157,10 @@ ui <- fluidPage(theme = shinytheme("united"),
              # Click to download results into a comma-delimited file
              downloadButton("dwnldcsv","Save Results as .csv file")),
              # Show results here
-             column(6,
+             column(8,
+                    h4("Warnings"),
+                    tableOutput("warnest"),
+                    h4("Analysis Output"),
                     tableOutput("popest"))
           )
 
@@ -350,8 +354,16 @@ server <- function(input, output, session) {
     }
   }, digits=5)
   
+  
   # Calculate population estimates 
   dataEst <- eventReactive(input$runBtn,{
+    if(exists("warn.df")){
+      warn.df <- data.frame(warnings='none')
+      print('exists')
+    }else{
+      print("does not")
+    }
+    
     dfIn <- dataOut() %>%
     mutate(Active=TRUE)
     # Show progress bar for a certain about of time while calculations are running  
@@ -361,27 +373,30 @@ server <- function(input, output, session) {
       if(input$atype=='categ'){
         if(input$locvar == 'local'){ # Local neighborhood variance selected
           if(input$natpop == FALSE){ # Not overall analysis,  includes subpopulations
-            cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+            estOut <- cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                          subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                          design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
                          data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')
+            
           }else{ # No subpopulations selected
-            cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+            estOut <- cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                          design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
                          data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')
             
           }
         }else{ # SRS variance
           if(input$natpop == FALSE){ # Not overall analysis, includes subpopulations
-            cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+            estOut <- cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                          subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                          design=subset(dfIn,select=c('siteID','wgt','stratum')),
                          data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')
+
             
           }else{ # No subpopulations selected
-            cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+            estOut <- cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                          design=subset(dfIn,select=c('siteID','wgt','stratum')),
                          data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')
+          
           }
         }
         
@@ -395,23 +410,23 @@ server <- function(input, output, session) {
         if(input$locvar=='local'){ # Local neighborhood variance selected
           if(input$natpop == FALSE){ # Subpopulations selected
             if(input$cdf_pct=='cdf'){ # Produce CDFs
-              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                             design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
                             data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$CDF
             }else{ # Just produce percentiles
-              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                             design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
                             data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$Pct
             }
           }else{ # No subpopulations selected, only overall analysis
             if(input$cdf_pct=='cdf'){ # CDFs of interest
-              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
                             data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$CDF
             }else{ # Percentiles of interest
-              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
                             data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$Pct
             }
@@ -420,25 +435,25 @@ server <- function(input, output, session) {
         }else{ # SRS variance selected
           if(input$natpop == FALSE){ # Subpopulations selected
             if(input$cdf_pct=='cdf'){ # CDFs of interest
-              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                                         subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                                         design=subset(dfIn,select=c('siteID','wgt','stratum')),
                                         data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$CDF
               
             }else{ # Percentiles of interest
-              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                                         subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                                         design=subset(dfIn,select=c('siteID','wgt','stratum')),
                                         data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$Pct
             }
           }else{ # No subpopulations selected
             if(input$cdf_pct=='cdf'){ # CDFs 
-              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             design=subset(dfIn,select=c('siteID','wgt','stratum')),
                             data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$CDF
               
             }else{ # Percentiles
-              cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
+              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             design=subset(dfIn,select=c('siteID','wgt','stratum')),
                             data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$Pct
             }
@@ -447,19 +462,28 @@ server <- function(input, output, session) {
           
         }
       }
-     
     })
+    if(exists('warn.df') && ncol(warn.df)>1){
+      outdf <- list(estOut=estOut, warndf=warn.df)
+    }else{
+      outdf <- list(estOut=estOut, warndf=data.frame(warnings='none'))
+    }
+    
     
   })
   
   
   # Output the population estimates to a table
   output$popest <- renderTable({
-        dataEst()
+    dataEst()[['estOut']]
+  })
+  
+  output$warnest <- renderTable({
+    dataEst()[['warndf']]
   })
 
   # Only enable download button once population estimates are produced
-  observe({shinyjs::toggleState('dwnldcsv',length(dataEst())!=0)})
+  observe({shinyjs::toggleState('dwnldcsv',length(dataEst()[['estOut']])!=0)})
   # Name output file based on type of analysis selected and write to comma-delimited file
   output$dwnldcsv <- downloadHandler(
     filename = function() {
@@ -474,11 +498,12 @@ server <- function(input, output, session) {
       }
     },
     content = function(file) {
-      write.csv(dataEst(), file, row.names = FALSE)
+      write.csv(dataEst()[['estOut']], file, row.names = FALSE)
     }
   )
   
   session$onSessionEnded(function() {
+    rm(warn.df,envir=.GlobalEnv)
     stopApp()
   })  
   
