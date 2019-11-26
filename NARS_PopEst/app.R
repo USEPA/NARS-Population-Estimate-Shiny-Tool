@@ -113,11 +113,11 @@ ui <- fluidPage(theme = shinytheme("united"),
                                 FALSE),
                                 # If conversion from lat/long is needed, provide default as NARS typical projection info, otherwise allow user to enter
                                      conditionalPanel(condition = "input.xy == true",
-                                                      selectInput('proj',"Projection options (otherwise provide as x and y coordinates). If selecting other than GRS80 (standard NARS), supply necessary projection information.)",
-                                                                  list('GRS80 (standard NARS)','Other')),
+                                                     p("Projection options (otherwise provide as x and y coordinates). "),
+                                                     tags$body(p("Use spheroid ",strong("GRS80"),"for NAD83, ",strong("Clarke1866"),"for NAD27, and ", strong("WGS84"), "for WGS84 datum. Other values are defaults assumed for NARS.")),
                                                                        selectInput('sph',"Spheroid options",list('GRS80','Clarke1866','WGS84')),
                                                                        textInput('clon','Center longitude (dec. deg.)',value=-96),
-                                                                       textInput('clat','Center latitude (dec. deg.)',value=23),
+                                                                       textInput('clat','Center latitude (dec. deg.)',value=37.5),
                                                                        textInput('sp1','Standard parallel 1 (dec. deg.)',value=29.5),
                                                                        textInput('sp2','Standard parallel 2 (dec. deg.)',value=45.5)
                                                                        )
@@ -198,25 +198,6 @@ server <- function(input, output, session) {
   })
     
 
-  # The default type of projection is NARS standard, but if users select any other option, default values change and user can change
-  observe({
-    x <- input$proj
-    
-    if(x=='GRS80 (standard NARS)'){
-      updateSelectInput(session, 'sph', choices='GRS80')
-      updateTextInput(session, 'clon', value = -96)
-      updateTextInput(session, 'clat', value = 37.5)
-      updateTextInput(session, 'sp1', value = 29.5)
-      updateTextInput(session, 'sp2', value = 45.5)
-    }else if(x=='Other'){
-      updateSelectInput(session, 'sph', choices=x)
-      updateTextInput(session, 'clon', value = -96)
-      updateTextInput(session, 'clat', value = 23)
-      updateTextInput(session, 'sp1', value = 29.5)
-      updateTextInput(session, 'sp2', value = 45.5)
-      
-    }
-  })
   # Once subset button is clicked, validate selections to make sure any variable only occurs in set of selections
   dataOut <- eventReactive(input$subsetBtn,{
     if(input$subsetBtn > 0){ # Add more to this section to test for variable types 
@@ -396,6 +377,7 @@ server <- function(input, output, session) {
                          subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                          design=subset(dfIn,select=c('siteID','wgt','stratum')),
                          data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')
+            
           }else{ # No subpopulations selected
             cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                          design=subset(dfIn,select=c('siteID','wgt','stratum')),
