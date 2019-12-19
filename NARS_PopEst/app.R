@@ -358,6 +358,7 @@ server <- function(input, output, session) {
   # Calculate population estimates 
   dataEst <- eventReactive(input$runBtn,{
     if(exists("warn.df")){
+      #rm(warn.df)
       warn.df <- data.frame(warnings='none')
       print('exists')
     }else{
