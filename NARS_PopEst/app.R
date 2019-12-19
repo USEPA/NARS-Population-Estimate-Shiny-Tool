@@ -133,7 +133,7 @@ ui <- fluidPage(theme = shinytheme("united"),
           actionButton("subsetBtn", "Click HERE to prepare data for population estimates"),
        
           # Show a table of the data
-          h4("Analysis Output"),
+          h4("Data for Analysis"),
           tableOutput("contents")
         
         
@@ -170,7 +170,6 @@ ui <- fluidPage(theme = shinytheme("united"),
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
    
-  #shinyjs::disable("dwnldcsv")
   # Read in data file as selected
   dataIn <- reactive({
     file1 <- input$file1
@@ -231,21 +230,21 @@ server <- function(input, output, session) {
                 xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
                                       as.numeric(input$clon),as.numeric(input$clat),
                                       as.numeric(input$sp1),as.numeric(input$sp2))
-                # Combine x and y coordinates back with set of selected variables, select 
-                df1 <- cbind(df1,xyCoord) %>%
-                  subset(select=c(input$siteVar,'xcoord','ycoord',input$weightVar,input$respVar,input$subpopVar)) %>%
-                  mutate(siteID=eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
-                  subset(select=c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar)) %>%
-                  mutate(allSites='All Sites')
+                # Combine x and y coordinates back with set of selected variables, select
+                df1 <- cbind(df1, xyCoord)
+                df1 <- subset(df1, select=c(input$siteVar,'xcoord','ycoord',input$weightVar,input$respVar,input$subpopVar))
                # If conversion not needed, select variables and rename them to required names 
               }else{
-                df1 <- subset(df1, select=c(input$siteVar,input$coordxVar,input$coordyVar,input$weightVar,input$respVar,input$subpopVar)) %>%
-                  mutate(xcoord = eval(as.name(input$coordxVar)), ycoord = eval(as.name(input$coordyVar)),
-                              siteID = eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
-                  subset(select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar)) %>%
-                  mutate(allSites='All Sites')
-                
+                df1 <- subset(df1, select=c(input$siteVar,input$coordxVar,input$coordyVar,input$weightVar,input$respVar,input$subpopVar))
+                df1$xcoord <- with(df1, eval(as.name(input$coordxVar)))
+                df1$ycoord <- with(df1, eval(as.name(input$coordyVar)))
+
               } 
+              df1$siteID <- with(df1, eval(as.name(input$siteVar)))
+              df1$wgt <- with(df1, eval(as.name(input$weightVar)))
+              df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar))
+              
+              
           # If local variance not used (SRS selected), need stratum variable but not coordinates 
           }else{
             # validate variable for stratum to make sure it does not overlap with other variables selected
@@ -257,13 +256,13 @@ server <- function(input, output, session) {
             df1 <- subset(dataIn(), select=c(input$siteVar, input$stratumVar, input$weightVar, input$respVar, input$subpopVar))
 
             
-              df1 <- mutate(df1, stratum = eval(as.name(input$stratumVar)),
-                            siteID = eval(as.name(input$siteVar)), wgt = eval(as.name(input$weightVar))) %>%
-                subset(select = c('siteID','wgt','stratum',input$respVar,input$subpopVar)) %>%
-                mutate(allSites='All Sites')
+            df1$stratum <- with(df1, eval(as.name(input$stratumVar)))
+            df1$siteID <- with(df1, eval(as.name(input$siteVar)))
+            df1$wgt <- with(df1, eval(as.name(input$weightVar)))
+            df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,input$subpopVar))
 
           }
-       
+          df1$allSites <- 'All Sites'
         
       # If All Sites only estimates selected, changes selection of data for analysis
       }else{
@@ -292,16 +291,16 @@ server <- function(input, output, session) {
                                   as.numeric(input$clon),as.numeric(input$clat),
                                   as.numeric(input$sp1),as.numeric(input$sp2))
             
-            df1 <- cbind(df1,xyCoord) %>%
-              mutate(siteID=eval(as.name(input$siteVar)), wgt = as.numeric(eval(as.name(input$weightVar)))) %>%
-              subset(select=c('siteID','wgt','xcoord','ycoord',input$respVar))
-            
+            df1 <- cbind(df1, xyCoord)
+
           }else{ # Conversion is not necessary, so just rename and subset variables
             
-            df1 <- mutate(df1, xcoord = as.numeric(eval(as.name(input$coordxVar))), ycoord = as.numeric(eval(as.name(input$coordyVar))),
-                          siteID = eval(as.name(input$siteVar)), wgt = as.numeric(eval(as.name(input$weightVar)))) %>%
-              subset(select = c('siteID','wgt','xcoord','ycoord',input$respVar))
+            df1$xcoord <- as.numeric(eval(as.name(input$coordxVar)))
+            df1$ycoord <- as.numeric(eval(as.name(input$coordyVar)))
           } 
+          df1$siteID <- eval(as.name(input$siteVar))
+          df1$wgt <- as.numeric(eval(as.name(input$weightVar)))
+          df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar))
           
         # if SRS selected, make sure stratum does not overlap with other variable selections
         }else{
@@ -311,10 +310,12 @@ server <- function(input, output, session) {
           )
           
           # subset to the variables needed
-          df1 <- subset(dataIn(), select = c(input$siteVar, input$weightVar, input$stratumVar, input$respVar)) %>%
-            mutate(siteID = eval(as.name(input$siteVar)), wgt = as.numeric(eval(as.name(input$weightVar))), stratum = eval(as.name(input$stratumVar))) %>%
-            subset(select = c('siteID','wgt','stratum',input$respVar))
-          
+          df1 <- subset(dataIn(), select = c(input$siteVar, input$weightVar, input$stratumVar, input$respVar))
+          df1$siteID <- eval(as.name(input$siteVar))
+          df1$wgt <- as.numeric(eval(as.name(input$weightVar)))
+          df1$stratum <- eval(as.name(input$stratumVar))
+          df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar))
+
         }
         
         # If all sites data coordinates need to be converted to Albers projection - NEED TO ADD STRATUM VAR HERE
@@ -342,9 +343,9 @@ server <- function(input, output, session) {
     if(input$subsetBtn > 0){
       shinyjs::disable('dwnldcsv')
       
-      dataOut() %>%
-        head 
-      
+      dataOut()
+      head(dataOut())
+
     }else{
       if(input$disp == 'head'){
         return(head(dataIn()))
@@ -357,15 +358,15 @@ server <- function(input, output, session) {
   
   # Calculate population estimates 
   dataEst <- eventReactive(input$runBtn,{
-    if(exists("warn.df")){
-      warn.df <- data.frame(warnings='none')
+    if(exists("warn.df") && is.data.frame(get("warn.df"))){
+      rm("warn.df", envir=.GlobalEnv)
       print('exists')
     }else{
       print("does not")
     }
     
-    dfIn <- dataOut() %>%
-    mutate(Active=TRUE)
+    dfIn <- dataOut()
+    dfIn$Active <- TRUE
     # Show progress bar for a certain about of time while calculations are running  
     withProgress(message="Calculating estimates",detail="This might take a while...",
                    value=0,{  
@@ -462,6 +463,7 @@ server <- function(input, output, session) {
           
         }
       }
+                    
     })
     if(exists('warn.df') && ncol(warn.df)>1){
       outdf <- list(estOut=estOut, warndf=warn.df)
