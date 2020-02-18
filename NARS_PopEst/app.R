@@ -377,12 +377,12 @@ server <- function(input, output, session) {
             estOut <- cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                          subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                          design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                         data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')
+                         data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='Local')
             
           }else{ # No subpopulations selected
             estOut <- cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                          design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                         data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')
+                         data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='Local')
             
           }
         }else{ # SRS variance
@@ -414,22 +414,22 @@ server <- function(input, output, session) {
               estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                             design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$CDF
+                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='Local')$CDF
             }else{ # Just produce percentiles
               estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
                             design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$Pct
+                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='Local')$Pct
             }
           }else{ # No subpopulations selected, only overall analysis
             if(input$cdf_pct=='cdf'){ # CDFs of interest
               estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$CDF
+                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='Local')$CDF
             }else{ # Percentiles of interest
               estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
                             design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='local')$Pct
+                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='Local')$Pct
             }
             
           }
