@@ -175,7 +175,24 @@ ui <- fluidPage(theme = shinytheme("united"),
                     tableOutput("popest"))
           )
 
-      )
+      ),
+      tabPanel(title="Run Change Analysis", value='change',
+               fluidRow(
+                 h4("If a different set of response variables is necessary from those used in the population estimates, 
+                    return to the Prepare Data for Analysis tab to re-select variables."),
+                 column(3, 
+                        # User must select years to compare
+                        selectizeInput('chgYear1',"Select first year of data to analyze", choices=NULL, multiple=FALSE),
+                        selectizeInput('chgYear2', "Select second year of data to analyze", choices=NULL, multiple=FALSE),
+                        
+                 # Once data are prepared, user needs to click to run estimates, or rerun estimates on refreshed data
+                 actionButton('chgBtn', "Run/Refresh change estimates"),
+                 hr(),
+                 # Click to download results into a comma-delimited file
+                 downloadButton("chgcsv","Save Change Results as .csv file"))
+               )
+               
+          )
      )
    )
 # Define server logic required to draw a histogram
@@ -418,11 +435,28 @@ server <- function(input, output, session) {
   # Allow user to select specific year of interest for analysis
   observe({ 
                  ychoices <- as.character(sort(unique(dataOut()[[input$yearVar]])))
-                 print(ychoices)
-                 updateSelectizeInput(session, 'selYear', choices = ychoices, selected=NULL)
+  
+                 updateSelectizeInput(session, 'selYear', 'Select the year for analysis', 
+                                      choices = ychoices, selected=NULL)
+                 # Probably need to separate the list of choices to keep from updating every time something happens - observeEvent instead?
+                 updateSelectizeInput(session, 'chgYear1', "Select first year of data to analyze", 
+                                      choices = ychoices, selected=NULL) # This is not working correctly - allows selection but does not actually keep selection
+                
+                 upd.ychoices <- ychoices[ychoices!=input$chgYear1] # This part works, but not sure it really lets you select anything
+                 updateSelectizeInput(session, 'chgYear2', "Select second year of data to analyze",
+                                      choices = upd.ychoices, selected=NULL)
                  }
                )
   
+  # Change estimate code
+  chgEst <- eventReactive(input$chgBtn, {
+    chgIn <- dataOut()
+    chgIn$Active <- TRUE
+    
+    chgIn <- subset(chgIn, eval(as.name(input$yearVar)) %in% input$chgYears)
+    print('evaluated years') # THIS IS NOT WORKING
+    
+  })
   
   # Calculate population estimates 
   dataEst <- eventReactive(input$runBtn,{
@@ -555,6 +589,7 @@ server <- function(input, output, session) {
     dataEst()[['warndf']]
   })
 
+  
   # Only enable download button once population estimates are produced
   observe({shinyjs::toggleState('dwnldcsv',length(dataEst()[['estOut']])!=0)})
   # Name output file based on type of analysis selected and write to comma-delimited file
