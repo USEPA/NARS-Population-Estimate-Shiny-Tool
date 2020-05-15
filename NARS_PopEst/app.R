@@ -19,7 +19,10 @@ ui <- fluidPage(theme = shinytheme("united"),
       # Panel with instructions for using this tool
       tabPanel(title='Instructions for Use',value='instructions',
                h2("Overview"),
-               p('This Shiny app allows for calculation of population estimates as performed for the National Aquatic Resource Surveys (NARS). Estimates based on categorical and continuous variables are possible. This app does not include all possible options but does allow typical settings used by NARS for creating population estimates.'),
+               p('This Shiny app allows for calculation of population estimates as performed for the National 
+                 Aquatic Resource Surveys (NARS). Estimates based on categorical and continuous variables are possible. 
+                 This app does not include all possible options but does allow typical settings used by NARS for creating 
+                 population estimates.'),
                h3("Instructions for Use"),
                h4("Prepare Data for Analysis tab"),
                tags$ol(
@@ -88,11 +91,17 @@ ui <- fluidPage(theme = shinytheme("united"),
             column(4,
               selectizeInput("siteVar","Select site variable", choices=NULL, multiple=FALSE),
               selectizeInput("weightVar","Select weight variable", choices=NULL, multiple=FALSE),
-              selectizeInput("respVar","Select up to 10 response variables - must all be either categorical or numeric", choices=NULL, multiple=TRUE),
-
+              selectizeInput("respVar","Select up to 10 response variables - must all be either categorical or numeric", 
+                             choices=NULL, multiple=TRUE),
+              checkboxInput('chboxYear', 'Check box if performing change analysis or need to subset data for population estimates'),
+              conditionalPanel(condition="input.chboxYear == true",
+                               selectizeInput("yearVar","Select year variable if performing change analysis or needed to subset for population estimates",
+                             choices=NULL, multiple=FALSE)),
+              
               # If national estimates box is NOT checked, show subpopulation dropdown list              
               conditionalPanel(condition = 'input.natpop == false',
-                               selectizeInput("subpopVar","Select up to 10 subpopulation variables \n(required if not national estimates only)", 
+                               selectizeInput("subpopVar","Select up to 10 subpopulation variables \n(required if not 
+                                              national estimates only)", 
                                               choices=NULL, multiple=TRUE)),
               checkboxInput('natpop','Only overall (all sites) estimates? Select if no \nsubpopulations of interest',FALSE)
             ),
@@ -146,6 +155,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                radioButtons("atype","Type of Analysis (pick one)",
                             choices = c('Categorical ( for character variables)' = 'categ', 'Continuous (for numeric variables)' = 'contin'),
                             selected='categ'),
+               conditionalPanel(condition="input.atype=='categ' && input.chboxYear==true",
+                                selectizeInput('selYear', 'Select the year for analysis', choices=NULL, multiple=FALSE)),
              # If continuous analysis selected, select whether CDFs or percentiles are desired.  
              conditionalPanel(condition = "input.atype == 'contin'",
                               radioButtons("cdf_pct", "Show CDF or percentile results",
@@ -197,13 +208,21 @@ server <- function(input, output, session) {
                          options = list(maxItems=10))
     updateSelectizeInput(session, "stratumVar", "Select the stratum variable in order to calculate variance based on a simple random sample",
                          choices=vars)
+    updateSelectizeInput(session, "yearVar","Select year variable for change analysis or if needed to subset for population estimates",
+                         choices=c('', vars))
     
   })
     
 
   # Once subset button is clicked, validate selections to make sure any variable only occurs in set of selections
   dataOut <- eventReactive(input$subsetBtn,{
-    if(input$subsetBtn > 0){ # Add more to this section to test for variable types 
+    if(input$subsetBtn > 0){ 
+      if(input$chboxYear==TRUE){
+        yearVName <- input$yearVar
+      }else{
+        yearVName <- NULL
+      }
+      
       if(input$natpop == FALSE){
         # Use function below to validate input variables as the appropriate type and to make sure the selections do not overlap
         validate(
@@ -216,6 +235,12 @@ server <- function(input, output, session) {
           need(input$siteVar %nin% c(input$respVar,input$subpopVar,input$weightVar),
                'Site variable cannot overlap with other variable selections.')
           )
+          if(input$chboxYear==TRUE){
+             validate(
+               need(yearVName %nin% c(input$respVar,input$subpopVar,input$weightVar,input$siteVar),
+                    "Year variable cannot overlap with other variable selections")
+             )
+          }
           # If local variance selected, make sure x and y coordinate variables do not overlap with any already selected     
           if(input$locvar == 'local'){
             validate(
@@ -224,42 +249,56 @@ server <- function(input, output, session) {
               need(input$coordyVar %nin% c(input$siteVar,input$coordxVar,input$respVar,input$subpopVar,input$weightVar),
                  "Y-coordinate variable cannot overlap with other variable selections.")
               )
+            if(input$chboxYear==TRUE){
+              validate(
+                need(input$yearVar %nin% c(input$coordxVar, input$coordyVar),
+                     "Year variable cannot overlap with other variable selections")
+              ) 
+            }
               # For conversion to Albers projection, select necessary variables and use geodalbers function from spsurvey
-              df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar, input$subpopVar))
+              df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar, 
+                                               input$subpopVar, yearVName))
               if(input$xy == TRUE){
                 xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
                                       as.numeric(input$clon),as.numeric(input$clat),
                                       as.numeric(input$sp1),as.numeric(input$sp2))
                 # Combine x and y coordinates back with set of selected variables, select
                 df1 <- cbind(df1, xyCoord)
-                df1 <- subset(df1, select=c(input$siteVar,'xcoord','ycoord',input$weightVar,input$respVar,input$subpopVar))
+                df1 <- subset(df1, select=c(input$siteVar,'xcoord','ycoord',input$weightVar,input$respVar,input$subpopVar,yearVName))
                # If conversion not needed, select variables and rename them to required names 
               }else{
-                df1 <- subset(df1, select=c(input$siteVar,input$coordxVar,input$coordyVar,input$weightVar,input$respVar,input$subpopVar))
+                df1 <- subset(df1, select=c(input$siteVar,input$coordxVar,input$coordyVar,input$weightVar,input$respVar,
+                                            input$subpopVar, yearVName))
                 df1$xcoord <- with(df1, eval(as.name(input$coordxVar)))
                 df1$ycoord <- with(df1, eval(as.name(input$coordyVar)))
 
               } 
               df1$siteID <- with(df1, eval(as.name(input$siteVar)))
               df1$wgt <- with(df1, eval(as.name(input$weightVar)))
-              df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar))
+              df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar, yearVName))
               
               
           # If local variance not used (SRS selected), need stratum variable but not coordinates 
           }else{
             # validate variable for stratum to make sure it does not overlap with other variables selected
             validate(
-              need(input$stratumVar %nin% c(input$siteVar,input$respVar,input$subpopVar,input$weightVar),
+              need(input$stratumVar %nin% c(input$siteVar,input$respVar,input$subpopVar,input$weightVar,yearVName),
                    "Stratum variable cannot overlap with other variable selections.")
               )
+            if(input$chboxYear==TRUE){
+              validate(
+                need(yearVName %nin% c(input$stratumVar),
+                     "Year variable cannot overlap with other variable selections")
+              ) 
+            }
             # Subset the data to the variables selected, then rename any to required names.
-            df1 <- subset(dataIn(), select=c(input$siteVar, input$stratumVar, input$weightVar, input$respVar, input$subpopVar))
-
+            df1 <- subset(dataIn(), select=c(input$siteVar, input$stratumVar, input$weightVar, input$respVar, 
+                                             input$subpopVar, yearVName)) 
             
             df1$stratum <- with(df1, eval(as.name(input$stratumVar)))
             df1$siteID <- with(df1, eval(as.name(input$siteVar)))
             df1$wgt <- with(df1, eval(as.name(input$weightVar)))
-            df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,input$subpopVar))
+            df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,input$subpopVar, yearVName))
 
           }
           df1$allSites <- 'All Sites'
@@ -275,6 +314,12 @@ server <- function(input, output, session) {
           need(input$siteVar %nin% c(input$respVar,input$weightVar),
                'Site variable cannot overlap with other variable selections.')
         )
+        if(input$chboxYear==TRUE){
+          validate(
+            need(input$yearVar %nin% c(input$siteVar, input$weightVar, input$respVar),
+                 "Year variable cannot overlap with other variable selections")
+          ) 
+        }
         # if local neighborhood variance used here, make sure coordinates variables do not overlap with other selections
         if(input$locvar == 'local'){
           validate(
@@ -283,8 +328,17 @@ server <- function(input, output, session) {
             need(input$coordyVar %nin% c(input$siteVar,input$coordxVar,input$respVar,input$weightVar),
                  "Y-coordinate variable cannot overlap with other variable selections.")
           )
-          # Subset the data to selected variables
-          df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar))
+          if(input$chboxYear==TRUE){
+            validate(
+              need(input$yearVar %nin% c(input$coordxVar, input$coordyVar),
+                   "Year variable cannot overlap with other variable selections")
+            )
+          }
+          
+          # Subset the data to selected variables if year selected
+          df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, 
+                                           input$respVar, yearVName))
+          
           # If conversion from lat/long is necessary, convert, then rename variables with required names
           if(input$xy == TRUE){
             xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
@@ -295,12 +349,12 @@ server <- function(input, output, session) {
 
           }else{ # Conversion is not necessary, so just rename and subset variables
             
-            df1$xcoord <- as.numeric(eval(as.name(input$coordxVar)))
-            df1$ycoord <- as.numeric(eval(as.name(input$coordyVar)))
+            df1$xcoord <- with(df1, as.numeric(eval(as.name(input$coordxVar))))
+            df1$ycoord <- with(df1, as.numeric(eval(as.name(input$coordyVar))))
           } 
-          df1$siteID <- eval(as.name(input$siteVar))
-          df1$wgt <- as.numeric(eval(as.name(input$weightVar)))
-          df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar))
+          df1$siteID <- with(df1, eval(as.name(input$siteVar)))
+          df1$wgt <- with(df1, as.numeric(eval(as.name(input$weightVar))))
+          df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar,yearVName))
           
         # if SRS selected, make sure stratum does not overlap with other variable selections
         }else{
@@ -308,13 +362,19 @@ server <- function(input, output, session) {
             need(input$stratumVar %nin% c(input$siteVar,input$respVar,input$weightVar),
                  "Stratum variable cannot overlap with other variable selections.")
           )
+          if(input$chboxYear==TRUE){
+            validate(
+              need(input$yearVar %nin% c(input$stratumVar),
+                   "Year variable cannot overlap with other variable selections")
+            ) 
+          }
+           # subset to the variables needed
+          df1 <- subset(dataIn(), select = c(input$siteVar, input$weightVar, input$stratumVar, input$respVar,yearVName))
           
-          # subset to the variables needed
-          df1 <- subset(dataIn(), select = c(input$siteVar, input$weightVar, input$stratumVar, input$respVar))
-          df1$siteID <- eval(as.name(input$siteVar))
-          df1$wgt <- as.numeric(eval(as.name(input$weightVar)))
-          df1$stratum <- eval(as.name(input$stratumVar))
-          df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar))
+          df1$siteID <- with(df1, eval(as.name(input$siteVar)))
+          df1$wgt <- with(df1, as.numeric(eval(as.name(input$weightVar))))
+          df1$stratum <- with(df1, eval(as.name(input$stratumVar)))
+          df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,yearVName))
 
         }
         
@@ -355,6 +415,14 @@ server <- function(input, output, session) {
     }
   }, digits=5)
   
+  # Allow user to select specific year of interest for analysis
+  observe({ 
+                 ychoices <- as.character(sort(unique(dataOut()[[input$yearVar]])))
+                 print(ychoices)
+                 updateSelectizeInput(session, 'selYear', choices = ychoices, selected=NULL)
+                 }
+               )
+  
   
   # Calculate population estimates 
   dataEst <- eventReactive(input$runBtn,{
@@ -367,6 +435,9 @@ server <- function(input, output, session) {
     
     dfIn <- dataOut()
     dfIn$Active <- TRUE
+    if(input$chboxYear==TRUE){
+      dfIn <- subset(dfIn, eval(as.name(input$yearVar)) == input$selYear)
+    }
     # Show progress bar for a certain about of time while calculations are running  
     withProgress(message="Calculating estimates",detail="This might take a while...",
                    value=0,{  
