@@ -93,9 +93,9 @@ ui <- fluidPage(theme = shinytheme("united"),
               selectizeInput("weightVar","Select weight variable", choices=NULL, multiple=FALSE),
               selectizeInput("respVar","Select up to 10 response variables - must all be either categorical or numeric", 
                              choices=NULL, multiple=TRUE),
-              checkboxInput('chboxYear', 'Check box if performing change analysis or need to subset data for population estimates'),
+              checkboxInput('chboxYear', 'Check box if performing change analysis or need to subset data by year for population estimates'),
               conditionalPanel(condition="input.chboxYear == true",
-                               selectizeInput("yearVar","Select year variable if performing change analysis or needed to subset for population estimates",
+                               selectizeInput("yearVar","Select year variable",
                              choices=NULL, multiple=FALSE)),
               
               # If national estimates box is NOT checked, show subpopulation dropdown list              
@@ -178,18 +178,26 @@ ui <- fluidPage(theme = shinytheme("united"),
       ),
       tabPanel(title="Run Change Analysis", value='change',
                fluidRow(
-                 h4("If a different set of response variables is necessary from those used in the population estimates, 
+                 h4("If a different set of response variables is necessary from those 
+                 used in the population estimates, 
                     return to the Prepare Data for Analysis tab to re-select variables."),
                  column(3, 
                         # User must select years to compare
-                        selectizeInput('chgYear1',"Select first year of data to analyze", choices=NULL, multiple=FALSE),
-                        selectizeInput('chgYear2', "Select second year of data to analyze", choices=NULL, multiple=FALSE),
+                        selectizeInput('chgYear1',"Select two years of data to compare in desired order", choices=NULL, multiple=TRUE),
+                        #selectizeInput('chgYear2', "Select second year of data to analyze", choices=NULL, multiple=FALSE),
                         
                  # Once data are prepared, user needs to click to run estimates, or rerun estimates on refreshed data
                  actionButton('chgBtn', "Run/Refresh change estimates"),
                  hr(),
+                 checkboxInput("repeatBox", "Are there repeat visits for any sites? If so, 
+                               be sure the selected Site ID variable is the same for both 
+                               visits to a site.",
+                               value=FALSE),
+                 hr(),
                  # Click to download results into a comma-delimited file
-                 downloadButton("chgcsv","Save Change Results as .csv file"))
+                 downloadButton("chgcsv","Save Change Results as .csv file")),
+                 column(8,
+                        tableOutput("changes"))
                )
                
           )
@@ -225,7 +233,7 @@ server <- function(input, output, session) {
                          options = list(maxItems=10))
     updateSelectizeInput(session, "stratumVar", "Select the stratum variable in order to calculate variance based on a simple random sample",
                          choices=vars)
-    updateSelectizeInput(session, "yearVar","Select year variable for change analysis or if needed to subset for population estimates",
+    updateSelectizeInput(session, "yearVar","Select year variable",
                          choices=c('', vars))
     
   })
@@ -438,24 +446,67 @@ server <- function(input, output, session) {
   
                  updateSelectizeInput(session, 'selYear', 'Select the year for analysis', 
                                       choices = ychoices, selected=NULL)
-                 # Probably need to separate the list of choices to keep from updating every time something happens - observeEvent instead?
-                 updateSelectizeInput(session, 'chgYear1', "Select first year of data to analyze", 
-                                      choices = ychoices, selected=NULL) # This is not working correctly - allows selection but does not actually keep selection
                 
-                 upd.ychoices <- ychoices[ychoices!=input$chgYear1] # This part works, but not sure it really lets you select anything
-                 updateSelectizeInput(session, 'chgYear2', "Select second year of data to analyze",
-                                      choices = upd.ychoices, selected=NULL)
+                 updateSelectizeInput(session, 'chgYear1', "Select two years of data to compare", 
+                                      choices = ychoices, selected=NULL, options = list(maxItems=2)) 
+                
                  }
                )
   
   # Change estimate code
-  chgEst <- eventReactive(input$chgBtn, {
+  chgEst <- eventReactive(input$chgBtn,{
+    
     chgIn <- dataOut()
-    chgIn$Active <- TRUE
     
-    chgIn <- subset(chgIn, eval(as.name(input$yearVar)) %in% input$chgYears)
-    print('evaluated years') # THIS IS NOT WORKING
+    chgIn <- subset(chgIn, eval(as.name(input$yearVar)) %in% input$chgYear1)
+    # Need to order by siteID, yearVar
+    chgIn <- chgIn[order(chgIn[,input$yearVar],chgIn$siteID),]
     
+    print(input$chgYear1[[1]])
+    print(input$chgYear1[[2]])
+    # Need to figure out how to assign one year as survey 1 and one as survey 2
+    chgIn$Survey1 <- ifelse(chgIn[,input$yearVar]==input$chgYear1[[1]], TRUE, FALSE)
+    chgIn$Survey2 <- ifelse(chgIn[,input$yearVar]==input$chgYear1[[2]], TRUE, FALSE)
+    chgIn$All_Sites <- "All Sites"
+    
+    # Below should be conditional
+    # Need to identify sites (based on siteID) that are repeats
+    if(input$repeatBox==TRUE){
+      repeatSites <- as.data.frame(table(siteID=chgIn$siteID))
+      repeatSites <- subset(repeatSites, Freq==2)
+      repeatSites$siteID_1 <- repeatSites$siteID
+      repeatSites$siteID_2 <- repeatSites$siteID
+      
+      repeatSites <- subset(repeatSites, select=c('siteID_1','siteID_2'))
+    }else{
+      repeatSites <- NULL
+    }
+    
+    sites <- subset(chgIn, select=c('siteID','Survey1','Survey2'))
+    if(input$natpop==FALSE){
+      subpop <- subset(chgIn, select=c('siteID','All_Sites',input$subpopVar))
+    }else{
+      subpop <- NULL
+    }
+    design <- subset(chgIn, select= names(chgIn) %in% c('siteID', 'wgt', 'xcoord', 'ycoord', 'stratum'))
+    
+    cat.data <- subset(chgIn, select=c('siteID', input$respVar))
+    
+    if(input$locvar=='local'){
+      local_1 <- 'Local'
+      local_2 <- 'Local'
+    }else{
+      local_1 <- 'SRS'
+      local_2 <- 'SRS'
+    }
+    
+    chgOut <- change.analysis(sites=sites, repeats=repeatSites, subpop=subpop, design=design,
+                              data.cat=cat.data, vartype_1=local_1, vartype_2=local_2)
+    
+  })
+  # Use change output to create a table
+  output$changes <- renderTable({
+    chgEst()
   })
   
   # Calculate population estimates 
