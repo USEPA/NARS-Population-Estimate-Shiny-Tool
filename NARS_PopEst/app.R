@@ -184,19 +184,28 @@ ui <- fluidPage(theme = shinytheme("united"),
                  column(3, 
                         # User must select years to compare
                         selectizeInput('chgYear1',"Select two years of data to compare in desired order", choices=NULL, multiple=TRUE),
-                        #selectizeInput('chgYear2', "Select second year of data to analyze", choices=NULL, multiple=FALSE),
+                        radioButtons("chgCatCont", "Type of variables to analyze",
+                                     choices = c(Categorical = 'chgCat', Continuous = 'chgCont'),
+                                     select = 'chgCat'),
+                        conditionalPanel(condition = "input.chgCatCont == 'chgCont'",
+                                         radioButtons("testType", "Base test on mean or median",
+                                                      choices = c(Mean='mean', Median='median'),
+                                                      selected = 'mean')),
                         
                  # Once data are prepared, user needs to click to run estimates, or rerun estimates on refreshed data
-                 actionButton('chgBtn', "Run/Refresh change estimates"),
-                 hr(),
                  checkboxInput("repeatBox", "Are there repeat visits for any sites? If so, 
                                be sure the selected Site ID variable is the same for both 
                                visits to a site.",
                                value=FALSE),
                  hr(),
+                 actionButton('chgBtn', "Run/Refresh change estimates"),
+                 hr(),
                  # Click to download results into a comma-delimited file
                  downloadButton("chgcsv","Save Change Results as .csv file")),
                  column(8,
+                        h4("Warnings"),
+                        tableOutput("warnest"),
+                        h4("Change Analysis Output"),
                         tableOutput("changes"))
                )
                
@@ -455,53 +464,115 @@ server <- function(input, output, session) {
   
   # Change estimate code
   chgEst <- eventReactive(input$chgBtn,{
+    if(exists("warn.df") && is.data.frame(get("warn.df"))){
+      rm("warn.df", envir=.GlobalEnv)
+      print('exists')
+    }else{
+      print("does not")
+    }
     
-    chgIn <- dataOut()
-    
-    chgIn <- subset(chgIn, eval(as.name(input$yearVar)) %in% input$chgYear1)
-    # Need to order by siteID, yearVar
-    chgIn <- chgIn[order(chgIn[,input$yearVar],chgIn$siteID),]
-    
-    print(input$chgYear1[[1]])
-    print(input$chgYear1[[2]])
-    # Need to figure out how to assign one year as survey 1 and one as survey 2
-    chgIn$Survey1 <- ifelse(chgIn[,input$yearVar]==input$chgYear1[[1]], TRUE, FALSE)
-    chgIn$Survey2 <- ifelse(chgIn[,input$yearVar]==input$chgYear1[[2]], TRUE, FALSE)
-    chgIn$All_Sites <- "All Sites"
-    
-    # Below should be conditional
-    # Need to identify sites (based on siteID) that are repeats
-    if(input$repeatBox==TRUE){
-      repeatSites <- as.data.frame(table(siteID=chgIn$siteID))
-      repeatSites <- subset(repeatSites, Freq==2)
-      repeatSites$siteID_1 <- repeatSites$siteID
-      repeatSites$siteID_2 <- repeatSites$siteID
+    withProgress(message="Calculating estimates",detail="This might take a while...",
+                 value=0,{ 
+      chgIn <- dataOut()
       
-      repeatSites <- subset(repeatSites, select=c('siteID_1','siteID_2'))
+      chgIn <- subset(chgIn, eval(as.name(input$yearVar)) %in% input$chgYear1)
+      # Need to order by siteID, yearVar
+      chgIn <- chgIn[order(chgIn[,input$yearVar],chgIn$siteID),]
+      
+      print(input$chgYear1[[1]])
+      print(input$chgYear1[[2]])
+      
+      chgIn$Survey1 <- ifelse(chgIn[,input$yearVar]==input$chgYear1[[1]], TRUE, FALSE)
+      chgIn$Survey2 <- ifelse(chgIn[,input$yearVar]==input$chgYear1[[2]], TRUE, FALSE)
+ 
+      # Need to identify sites (based on siteID) that are repeats
+      if(input$repeatBox==TRUE){
+        repeatSites <- as.data.frame(table(siteID=chgIn$siteID))
+        repeatSites <- subset(repeatSites, Freq==2)
+        repeatSites$siteID_1 <- repeatSites$siteID
+        repeatSites$siteID_2 <- repeatSites$siteID
+        print("Repeat sites")
+
+        repeatSites <- repeatSites[,c('siteID_1','siteID_2')]
+        print(names(repeatSites))
+      }
+      
+      sites <- chgIn[,c('siteID','Survey1','Survey2')]
+      
+      if(input$natpop==FALSE){
+        subpop <- chgIn[,c('siteID','allSites',input$subpopVar)]
+        print(names(subpop))
+      }else{
+        chgIn$allSites <- 'All Sites'
+        subpop <- chgIn[, c('siteID','allSites')]
+        print(names(subpop))
+      }
+      # if local neighborhood variance
+      if(input$locvar=='local'){
+        design <- chgIn[, c('siteID', 'wgt', 'xcoord', 'ycoord')]
+        
+      }else{ # if simple random sample
+        design <- chgIn[, c('siteID', 'wgt', 'stratum')]
+      }
+      print(names(design))
+      
+      in.data <- chgIn[, c('siteID', input$respVar)]
+      print(names(in.data))
+      
+      switch(input$locvar,
+             local = {
+               local_1 <- 'local'
+               local_2 <- 'local'
+               },
+             srs = {
+               local_1 <- 'SRS'
+               local_2 <- 'SRS'
+             })
+      print(c(local_1, local_2))
+      
+      if(input$chgCatCont == 'chgCont'){
+        if(input$testType == 'mean'){
+          ttype <- 'mean'
+        }else{
+          ttype <- 'median'
+        }
+      }
+      
+      #if(input$natpop=='FALSE'){
+        if(input$repeatBox==TRUE){
+          if(input$chgCatCont == 'chgCat'){
+            chgOut <- change.analysis(sites=sites, repeats=repeatSites, subpop=subpop, design=design,
+                                    data.cat=in.data, vartype_1=local_1, vartype_2=local_2)
+          }else{
+            chgOut <- change.analysis(sites=sites, repeats=repeatSites, subpop=subpop, design=design,
+                                      data.cont=in.data, vartype_1=local_1, vartype_2=local_2, test=ttype)
+          }
+        }else{
+          if(input$chgCatCont=='chgCat'){
+            chgOut <- change.analysis(sites=sites, subpop=subpop, design=design, repeats=NULL,
+                                      data.cat=in.data, vartype_1=local_1, vartype_2=local_2)
+          }else{
+            chgOut <- change.analysis(sites=sites, subpop=subpop, design=design, repeats=NULL,
+                                      data.cont=in.data, vartype_1=local_1, vartype_2=local_2, test=ttype)
+          }
+          
+        }
+    }) 
+    if(input$chgCatCont == 'chgCat'){
+      chgOut.1 <- chgOut$catsum
     }else{
-      repeatSites <- NULL
+      if(input$testType == 'mean'){
+        chgOut.1 <- chgOut$contsum_mean
+      }else{
+        chgOut.1 <- chgOut$contsum_median
+      }
     }
     
-    sites <- subset(chgIn, select=c('siteID','Survey1','Survey2'))
-    if(input$natpop==FALSE){
-      subpop <- subset(chgIn, select=c('siteID','All_Sites',input$subpopVar))
+    if(exists('warn.df') && ncol(warn.df)>1){
+      outdf <- list(chgOut=chgOut.1, warndf=warn.df)
     }else{
-      subpop <- NULL
+      outdf <- list(chgOut=chgOut.1, warndf=data.frame(warnings='none'))
     }
-    design <- subset(chgIn, select= names(chgIn) %in% c('siteID', 'wgt', 'xcoord', 'ycoord', 'stratum'))
-    
-    cat.data <- subset(chgIn, select=c('siteID', input$respVar))
-    
-    if(input$locvar=='local'){
-      local_1 <- 'Local'
-      local_2 <- 'Local'
-    }else{
-      local_1 <- 'SRS'
-      local_2 <- 'SRS'
-    }
-    
-    chgOut <- change.analysis(sites=sites, repeats=repeatSites, subpop=subpop, design=design,
-                              data.cat=cat.data, vartype_1=local_1, vartype_2=local_2)
     
   })
   # Use change output to create a table
@@ -521,7 +592,7 @@ server <- function(input, output, session) {
     dfIn <- dataOut()
     dfIn$Active <- TRUE
     if(input$chboxYear==TRUE){
-      dfIn <- subset(dfIn, eval(as.name(input$yearVar)) == input$selYear)
+      dfIn <- subset(dfIn, eval(as.name(input$yearVar)) == as.character(input$selYear))
     }
     # Show progress bar for a certain about of time while calculations are running  
     withProgress(message="Calculating estimates",detail="This might take a while...",
