@@ -204,7 +204,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                  downloadButton("chgcsv","Save Change Results as .csv file")),
                  column(8,
                         h4("Warnings"),
-                        tableOutput("warnest"),
+                        tableOutput("warnchg"),
                         h4("Change Analysis Output"),
                         tableOutput("changes"))
                )
@@ -577,8 +577,13 @@ server <- function(input, output, session) {
   })
   # Use change output to create a table
   output$changes <- renderTable({
-    chgEst()
+    chgEst()[['chgOut']]
   })
+  
+  output$warnchg <- renderTable({
+    chgEst()[['warndf']]
+  })
+  
   
   # Calculate population estimates 
   dataEst <- eventReactive(input$runBtn,{
