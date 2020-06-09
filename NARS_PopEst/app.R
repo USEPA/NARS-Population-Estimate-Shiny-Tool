@@ -510,18 +510,15 @@ server <- function(input, output, session) {
         print("Repeat sites")
 
         repeatSites <- repeatSites[,c('siteID_1','siteID_2')]
-        print(names(repeatSites))
       }
       
       sites <- chgIn[,c('siteID','Survey1','Survey2')]
       
       if(input$natpop==FALSE){
         subpop <- chgIn[,c('siteID','allSites',input$subpopVar)]
-        print(names(subpop))
       }else{
         chgIn$allSites <- 'All Sites'
         subpop <- chgIn[, c('siteID','allSites')]
-        print(names(subpop))
       }
       # if local neighborhood variance
       if(input$locvar=='local'){
@@ -530,10 +527,8 @@ server <- function(input, output, session) {
       }else{ # if simple random sample
         design <- chgIn[, c('siteID', 'wgt', 'stratum')]
       }
-      print(names(design))
       
       in.data <- chgIn[, c('siteID', input$respVar)]
-      print(names(in.data))
       
       switch(input$locvar,
              local = {
@@ -544,7 +539,6 @@ server <- function(input, output, session) {
                local_1 <- 'SRS'
                local_2 <- 'SRS'
              })
-      print(c(local_1, local_2))
       
       if(input$chgCatCont == 'chgCont'){
         if(input$testType == 'mean'){
