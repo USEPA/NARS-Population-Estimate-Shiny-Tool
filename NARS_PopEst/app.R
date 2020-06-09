@@ -153,7 +153,7 @@ ui <- fluidPage(theme = shinytheme("united"),
              column(3, 
                # User must select categorical or continuous variable analysis, depending on response variables selected
                radioButtons("atype","Type of Analysis (pick one)",
-                            choices = c('Categorical ( for character variables)' = 'categ', 'Continuous (for numeric variables)' = 'contin'),
+                            choices = c('Categorical (for character variables)' = 'categ', 'Continuous (for numeric variables)' = 'contin'),
                             selected='categ'),
                conditionalPanel(condition="input.atype=='categ' && input.chboxYear==true",
                                 selectizeInput('selYear', 'Select the year for analysis', choices=NULL, multiple=FALSE)),
@@ -602,100 +602,74 @@ server <- function(input, output, session) {
     # Show progress bar for a certain about of time while calculations are running  
     withProgress(message="Calculating estimates",detail="This might take a while...",
                    value=0,{  
-      # User selected categorical analysis, set up cat.analysis function depending on previous selections
+      # Create sites data frame, which is the same regardless of other options               
+      sites <- subset(dfIn, select=c('siteID','Active'))
+      
+      # Create subpop data frame if subpopulations are of interest (National only box not checked)
+      if(input$natpop == FALSE){
+        subpop=subset(dfIn, select = c('siteID','allSites',input$subpopVar))
+      }
+      # Create design data frame depending on options selected
+      if(input$locvar == 'local'){
+        design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord'))
+      }else{
+        design=subset(dfIn,select=c('siteID','wgt','stratum'))
+      }
+      
+      # Create data.cat if categorical and data.cont if continuous data
       if(input$atype=='categ'){
-        if(input$locvar == 'local'){ # Local neighborhood variance selected
-          if(input$natpop == FALSE){ # Not overall analysis,  includes subpopulations
-            estOut <- cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                         subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
-                         design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                         data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='Local')
-            
-          }else{ # No subpopulations selected
-            estOut <- cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                         design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                         data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='Local')
-            
-          }
-        }else{ # SRS variance
-          if(input$natpop == FALSE){ # Not overall analysis, includes subpopulations
-            estOut <- cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                         subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
-                         design=subset(dfIn,select=c('siteID','wgt','stratum')),
-                         data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')
-
-            
-          }else{ # No subpopulations selected
-            estOut <- cat.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                         design=subset(dfIn,select=c('siteID','wgt','stratum')),
-                         data.cat=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')
-          
-          }
-        }
-        
-      }else{ # continuous analysis selected, begin by converting to numeric
+        data.cat=subset(dfIn,select=c('siteID',input$respVar))
+      }else{
+        # Make sure continuous variables are numeric
         if(length(input$respVar)>1){ # if more than one response variable selected
           dfIn[,input$respVar] <- lapply(dfIn[,input$respVar], as.numeric)
         }else{ # If only one response variable selected
           dfIn[,input$respVar] <- as.numeric(dfIn[,input$respVar])
         }
         
-        if(input$locvar=='local'){ # Local neighborhood variance selected
+        # Select correct variables for input data
+        data.cont=subset(dfIn,select=c('siteID',input$respVar))
+      }
+      
+
+      # Create varype variable depending on option selected
+      if(input$locvar == 'local'){
+        vartype <- 'Local'
+      }else{
+        vartype <- 'SRS'
+      }
+      
+      # User selected categorical analysis, set up cat.analysis function depending on previous selections
+      if(input$atype=='categ'){
+          if(input$natpop == FALSE){ # Not overall analysis,  includes subpopulations
+            estOut <- cat.analysis(sites=sites, subpop=subpop, design = design,
+                                   data.cat=data.cat, vartype=vartype)
+            
+          }else{ # No subpopulations selected
+            estOut <- cat.analysis(sites=sites, design=design, data.cat=data.cat, vartype=vartype)
+          }
+      }else{
           if(input$natpop == FALSE){ # Subpopulations selected
+            print(input$cdf_pct)
             if(input$cdf_pct=='cdf'){ # Produce CDFs
-              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                            subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
-                            design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='Local')$CDF
+              estOut <- cont.analysis(sites=sites, subpop=subpop, design=design, 
+                                      data.cont=data.cont, vartype=vartype)$CDF
+                            
             }else{ # Just produce percentiles
-              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                            subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
-                            design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='Local')$Pct
+              estOut <- cont.analysis(sites=sites, subpop=subpop, design=design, 
+                                      data.cont=data.cont, vartype=vartype)$Pct
             }
           }else{ # No subpopulations selected, only overall analysis
             if(input$cdf_pct=='cdf'){ # CDFs of interest
-              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                            design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='Local')$CDF
-            }else{ # Percentiles of interest
-              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                            design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord')),
-                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='Local')$Pct
+              estOut <- cont.analysis(sites=sites, design=design, data.cont=data.cont,
+                                      vartype=vartype)$CDF
+             }else{ # Percentiles of interest
+              estOut <- cont.analysis(sites=sites, design=design, data.cont=data.cont,
+                                      vartype=vartype)$Pct
             }
             
           }
-        }else{ # SRS variance selected
-          if(input$natpop == FALSE){ # Subpopulations selected
-            if(input$cdf_pct=='cdf'){ # CDFs of interest
-              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                                        subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
-                                        design=subset(dfIn,select=c('siteID','wgt','stratum')),
-                                        data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$CDF
-              
-            }else{ # Percentiles of interest
-              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                                        subpop=subset(dfIn,select=c('siteID','allSites',input$subpopVar)),
-                                        design=subset(dfIn,select=c('siteID','wgt','stratum')),
-                                        data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$Pct
-            }
-          }else{ # No subpopulations selected
-            if(input$cdf_pct=='cdf'){ # CDFs 
-              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                            design=subset(dfIn,select=c('siteID','wgt','stratum')),
-                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$CDF
-              
-            }else{ # Percentiles
-              estOut <- cont.analysis(sites=subset(dfIn,select=c('siteID','Active')),
-                            design=subset(dfIn,select=c('siteID','wgt','stratum')),
-                            data.cont=subset(dfIn,select=c('siteID',input$respVar)),vartype='SRS')$Pct
-            }
-            
-          }
-          
-        }
       }
-                    
     })
     if(exists('warn.df') && ncol(warn.df)>1){
       outdf <- list(estOut=estOut, warndf=warn.df)
