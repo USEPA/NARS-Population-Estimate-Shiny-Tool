@@ -29,6 +29,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                  tags$li("Select data file and upload."),
                  tags$li("The variables in that file will populate dropdown lists on that tab."),
                  tags$li("Select variables to serve as site IDs, weights, response variables, and subpopulations (if desired). If only overall or 'national' estimates are desired, check the box for overall analysis."),
+                 tags$li("If data are to be used for change analysis, select year variable (or other variable to distinguish design cycles)."),
                 tags$li("Select the type of variance you want to use.",
                         tags$ul(
                         tags$li("For simple random sample variance, select a stratum variable to better estimate variance."), 
@@ -39,18 +40,30 @@ ui <- fluidPage(theme = shinytheme("united"),
                h4("Run Population Estimates"),
                tags$ol(
                  tags$li("Select the type of analysis (categorical or continuous)."),
+                 tags$li("If year or design cycle variable was select on data preparation tab, select year or cycle of interest."),
                  tags$li("For continuous analysis, select either CDFs (cumulative distribution functions) or Percentiles."),
                  tags$li("Click on the Run/Refresh Population Estimates button. Depending on the number of responses, subpopulations, and type of analysis, it may take a few minutes."),
                  tags$li("If desired, download results to a comma-delimited file by clicking the Save Results button.")
-               )
-               ,
+               ),
+               br(),
+               h4("Run Change Analysis"),
+               tags$ol(
+                 tags$li("First select the two years (or sets of years) to compare."),
+                 tags$li("Select type of data to analyze (categorical or continuous."),
+                 tags$li("If continuous data are selected, select parameter on which to test for differences (mean or median)."),
+                 tags$li("If repeated visits to sites are included in dataset across years or cycles, check box. If selected, note that site ID variable selected must contain the same value for both years or cycles of data.")
+               ),
                br(),
                h4("Minimum requirements:"),
                tags$ul(
-                         tags$li("All variables must be contained in one file and include site IDs, weights, response variables, subpopulations (if any), and coordinates or design stratum (depending on type of variance desired)." ),
+                         tags$li("All variables must be contained in one file and include site IDs, weights, response variables,
+                                 subpopulations (if any), and coordinates or design stratum (depending on type of variance desired)." ),
                          tags$li("Only delimited files, such as comma- and tab-delimited, are accepted for upload."),
-                         tags$li("If local neighborhood variance is desired, coordinates must be provided, either in latitude/longitude (decimal degrees) or Albers projection. If provided in latitude/longitude, projection information is needed to convert values. Only spheroid need be supplied for conversion."),
-                         tags$li("If variance based on a simple random sample is desired (or if coordinates or projection information are not available), the design stratum is needed to better estimate variance.")
+                         tags$li("If local neighborhood variance is desired, coordinates must be provided, either in 
+                                 latitude/longitude (decimal degrees) or Albers projection. If provided in latitude/longitude, projection information is needed to convert values. Only spheroid need be supplied for conversion."),
+                         tags$li("If variance based on a simple random sample is desired (or if coordinates or projection 
+                                 information are not available), the design stratum is needed to better estimate variance."),
+                         tags$li("If change analysis is intended, all desired years of data must be contained in one file.")
                        ),
                br(),
                p('Contact Karen Blocksom at blocksom.karen@epa.gov with questions or feedback.'),
@@ -100,10 +113,10 @@ ui <- fluidPage(theme = shinytheme("united"),
               
               # If national estimates box is NOT checked, show subpopulation dropdown list              
               conditionalPanel(condition = 'input.natpop == false',
-                               selectizeInput("subpopVar","Select up to 10 subpopulation variables \n(required if not 
+                               selectizeInput("subpopVar","Select up to 10 subpopulation variables (required if not 
                                               national estimates only)", 
                                               choices=NULL, multiple=TRUE)),
-              checkboxInput('natpop','Only overall (all sites) estimates? Select if no \nsubpopulations of interest',FALSE)
+              checkboxInput('natpop','Only overall (all sites) estimates? Select if no subpopulations of interest',FALSE)
             ),
             # Set up type of variance to use in estimates: local or SRS
             column(4,
@@ -113,12 +126,15 @@ ui <- fluidPage(theme = shinytheme("united"),
                                 select = 'srs'),
                    # If local, user must select x and y coordinates and convert to Albers if in lat/long
                    conditionalPanel(condition = "input.locvar == 'local'",
-                                    selectizeInput("coordxVar","Select the X coordinate variable (or longitude) \n(required only for local neighborhood variance)", 
+                                    selectizeInput("coordxVar","Select the X coordinate variable (or longitude) 
+                                                   (required only for local neighborhood variance)", 
                                                    choices=NULL, multiple=FALSE),
-                                    selectizeInput("coordyVar","Select the Y coordinate variable (or latitude) \n(required only for local neighborhood variance)", 
+                                    selectizeInput("coordyVar","Select the Y coordinate variable (or latitude) 
+                                                   (required only for local neighborhood variance)", 
                                                    choices=NULL, multiple=FALSE),
                                     
-                                    checkboxInput("xy", "Convert latitude/longitude \nto Albers Projection (This is necessary \nif using local neighborhood variance.). Current projection information:",
+                                    checkboxInput("xy", "Convert latitude/longitude \nto Albers Projection (This is necessary 
+                                                  if using local neighborhood variance.). Current projection information:",
                                 FALSE),
                                 # If conversion from lat/long is needed, provide default as NARS typical projection info, otherwise allow user to enter
                                      conditionalPanel(condition = "input.xy == true",
@@ -710,6 +726,27 @@ server <- function(input, output, session) {
       write.csv(dataEst()[['estOut']], file, row.names = FALSE)
     }
   )
+  
+  # Only enable download button once population estimates are produced
+  observe({shinyjs::toggleState('chgcsv',length(chgEst()[['chgOut']])!=0)})
+  # Name output file based on type of analysis selected and write to comma-delimited file
+  output$chgcsv <- downloadHandler(
+    filename = function() {
+      if(input$chgCatCont == 'chgCat'){
+        paste("Change_Categ_Est_Output_",Sys.Date(), ".csv", sep = "")
+      }else{
+        if(input$testType == 'mean'){
+          paste("Change_Contin_Mean_Est_Output_",Sys.Date(), ".csv", sep = "")
+        }else{
+          paste("Change_Contin_Median_Est_Output_",Sys.Date(), ".csv", sep = "")
+        }
+      }
+    },
+    content = function(file) {
+      write.csv(chgEst()[['chgOut']], file, row.names = FALSE)
+    }
+  )
+  
   
   session$onSessionEnded(function() {
     rm(warn.df,envir=.GlobalEnv)
