@@ -425,11 +425,7 @@ server <- function(input, output, session) {
           df1$wgt <- with(df1, as.numeric(eval(as.name(input$weightVar))))
           df1$stratum <- with(df1, eval(as.name(input$stratumVar)))
           df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,yearVName))
-
         }
-        
-        # If all sites data coordinates need to be converted to Albers projection - NEED TO ADD STRATUM VAR HERE
-    
 
       }
       # Look for missing values among coordinates and weights only - response and subpopulation variables can have missing values
@@ -609,6 +605,21 @@ server <- function(input, output, session) {
     if(input$chboxYear==TRUE){
       dfIn <- subset(dfIn, eval(as.name(input$yearVar)) == as.character(input$selYear))
     }
+    
+    # If categorical data, automatically reorder any response variables that are Good/Fair/Poor or 
+    # Low/Moderate/High (allow for all caps versions)
+    if(input$atype=='categ'){
+      for(i in 1:length(input$respVar)){
+        if(all(unique(dfIn[,input$respVar[[i]]]) %in% c('Good','GOOD','Low','LOW','Fair','FAIR','MODERATE','Moderate',
+                                                        'Poor','POOR','High','HIGH','Very High','VERY HIGH','Not Assessed'))){
+          dfIn[,input$respVar[[i]]] <- factor(dfIn[,input$respVar[[i]]], 
+                                              levels=c('Good','GOOD','Low','LOW','Fair','FAIR','MODERATE','Moderate',
+                                                    'Poor','POOR','High','HIGH','Very High','VERY HIGH','Not Assessed'), 
+                                              ordered=TRUE)
+        }
+      }
+    }
+    
     # Show progress bar for a certain about of time while calculations are running  
     withProgress(message="Calculating estimates",detail="This might take a while...",
                    value=0,{  
