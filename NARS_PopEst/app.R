@@ -486,11 +486,21 @@ server <- function(input, output, session) {
       print("does not")
     }
     
-    withProgress(message="Calculating estimates",detail="This might take a while...",
-                 value=0,{ 
       chgIn <- dataOut()
       
       chgIn <- subset(chgIn, eval(as.name(input$yearVar)) %in% input$chgYear1)
+      
+      # Check for duplicate rows for siteID
+      freqSiteChg <- as.data.frame(table(siteID = chgIn$siteID,Year = chgIn[,input$yearVar]))
+      print(nrow(subset(freqSiteChg, Freq>1)>0))
+      
+      validate(
+        need(nrow(subset(freqSiteChg, Freq>1))==0, "There are duplicated sites in this dataset within years or cycles.")
+      )
+      
+      
+    withProgress(message="Calculating estimates",detail="This might take a while...",
+                   value=0,{
       # Need to order by siteID, yearVar
       chgIn <- chgIn[order(chgIn[,input$yearVar],chgIn$siteID),]
       
@@ -499,7 +509,7 @@ server <- function(input, output, session) {
       
       chgIn$Survey1 <- ifelse(chgIn[,input$yearVar]==input$chgYear1[[1]], TRUE, FALSE)
       chgIn$Survey2 <- ifelse(chgIn[,input$yearVar]==input$chgYear1[[2]], TRUE, FALSE)
- 
+
       # Need to identify sites (based on siteID) that are repeats
       if(input$repeatBox==TRUE){
         repeatSites <- as.data.frame(table(siteID=chgIn$siteID))
