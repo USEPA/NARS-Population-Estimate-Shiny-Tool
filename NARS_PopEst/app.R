@@ -495,7 +495,8 @@ server <- function(input, output, session) {
       print(nrow(subset(freqSiteChg, Freq>1)>0))
       
       validate(
-        need(nrow(subset(freqSiteChg, Freq>1))==0, "There are duplicated sites in this dataset within years or cycles.")
+        need(nrow(subset(freqSiteChg, Freq>1))==0, paste("There are", nrow(subset(freqSiteChg, Freq>1)), 
+                                                         "duplicated sites in this dataset within years or cycles."))
       )
       
       
@@ -625,7 +626,8 @@ server <- function(input, output, session) {
     print(nrow(subset(freqSite, Freq>1)>0))
     
     validate(
-      need(nrow(subset(freqSite, Freq>1))==0, "There are duplicated sites in this dataset.")
+      need(nrow(subset(freqSite, Freq>1))==0, 
+           paste("There are", nrow(subset(freqSite, Freq>1)),"duplicated sites in this dataset."))
     )
 
     # If categorical data, automatically reorder any response variables that are Good/Fair/Poor or 
