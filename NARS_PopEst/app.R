@@ -58,6 +58,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                tags$ul(
                          tags$li("All variables must be contained in one file and include site IDs, weights, response variables,
                                  subpopulations (if any), and coordinates or design stratum (depending on type of variance desired)." ),
+                         tags$li("All sites included in the dataset should have weight > 0. Any records with a missing weight or a weight of 0 will be dropped before analysis."),
+                         tags$li("Input data should include only one visit per site and year/survey cycle (based on the variables for site ID and year/survey cycle selected)."),
                          tags$li("Only delimited files, such as comma- and tab-delimited, are accepted for upload."),
                          tags$li("If local neighborhood variance is desired, coordinates must be provided, either in 
                                  latitude/longitude (decimal degrees) or Albers projection. If provided in latitude/longitude, projection information is needed to convert values. Only spheroid need be supplied for conversion."),
@@ -78,7 +80,7 @@ ui <- fluidPage(theme = shinytheme("united"),
             # Input: Select a file ---
             column(3,
                 fileInput(inputId='file1', buttonLabel='Browse...', 
-                      label='Select CSV file for analysis',
+                      label='Select a delimited file for analysis',
                       multiple=FALSE, accept=c('text/csv','text/comma-separated-values,text/plain','.csv')
                       ),
                 # Horizontal line ----
@@ -106,7 +108,7 @@ ui <- fluidPage(theme = shinytheme("united"),
               selectizeInput("weightVar","Select weight variable", choices=NULL, multiple=FALSE),
               selectizeInput("respVar","Select up to 10 response variables - must all be either categorical or numeric", 
                              choices=NULL, multiple=TRUE),
-              checkboxInput('chboxYear', 'Check box if performing change analysis or need to subset data by year for population estimates'),
+              checkboxInput('chboxYear', 'Check box if performing change analysis or need to subset data by year or cycle for population estimates'),
               conditionalPanel(condition="input.chboxYear == true",
                                selectizeInput("yearVar","Select year variable",
                              choices=NULL, multiple=FALSE)),
@@ -171,13 +173,14 @@ ui <- fluidPage(theme = shinytheme("united"),
                radioButtons("atype","Type of Analysis (pick one)",
                             choices = c('Categorical (for character variables)' = 'categ', 'Continuous (for numeric variables)' = 'contin'),
                             selected='categ'),
-               conditionalPanel(condition="input.atype=='categ' && input.chboxYear==true",
-                                selectizeInput('selYear', 'Select the year for analysis', choices=NULL, multiple=FALSE)),
              # If continuous analysis selected, select whether CDFs or percentiles are desired.  
              conditionalPanel(condition = "input.atype == 'contin'",
                               radioButtons("cdf_pct", "Show CDF or percentile results",
                                            choices = c(CDF = 'cdf', Percentiles = 'pct'),
                                            selected = 'pct')),
+             conditionalPanel(condition="input.chboxYear==true",
+                              selectizeInput('selYear', 'Select the year for analysis', choices=NULL, multiple=FALSE)),
+            
              # Once data are prepared, user needs to click to run estimates, or rerun estimates on refreshed data
              actionButton('runBtn', "Run/Refresh population estimates"),
              hr(),
@@ -435,7 +438,7 @@ server <- function(input, output, session) {
         need(!any(is.na(df1$wgt)), "Non-numeric or missing values for weights.")
       )
       
-      df1
+      df1 <- subset(df1, !is.na(wgt) & wgt>0)
     # This is what shows up before the subset button is clicked  
     }else{
       df1 <- dataIn()
@@ -601,11 +604,20 @@ server <- function(input, output, session) {
     }
     
     dfIn <- dataOut()
+    
     dfIn$Active <- TRUE
     if(input$chboxYear==TRUE){
       dfIn <- subset(dfIn, eval(as.name(input$yearVar)) == as.character(input$selYear))
     }
     
+    # Check for duplicate rows for siteID
+    freqSite <- as.data.frame(table(siteID=dfIn$siteID))
+    print(nrow(subset(freqSite, Freq>1)>0))
+    
+    validate(
+      need(nrow(subset(freqSite, Freq>1))==0, "There are duplicated sites in this dataset.")
+    )
+
     # If categorical data, automatically reorder any response variables that are Good/Fair/Poor or 
     # Low/Moderate/High (allow for all caps versions)
     if(input$atype=='categ'){
