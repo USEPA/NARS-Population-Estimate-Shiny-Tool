@@ -26,7 +26,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                h3("Instructions for Use"),
                h4("Prepare Data for Analysis tab"),
                tags$ol(
-                 tags$li("Select data file and upload."),
+                 tags$li("Select data file and upload. If the data are to be loaded from a URL, check the box to do so and paste or enter the URL for the file."),
                  tags$li("The variables in that file will populate dropdown lists on that tab."),
                  tags$li("Select variables to serve as site IDs, weights, response variables, and subpopulations (if desired). If only overall or 'national' estimates are desired, check the box for overall analysis."),
                  tags$li("If data are to be used for change analysis, select year variable (or other variable to distinguish design cycles)."),
@@ -34,6 +34,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                         tags$ul(
                         tags$li("For simple random sample variance, select a stratum variable to better estimate variance."), 
                         tags$li("For local neighborhood variance (as used in NARS estimates), select coordinate variables (either in latitude/longitude or Albers projection). If coordinates are in latitude and longitude, you must provide projection information in order to convert them to Albers projection."))),
+                tags$li("You may subset the data for analysis by up to one categorical variable. To do this, select the check box to subset, then select the variable to subset by. Finally, select one or more categories by which to subset data."),
                tags$li("Click on the button above the data to subset the data before proceeding to the Run Population Estimates tab")
                ),
                br(),
@@ -108,7 +109,12 @@ ui <- fluidPage(theme = shinytheme("united"),
                 radioButtons("disp","Display",
                              choices = c(Head = 'head',
                                          All = 'all'),
-                             selected='head')),
+                             selected='head'),
+                checkboxInput("subcheck","Subset data using a single categorical variable", FALSE),
+                conditionalPanel(condition="input.subcheck == true",
+                                 selectizeInput('subvar', "Select variable to use for subsetting", choices=NULL, multiple=FALSE),
+                                  selectizeInput("subcat","Select one or more categories by which to subset data", choices=NULL, multiple=TRUE))),
+            
             # Provide dropdown menus to allow user to select site, weight, and response variables from those in the imported dataset
             column(4,
               selectizeInput("siteVar","Select site variable", choices=NULL, multiple=FALSE),
@@ -280,6 +286,9 @@ server <- function(input, output, session) {
                          choices=vars)
     updateSelectizeInput(session, "yearVar","Select year variable",
                          choices=c('', vars))
+#    if(input$subcheck==TRUE){
+      updateSelectizeInput(session, "subvar", choices=vars)
+#    }
     
   })
     
@@ -439,23 +448,29 @@ server <- function(input, output, session) {
             ) 
           }
            # subset to the variables needed
-          df1 <- subset(dataIn(), select = c(input$siteVar, input$weightVar, input$stratumVar, input$respVar,yearVName))
+          df1 <- subset(dataIn(), select = c(input$siteVar, input$weightVar, input$stratumVar, input$respVar, yearVName, input$subvar))
           
           df1$siteID <- with(df1, eval(as.name(input$siteVar)))
           df1$wgt <- with(df1, as.numeric(eval(as.name(input$weightVar))))
           df1$stratum <- with(df1, eval(as.name(input$stratumVar)))
-          df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,yearVName))
+          df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,yearVName,input$subvar))
         }
 
       }
+      # Drop any rows with weights missing or 0
+      df1 <- subset(df1, !is.na(wgt) & wgt>0)
+      if(input$subcheck==TRUE){
+        df1 <- subset(df1, eval(as.name(input$subvar)) %in% input$subcat)
+      }
       # Look for missing values among coordinates and weights only - response and subpopulation variables can have missing values
+      # If local neighborhood variance not used, these values are null (not in df1) and thus return TRUE.
       validate(
         need(!any(is.na(df1$xcoord)), "Non-numeric or missing values for x coordinates."),
-        need(!any(is.na(df1$ycoord)), "Non-numeric or missing values for y coordinates."),
-        need(!any(is.na(df1$wgt)), "Non-numeric or missing values for weights.")
+        need(!any(is.na(df1$ycoord)), "Non-numeric or missing values for y coordinates.")
+ #       need(!any(is.na(df1$wgt)), "Non-numeric or missing values for weights.")
       )
+      df1
       
-      df1 <- subset(df1, !is.na(wgt) & wgt>0)
     # This is what shows up before the subset button is clicked  
     }else{
       df1 <- dataIn()
@@ -493,6 +508,13 @@ server <- function(input, output, session) {
                 
                  }
                )
+  
+  observe({
+      catchoices <- as.character(sort(unique(dataIn()[[input$subvar]])))
+      
+      updateSelectizeInput(session, 'subcat', choices = catchoices, selected=NULL)
+    }
+  )
   
   # Change estimate code
   chgEst <- eventReactive(input$chgBtn,{
