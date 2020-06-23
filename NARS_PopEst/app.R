@@ -88,7 +88,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                       )),
                 # Read in file from website URL - need to add a button to signal it should start uploading
                 conditionalPanel(condition="input.websource == true",
-                                 textInput("urlfile", "Paste or enter full URL here.")),
+                                 textInput("urlfile", "Paste or enter full URL here."),
+                                 actionButton("urlbtn", "Load file from URL")),
                 # Horizontal line ----
                 tags$hr(),
                 # Input: checkbox if file has header, default to TRUE ----
@@ -250,10 +251,12 @@ server <- function(input, output, session) {
                      sep = input$sep,
                      stringsAsFactors=F)
     }else{
-      df <- read.table(url(input$urlfile),
-                       header = input$header,
-                       sep = input$sep,
-                       stringsAsFactors=F)
+      if(input$urlbtn>0){
+        df <- read.table(url(input$urlfile),
+                         header = input$header,
+                         sep = input$sep,
+                         stringsAsFactors=F)
+      }
     }
     vars <- colnames(df)
     
