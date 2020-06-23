@@ -492,7 +492,7 @@ server <- function(input, output, session) {
       
       # Check for duplicate rows for siteID
       freqSiteChg <- as.data.frame(table(siteID = chgIn$siteID,Year = chgIn[,input$yearVar]))
-      print(nrow(subset(freqSiteChg, Freq>1)>0))
+      # print(nrow(subset(freqSiteChg, Freq>1)>0))
       
       validate(
         need(nrow(subset(freqSiteChg, Freq>1))==0, paste("There are", nrow(subset(freqSiteChg, Freq>1)), 
@@ -623,7 +623,7 @@ server <- function(input, output, session) {
     
     # Check for duplicate rows for siteID
     freqSite <- as.data.frame(table(siteID=dfIn$siteID))
-    print(nrow(subset(freqSite, Freq>1)>0))
+    # print(nrow(subset(freqSite, Freq>1)>0))
     
     validate(
       need(nrow(subset(freqSite, Freq>1))==0, 
