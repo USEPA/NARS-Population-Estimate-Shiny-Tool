@@ -113,7 +113,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                 checkboxInput("subcheck","Subset data using a single categorical variable", FALSE),
                 conditionalPanel(condition="input.subcheck == true",
                                  selectizeInput('subvar', "Select variable to use for subsetting", choices=NULL, multiple=FALSE),
-                                  selectizeInput("subcat","Select one or more categories by which to subset data", choices=NULL, multiple=TRUE))),
+                                 selectizeInput("subcat","Select one or more categories by which to subset data", choices=NULL, multiple=TRUE))),
             
             # Provide dropdown menus to allow user to select site, weight, and response variables from those in the imported dataset
             column(4,
@@ -286,12 +286,17 @@ server <- function(input, output, session) {
                          choices=vars)
     updateSelectizeInput(session, "yearVar","Select year variable",
                          choices=c('', vars))
-#    if(input$subcheck==TRUE){
-      updateSelectizeInput(session, "subvar", choices=vars)
-#    }
     
+    updateSelectizeInput(session, "subvar", choices=vars)
   })
+  
+  observeEvent(input$subvar,{
     
+      catchoices <- as.character(sort(unique(dataIn()[[input$subvar]])))
+      
+      updateSelectizeInput(session, 'subcat', choices = catchoices, selected=NULL)
+
+  })
 
   # Once subset button is clicked, validate selections to make sure any variable only occurs in set of selections
   dataOut <- eventReactive(input$subsetBtn,{
@@ -300,6 +305,11 @@ server <- function(input, output, session) {
         yearVName <- input$yearVar
       }else{
         yearVName <- NULL
+      }
+      if(input$subcheck==TRUE){
+        subVName <- input$subvar
+      }else{
+        subVName <- NULL
       }
       
       if(input$natpop == FALSE){
@@ -336,32 +346,32 @@ server <- function(input, output, session) {
             }
               # For conversion to Albers projection, select necessary variables and use geodalbers function from spsurvey
               df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar, 
-                                               input$subpopVar, yearVName))
+                                               input$subpopVar, yearVName, subVName))
               if(input$xy == TRUE){
                 xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
                                       as.numeric(input$clon),as.numeric(input$clat),
                                       as.numeric(input$sp1),as.numeric(input$sp2))
                 # Combine x and y coordinates back with set of selected variables, select
                 df1 <- cbind(df1, xyCoord)
-                df1 <- subset(df1, select=c(input$siteVar,'xcoord','ycoord',input$weightVar,input$respVar,input$subpopVar,yearVName))
+                df1 <- subset(df1, select=c(input$siteVar,'xcoord','ycoord',input$weightVar,input$respVar,input$subpopVar,yearVName, subVName))
                # If conversion not needed, select variables and rename them to required names 
               }else{
                 df1 <- subset(df1, select=c(input$siteVar,input$coordxVar,input$coordyVar,input$weightVar,input$respVar,
-                                            input$subpopVar, yearVName))
+                                            input$subpopVar, yearVName, subVName))
                 df1$xcoord <- with(df1, eval(as.name(input$coordxVar)))
                 df1$ycoord <- with(df1, eval(as.name(input$coordyVar)))
 
               } 
               df1$siteID <- with(df1, eval(as.name(input$siteVar)))
               df1$wgt <- with(df1, eval(as.name(input$weightVar)))
-              df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar, yearVName))
+              df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar, yearVName, subVName))
               
               
           # If local variance not used (SRS selected), need stratum variable but not coordinates 
           }else{
             # validate variable for stratum to make sure it does not overlap with other variables selected
             validate(
-              need(input$stratumVar %nin% c(input$siteVar,input$respVar,input$subpopVar,input$weightVar,yearVName),
+              need(input$stratumVar %nin% c(input$siteVar,input$respVar,input$subpopVar,input$weightVar,yearVName, subVName),
                    "Stratum variable cannot overlap with other variable selections.")
               )
             if(input$chboxYear==TRUE){
@@ -372,12 +382,12 @@ server <- function(input, output, session) {
             }
             # Subset the data to the variables selected, then rename any to required names.
             df1 <- subset(dataIn(), select=c(input$siteVar, input$stratumVar, input$weightVar, input$respVar, 
-                                             input$subpopVar, yearVName)) 
+                                             input$subpopVar, yearVName, subVName)) 
             
             df1$stratum <- with(df1, eval(as.name(input$stratumVar)))
             df1$siteID <- with(df1, eval(as.name(input$siteVar)))
             df1$wgt <- with(df1, eval(as.name(input$weightVar)))
-            df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,input$subpopVar, yearVName))
+            df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,input$subpopVar, yearVName, subVName))
 
           }
           df1$allSites <- 'All Sites'
@@ -416,7 +426,7 @@ server <- function(input, output, session) {
           
           # Subset the data to selected variables if year selected
           df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, 
-                                           input$respVar, yearVName))
+                                           input$respVar, yearVName, subVName))
           
           # If conversion from lat/long is necessary, convert, then rename variables with required names
           if(input$xy == TRUE){
@@ -433,7 +443,7 @@ server <- function(input, output, session) {
           } 
           df1$siteID <- with(df1, eval(as.name(input$siteVar)))
           df1$wgt <- with(df1, as.numeric(eval(as.name(input$weightVar))))
-          df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar,yearVName))
+          df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar,yearVName, subVName))
           
         # if SRS selected, make sure stratum does not overlap with other variable selections
         }else{
@@ -448,12 +458,12 @@ server <- function(input, output, session) {
             ) 
           }
            # subset to the variables needed
-          df1 <- subset(dataIn(), select = c(input$siteVar, input$weightVar, input$stratumVar, input$respVar, yearVName, input$subvar))
+          df1 <- subset(dataIn(), select = c(input$siteVar, input$weightVar, input$stratumVar, input$respVar, yearVName, subVName))
           
           df1$siteID <- with(df1, eval(as.name(input$siteVar)))
           df1$wgt <- with(df1, as.numeric(eval(as.name(input$weightVar))))
           df1$stratum <- with(df1, eval(as.name(input$stratumVar)))
-          df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,yearVName,input$subvar))
+          df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,yearVName, subVName))
         }
 
       }
@@ -488,10 +498,14 @@ server <- function(input, output, session) {
       head(dataOut())
 
     }else{
-      if(input$disp == 'head'){
-        return(head(dataIn()))
+      if(input$websource==TRUE){
+        return("")
       }else{
-        return(dataIn())
+        if(input$disp == 'head'){
+          return(head(dataIn()))
+        }else{
+          return(dataIn())
+        }
       }
     }
   }, digits=5)
@@ -509,12 +523,6 @@ server <- function(input, output, session) {
                  }
                )
   
-  observe({
-      catchoices <- as.character(sort(unique(dataIn()[[input$subvar]])))
-      
-      updateSelectizeInput(session, 'subcat', choices = catchoices, selected=NULL)
-    }
-  )
   
   # Change estimate code
   chgEst <- eventReactive(input$chgBtn,{
