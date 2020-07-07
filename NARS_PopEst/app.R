@@ -30,10 +30,10 @@ ui <- fluidPage(theme = shinytheme("united"),
                  tags$li("The variables in that file will populate dropdown lists on that tab."),
                  tags$li("Select variables to serve as site IDs, weights, response variables, and subpopulations (if desired). If only overall or 'national' estimates are desired, check the box for overall analysis."),
                  tags$li("If data are to be used for change analysis, select year variable (or other variable to distinguish design cycles)."),
-                tags$li("Select the type of variance you want to use.",
+                tags$li(p("Select the type of variance you want to use. ", strong("Local neighborhood variance"), " reduces the variance estimates and is ", em("recommended"),". This is the approach used in NARS estimates and requires site coordinates to be provided."),
                         tags$ul(
-                        tags$li("For simple random sample variance, select a stratum variable to better estimate variance."), 
-                        tags$li("For local neighborhood variance (as used in NARS estimates), select coordinate variables (either in latitude/longitude or Albers projection). If coordinates are in latitude and longitude, you must provide projection information in order to convert them to Albers projection."))),
+                        tags$li("For local neighborhood variance, select coordinate variables (either in latitude/longitude or Albers projection). If coordinates are in latitude and longitude, you must provide projection information in order to convert them to Albers projection. Default settings are those typically used in NARS."),
+                        tags$li("For simple random sample variance, select a stratum variable to better estimate variance."))),
                 tags$li("You may subset the data for analysis by up to one categorical variable. To do this, select the check box to subset, then select the variable to subset by. Finally, select one or more categories by which to subset data."),
                tags$li("Click on the button above the data to subset the data before proceeding to the Run Population Estimates tab")
                ),
@@ -80,6 +80,7 @@ ui <- fluidPage(theme = shinytheme("united"),
           fluidRow(
             # Input: Select a file ---
             column(3,
+                add_busy_spinner(spin='fading-circle', position='full-page'),
                 checkboxInput("websource", 'Input file from URL instead of local directory', FALSE),
                 # Read in file from local computer
                 conditionalPanel(condition="input.websource == false",
@@ -136,9 +137,9 @@ ui <- fluidPage(theme = shinytheme("united"),
             # Set up type of variance to use in estimates: local or SRS
             column(4,
                    radioButtons('locvar',"Type of variance estimate to use (select one)",
-                                choices = c('Local neighborhood variance' = 'local',
+                                choices = c('Local neighborhood variance (recommended, requires site coordinates)' = 'local',
                                             'Simple Random Sample (requires stratum)' = 'srs'),
-                                select = 'srs'),
+                                select = 'local'),
                    # If local, user must select x and y coordinates and convert to Albers if in lat/long
                    conditionalPanel(condition = "input.locvar == 'local'",
                                     selectizeInput("coordxVar","Select the X coordinate variable (or longitude) 
@@ -182,6 +183,7 @@ ui <- fluidPage(theme = shinytheme("united"),
       tabPanel(title="Run Population Estimates",value="runest",
           fluidRow(     
              column(3, 
+                    add_busy_spinner(spin='fading-circle', position='full-page'),
                # User must select categorical or continuous variable analysis, depending on response variables selected
                radioButtons("atype","Type of Analysis (pick one)",
                             choices = c('Categorical (for character variables)' = 'categ', 'Continuous (for numeric variables)' = 'contin'),
@@ -214,6 +216,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                  used in the population estimates, 
                     return to the Prepare Data for Analysis tab to re-select variables."),
                  column(3, 
+                        add_busy_spinner(spin='fading-circle', position='full-page'),
                         # User must select years to compare
                         selectizeInput('chgYear1',"Select two years of data to compare in desired order", choices=NULL, multiple=TRUE),
                         radioButtons("chgCatCont", "Type of variables to analyze",
@@ -547,8 +550,6 @@ server <- function(input, output, session) {
       )
       
       
-    withProgress(message="Calculating estimates",detail="This might take a while...",
-                   value=0,{
       # Need to order by siteID, yearVar
       chgIn <- chgIn[order(chgIn[,input$yearVar],chgIn$siteID),]
       
@@ -624,7 +625,6 @@ server <- function(input, output, session) {
           }
           
         }
-    }) 
     if(input$chgCatCont == 'chgCat'){
       chgOut.1 <- chgOut$catsum
     }else{
@@ -691,9 +691,6 @@ server <- function(input, output, session) {
       }
     }
     
-    # Show progress bar for a certain about of time while calculations are running  
-    withProgress(message="Calculating estimates",detail="This might take a while...",
-                   value=0,{  
       # Create sites data frame, which is the same regardless of other options               
       sites <- subset(dfIn, select=c('siteID','Active'))
       
@@ -762,7 +759,7 @@ server <- function(input, output, session) {
             
           }
       }
-    })
+
     if(exists('warn.df') && ncol(warn.df)>1){
       outdf <- list(estOut=estOut, warndf=warn.df)
     }else{
