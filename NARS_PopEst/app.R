@@ -501,15 +501,15 @@ server <- function(input, output, session) {
       head(dataOut())
 
     }else{
-      if(input$websource==TRUE){
-        return("")
-      }else{
+      # if(input$websource==TRUE){
+      #   return("")
+      # }else{
         if(input$disp == 'head'){
           return(head(dataIn()))
         }else{
           return(dataIn())
         }
-      }
+#      }
     }
   }, digits=5)
   
