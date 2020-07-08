@@ -35,7 +35,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                         tags$li("For local neighborhood variance, select coordinate variables (either in latitude/longitude or Albers projection). If coordinates are in latitude and longitude, you must provide projection information in order to convert them to Albers projection. Default settings are those typically used in NARS."),
                         tags$li("For simple random sample variance, select a stratum variable to better estimate variance."))),
                 tags$li("You may subset the data for analysis by up to one categorical variable. To do this, select the check box to subset, then select the variable to subset by. Finally, select one or more categories by which to subset data."),
-               tags$li("Click on the button above the data to subset the data before proceeding to the Run Population Estimates tab")
+                tags$li("Click on the left hand button to view the full dataset if necessary"),
+               tags$li("Click on the right hand button above the data to subset the data before proceeding to the Run Population Estimates tab")
                ),
                br(),
                h4("Run Population Estimates"),
@@ -43,7 +44,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                  tags$li("Select the type of analysis (categorical or continuous)."),
                  tags$li("If year or design cycle variable was select on data preparation tab, select year or cycle of interest."),
                  tags$li("For continuous analysis, select either CDFs (cumulative distribution functions) or Percentiles."),
-                 tags$li("Click on the Run/Refresh Population Estimates button. Depending on the number of responses, subpopulations, and type of analysis, it may take a few minutes."),
+                 tags$li("Click on the Run/Refresh Estimates button. Depending on the number of responses, subpopulations, and type of analysis, it may take a few minutes."),
                  tags$li("If desired, download results to a comma-delimited file by clicking the Save Results button.")
                ),
                br(),
@@ -54,6 +55,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                  tags$li("If continuous data are selected, select parameter on which to test for differences (mean or median)."),
                  tags$li("If repeated visits to sites are included in dataset across years or cycles, check box. If selected, note that site ID variable selected must contain the same value for both years or cycles of data.")
                ),
+               tags$li("Click on the Run/Refresh Estimates button. Depending on the number of responses, subpopulations, and type of analysis, it may take a few minutes."),
                br(),
                h4("Minimum requirements:"),
                tags$ul(
