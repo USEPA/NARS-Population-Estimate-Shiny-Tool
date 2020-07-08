@@ -171,7 +171,8 @@ ui <- fluidPage(theme = shinytheme("united"),
             )  
          ),
           # Press button to subset data for analysis - must click here first
-          actionButton("subsetBtn", "Click HERE to prepare data for population estimates"),
+         actionButton("resetBtn", "Click to view full dataset"),
+         actionButton("subsetBtn", "Click HERE to prepare data for analysis"),
        
           # Show a table of the data
           h4("Data for Analysis"),
@@ -197,7 +198,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                               selectizeInput('selYear', 'Select the year for analysis', choices=NULL, multiple=FALSE)),
             
              # Once data are prepared, user needs to click to run estimates, or rerun estimates on refreshed data
-             actionButton('runBtn', "Run/Refresh population estimates"),
+             actionButton('runBtn', "Run/Refresh estimates"),
              hr(),
              # Click to download results into a comma-delimited file
              downloadButton("dwnldcsv","Save Results as .csv file")),
@@ -233,7 +234,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                                visits to a site.",
                                value=FALSE),
                  hr(),
-                 actionButton('chgBtn', "Run/Refresh change estimates"),
+                 actionButton('chgBtn', "Run/Refresh estimates"),
                  hr(),
                  # Click to download results into a comma-delimited file
                  downloadButton("chgcsv","Save Change Results as .csv file")),
@@ -259,6 +260,7 @@ server <- function(input, output, session) {
                      header = input$header,
                      sep = input$sep,
                      stringsAsFactors=F)
+      
     }else{
       if(input$urlbtn>0){
         df <- read.table(url(input$urlfile),
@@ -267,11 +269,31 @@ server <- function(input, output, session) {
                          stringsAsFactors=F)
       }
     }
-    vars <- colnames(df)
-    
+
     df
     
   })
+
+  # Need code to show initial version of dataIn() before subsetting or pressing the button to reset
+  
+  observeEvent(input$subsetBtn, {
+    shinyjs::disable('dwnldcsv')
+    if(input$disp == 'head'){
+      output$contents <- renderTable({head(dataOut())}, digits=5)
+    }else{
+      output$contents <- renderTable({dataOut()}, digits=5)
+    }
+  })
+  
+  observeEvent(input$resetBtn, {
+    if(input$disp == 'head'){
+      output$contents <- renderTable({head(dataIn())}, digits=5)
+    }else{
+      output$contents <- renderTable({dataIn()}, digits=5)
+    }
+  })
+  
+  
   # Use current dataset to refresh dropdown list of variables.
   observe({
     vars <- colnames(dataIn())
@@ -300,6 +322,7 @@ server <- function(input, output, session) {
       updateSelectizeInput(session, 'subcat', choices = catchoices, selected=NULL)
 
   })
+  
 
   # Once subset button is clicked, validate selections to make sure any variable only occurs in set of selections
   dataOut <- eventReactive(input$subsetBtn,{
@@ -480,7 +503,6 @@ server <- function(input, output, session) {
       validate(
         need(!any(is.na(df1$xcoord)), "Non-numeric or missing values for x coordinates."),
         need(!any(is.na(df1$ycoord)), "Non-numeric or missing values for y coordinates.")
- #       need(!any(is.na(df1$wgt)), "Non-numeric or missing values for weights.")
       )
       df1
       
@@ -491,27 +513,7 @@ server <- function(input, output, session) {
   }
 
   )
-  # Show table on data prep tab to 5 digits
-  output$contents <- renderTable({
-    
-    if(input$subsetBtn > 0){
-      shinyjs::disable('dwnldcsv')
-      
-      dataOut()
-      head(dataOut())
-
-    }else{
-      # if(input$websource==TRUE){
-      #   return("")
-      # }else{
-        if(input$disp == 'head'){
-          return(head(dataIn()))
-        }else{
-          return(dataIn())
-        }
-#      }
-    }
-  }, digits=5)
+ 
   
   # Allow user to select specific year of interest for analysis
   observe({ 
