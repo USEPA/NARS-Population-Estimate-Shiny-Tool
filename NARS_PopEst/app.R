@@ -33,7 +33,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                 tags$li(p("Select the type of variance you want to use. ", strong("Local neighborhood variance"), " reduces the variance estimates and is ", em("recommended"),". This is the approach used in NARS estimates and requires site coordinates to be provided."),
                         tags$ul(
                         tags$li("For local neighborhood variance, select coordinate variables (either in latitude/longitude or Albers projection). If coordinates are in latitude and longitude, you must provide projection information in order to convert them to Albers projection. Default settings are those typically used in NARS."),
-                        tags$li("For simple random sample variance, select a stratum variable to better estimate variance."))),
+                        tags$li("For simple random sample (SRS) variance, selecting a stratum variable to better estimate variance is advised but not required."))),
                 tags$li("You may subset the data for analysis by up to one categorical variable. To do this, select the check box to subset, then select the variable to subset by. Finally, select one or more categories by which to subset data."),
                 tags$li("Click on the left hand button to view the full dataset if necessary"),
                tags$li("Click on the right hand button above the data to subset the data before proceeding to the Run Population Estimates tab")
@@ -310,7 +310,7 @@ server <- function(input, output, session) {
     updateSelectizeInput(session, 'subpopVar', 'Select up to 10 subpopulation variables \n(required if not national estimates only)', choices=vars, selected=NULL,
                          options = list(maxItems=10))
     updateSelectizeInput(session, "stratumVar", "Select the stratum variable in order to calculate variance based on a simple random sample",
-                         choices=vars)
+                         choices=c('None', vars))
     updateSelectizeInput(session, "yearVar","Select year variable",
                          choices=c('', vars))
     
@@ -409,13 +409,23 @@ server <- function(input, output, session) {
               ) 
             }
             # Subset the data to the variables selected, then rename any to required names.
-            df1 <- subset(dataIn(), select=c(input$siteVar, input$stratumVar, input$weightVar, input$respVar, 
-                                             input$subpopVar, yearVName, subVName)) 
+            if(input$stratumVar!='None'){
+              df1 <- subset(dataIn(), select=c(input$siteVar, input$stratumVar, input$weightVar, input$respVar, 
+                                               input$subpopVar, yearVName, subVName)) 
+              
+              df1$stratum <- with(df1, eval(as.name(input$stratumVar)))
+              df1$siteID <- with(df1, eval(as.name(input$siteVar)))
+              df1$wgt <- with(df1, eval(as.name(input$weightVar)))
+              df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,input$subpopVar, yearVName, subVName))
+            }else{
+              df1 <- subset(dataIn(), select=c(input$siteVar, input$weightVar, input$respVar, 
+                                               input$subpopVar, yearVName, subVName)) 
+              
+              df1$siteID <- with(df1, eval(as.name(input$siteVar)))
+              df1$wgt <- with(df1, eval(as.name(input$weightVar)))
+              df1 <- subset(df1, select = c('siteID','wgt',input$respVar,input$subpopVar, yearVName, subVName))
+            }
             
-            df1$stratum <- with(df1, eval(as.name(input$stratumVar)))
-            df1$siteID <- with(df1, eval(as.name(input$siteVar)))
-            df1$wgt <- with(df1, eval(as.name(input$weightVar)))
-            df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,input$subpopVar, yearVName, subVName))
 
           }
           df1$allSites <- 'All Sites'
@@ -486,12 +496,24 @@ server <- function(input, output, session) {
             ) 
           }
            # subset to the variables needed
-          df1 <- subset(dataIn(), select = c(input$siteVar, input$weightVar, input$stratumVar, input$respVar, yearVName, subVName))
+          if(input$stratumVar!='None'){
+            df1 <- subset(dataIn(), select = c(input$siteVar, input$weightVar, input$stratumVar, 
+                                               input$respVar, yearVName, subVName))
+          }else{
+            df1 <- subset(dataIn(), select = c(input$siteVar, input$weightVar,  
+                                               input$respVar, yearVName, subVName))
+          }
+          
           
           df1$siteID <- with(df1, eval(as.name(input$siteVar)))
           df1$wgt <- with(df1, as.numeric(eval(as.name(input$weightVar))))
-          df1$stratum <- with(df1, eval(as.name(input$stratumVar)))
-          df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,yearVName, subVName))
+          if(input$stratumVar!= 'None'){
+            df1$stratum <- with(df1, eval(as.name(input$stratumVar)))
+            df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,yearVName, subVName))
+          }else{
+            df1 <- subset(df1, select = c('siteID','wgt',input$respVar,yearVName, subVName))
+          }
+          
         }
 
       }
@@ -587,7 +609,12 @@ server <- function(input, output, session) {
         design <- chgIn[, c('siteID', 'wgt', 'xcoord', 'ycoord')]
         
       }else{ # if simple random sample
-        design <- chgIn[, c('siteID', 'wgt', 'stratum')]
+        if(input$stratumVar!='None'){
+          design <- chgIn[, c('siteID', 'wgt', 'stratum')]
+        }else{
+          design <- chgIn[, c('siteID', 'wgt')]
+        }
+        
       }
       
       in.data <- chgIn[, c('siteID', input$respVar)]
@@ -706,7 +733,12 @@ server <- function(input, output, session) {
       if(input$locvar == 'local'){
         design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord'))
       }else{
-        design=subset(dfIn,select=c('siteID','wgt','stratum'))
+        if(input$stratumVar!='None'){
+          design=subset(dfIn,select=c('siteID','wgt','stratum'))
+        }else{
+          design=subset(dfIn, select=c('siteID','wgt'))
+        }
+        
       }
       
       # Create data.cat if categorical and data.cont if continuous data
