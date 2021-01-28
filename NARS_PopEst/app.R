@@ -26,46 +26,79 @@ ui <- fluidPage(theme = shinytheme("united"),
                h3("Instructions for Use"),
                h4("Prepare Data for Analysis tab"),
                tags$ol(
-                 tags$li("Select data file and upload. If the data are to be loaded from a URL, check the box to do so and paste or enter the URL for the file."),
+                 tags$li("Select data file and upload. If the data are to be loaded from a URL, check the
+                         box to do so and paste or enter the URL for the file."),
                  tags$li("The variables in that file will populate dropdown lists on that tab."),
-                 tags$li("Select variables to serve as site IDs, weights, response variables, and subpopulations (if desired). If only overall or 'national' estimates are desired, check the box for overall analysis."),
-                 tags$li("If data are to be used for change analysis, select year variable (or other variable to distinguish design cycles)."),
-                tags$li(p("Select the type of variance you want to use. ", strong("Local neighborhood variance"), " uses a site's nearest neighbors to estimate variance, tending to result in smaller variance values. This approach is ", em("recommended"),"and is the approach used in NARS estimates. It requires site coordinates to be provided."),
+                 tags$li("Select variables to serve as site IDs, weights, response variables, and subpopulations
+                         (if desired). If only overall or 'national' estimates are desired, check the box for overall analysis."),
+                 tags$li("If data are to be used for change analysis, select year variable 
+                         (or other variable to distinguish design cycles)."),
+                tags$li(p("Select the type of variance you want to use. ", strong("Local neighborhood variance"), 
+                          " uses a site's nearest neighbors to estimate variance, tending to result in smaller 
+                          variance values. This approach is ", em("recommended"),"and is the approach used in 
+                          NARS estimates. It requires site coordinates to be provided."),
                         tags$ul(
-                        tags$li("For local neighborhood variance, select coordinate variables (either in latitude/longitude or Albers projection). If coordinates are in latitude and longitude, you must provide projection information in order to convert them to Albers projection. Default settings are those typically used in NARS."),
-                        tags$li("For simple random sample (SRS) variance, selecting a stratum variable to better estimate variance is advised but not required. Coordinates are not used with type of variance."))),
-                tags$li("You may subset the data for analysis by up to one categorical variable. To do this, select the check box to subset, then select the variable to subset by. Finally, select one or more categories by which to subset data."),
+                        tags$li("For local neighborhood variance, select coordinate variables 
+                                (either in latitude/longitude or Albers projection). If coordinates are 
+                                in latitude and longitude, you must provide projection information in order to 
+                                convert them to Albers projection. Default settings are those typically 
+                                used in NARS."),
+                        tags$li("For simple random sample (SRS) variance, selecting a stratum variable 
+                                to better estimate variance is advised but not required. Coordinates are 
+                                not used with type of variance."))),
+                br(),
+                tags$li("You may subset the data for analysis by up to one categorical variable. To do 
+                        this, select the check box to subset, then select the variable to subset by.
+                        Finally, select one or more categories by which to subset data."),
                 tags$li("Click on the left hand button to view the full dataset if necessary"),
-               tags$li("Click on the right hand button above the data to subset the data before proceeding to the Run Population Estimates tab")
+               tags$li("Click on the right hand button above the data to subset the data before 
+                       proceeding to the Run Population Estimates tab")
                ),
                br(),
                h4("Run Population Estimates"),
                tags$ol(
                  tags$li("Select the type of analysis (categorical or continuous)."),
-                 tags$li("If year or design cycle variable was select on data preparation tab, select year or cycle of interest."),
-                 tags$li("For continuous analysis, select either CDFs (cumulative distribution functions) or Percentiles."),
-                 tags$li("Click on the Run/Refresh Estimates button. Depending on the number of responses, subpopulations, and type of analysis, it may take a few minutes."),
-                 tags$li("If desired, download results to a comma-delimited file by clicking the Save Results button.")
+                 tags$li("If year or design cycle variable was select on data preparation tab, 
+                         select year or cycle of interest."),
+                 tags$li("For continuous analysis, select either CDFs (cumulative distribution 
+                         functions) or Percentiles."),
+                 tags$li("Click on the Run/Refresh Estimates button. Depending on the number of
+                         responses, subpopulations, and type of analysis, it may take a few seconds 
+                         to several minutes."),
+                 tags$li("If desired, download results to a comma-delimited file by clicking
+                         the Save Results button.")
                ),
                br(),
                h4("Run Change Analysis"),
                tags$ol(
                  tags$li("First select the two years (or sets of years) to compare."),
                  tags$li("Select type of data to analyze (categorical or continuous."),
-                 tags$li("If continuous data are selected, select parameter on which to test for differences (mean or median)."),
-                 tags$li("If repeated visits to sites are included in dataset across years or cycles, check box. If selected, note that site ID variable selected must contain the same value for both years or cycles of data.")
+                 tags$li("If continuous data are selected, select parameter on which to test 
+                         for differences (mean or median)."),
+                 tags$li("If repeated visits to sites are included in dataset across years or 
+                         cycles, check box. If selected, note that site ID variable selected 
+                         must contain the same value for both years or cycles of data."),
+                 tags$li("Click on the Run/Refresh Estimates button. Depending on the number of 
+                 responses, subpopulations, and type of analysis, it may take a few 
+                         seconds to several minutes."),
                ),
-               tags$li("Click on the Run/Refresh Estimates button. Depending on the number of responses, subpopulations, and type of analysis, it may take a few minutes."),
+               
                br(),
                h4("Minimum requirements:"),
                tags$ul(
-                         tags$li("All variables must be contained in one file and include site IDs, weights, response variables,
-                                 subpopulations (if any), and coordinates or design stratum (depending on type of variance desired)." ),
-                         tags$li("All sites included in the dataset should have weight > 0. Any records with a missing weight or a weight of 0 will be dropped before analysis."),
-                         tags$li("Input data should include only one visit per site and year/survey cycle (based on the variables for site ID and year/survey cycle selected)."),
+                         tags$li("All variables must be contained in one file and include site IDs, 
+                         weights, response variables, subpopulations (if any), and coordinates or 
+                                 design stratum (depending on type of variance desired)." ),
+                         tags$li("All sites included in the dataset should have weight > 0. Any 
+                                 records with a missing weight or a weight of 0 will be dropped 
+                                 before analysis."),
+                         tags$li("Input data should include only one visit per site and year/survey 
+                                 cycle (based on the variables for site ID and year/survey cycle selected)."),
                          tags$li("Only delimited files, such as comma- and tab-delimited, are accepted for upload."),
                          tags$li("If local neighborhood variance is desired, coordinates must be provided, either in 
-                                 latitude/longitude (decimal degrees) or Albers projection. If provided in latitude/longitude, projection information is needed to convert values. Only spheroid need be supplied for conversion."),
+                                 latitude/longitude (decimal degrees) or Albers projection. If provided in 
+                                 latitude/longitude, projection information is needed to convert values. 
+                                 Only spheroid need be supplied for conversion."),
                          tags$li("If variance based on a simple random sample is desired (or if coordinates or projection 
                                  information are not available), the design stratum is needed to better estimate variance."),
                          tags$li("If change analysis is intended, all desired years of data must be contained in one file.")
@@ -74,7 +107,14 @@ ui <- fluidPage(theme = shinytheme("united"),
                p('Contact Karen Blocksom at blocksom.karen@epa.gov with questions or feedback.'),
                br(),
                h3('Disclaimer'),
-               p('The United States Environmental Protection Agency (EPA) GitHub project code is provided on an "as is" basis and the user assumes responsibility for its use.  EPA has relinquished control of the information and no longer has responsibility to protect the integrity , confidentiality, or availability of the information.  Any reference to specific commercial products, processes, or services by service mark, trademark, manufacturer, or otherwise, does not constitute or imply their endorsement, recommendation or favoring by EPA.  The EPA seal and logo shall not be used in any manner to imply endorsement of any commercial product or activity by EPA or the United States Government.')),
+               p('The United States Environmental Protection Agency (EPA) GitHub project code is provided 
+                 on an "as is" basis and the user assumes responsibility for its use.  EPA has relinquished 
+                 control of the information and no longer has responsibility to protect the integrity , 
+                 confidentiality, or availability of the information.  Any reference to specific commercial 
+                 products, processes, or services by service mark, trademark, manufacturer, or otherwise, 
+                 does not constitute or imply their endorsement, recommendation or favoring by EPA.  The EPA 
+                 seal and logo shall not be used in any manner to imply endorsement of any commercial product
+                 or activity by EPA or the United States Government.')),
 
       # Panel to import and select data to analyze
       tabPanel(title='Prepare Data for Analysis',value="prepdata",
@@ -124,7 +164,8 @@ ui <- fluidPage(theme = shinytheme("united"),
               selectizeInput("weightVar","Select weight variable", choices=NULL, multiple=FALSE),
               selectizeInput("respVar","Select up to 10 response variables - must all be either categorical or numeric", 
                              choices=NULL, multiple=TRUE),
-              checkboxInput('chboxYear', 'Check box if performing change analysis or need to subset data by year or cycle for population estimates'),
+              checkboxInput('chboxYear', 'Check box if performing change analysis or need to subset data by year 
+                            or cycle for population estimates'),
               conditionalPanel(condition="input.chboxYear == true",
                                selectizeInput("yearVar","Select year variable",
                              choices=NULL, multiple=FALSE)),
@@ -140,7 +181,8 @@ ui <- fluidPage(theme = shinytheme("united"),
             # Set up type of variance to use in estimates: local or SRS
             column(4,
                    radioButtons('locvar',"Type of variance estimate to use (select one)",
-                                choices = c('Local neighborhood variance (recommended, used for NARS, requires site coordinates)' = 'local',
+                                choices = c('Local neighborhood variance (recommended, used for NARS, 
+                                            requires site coordinates)' = 'local',
                                             'Simple Random Sample (requires stratum but not site coordinates)' = 'srs'),
                                 select = 'local'),
                    # If local, user must select x and y coordinates and convert to Albers if in lat/long
@@ -158,8 +200,11 @@ ui <- fluidPage(theme = shinytheme("united"),
                                 # If conversion from lat/long is needed, provide default as NARS typical projection info, otherwise allow user to enter
                                      conditionalPanel(condition = "input.xy == true",
                                                      p("Projection options (otherwise provide as x and y coordinates). "),
-                                                     tags$body(p("Use spheroid ",strong("GRS80"),"for NAD83, ",strong("Clarke1866"),"for NAD27, and ", strong("WGS84"), "for WGS84 datum. Other values are defaults assumed for NARS.")),
-                                                                       selectInput('sph',"Spheroid options",list('GRS80','Clarke1866','WGS84')),
+                                                     tags$body(p("Use spheroid ",strong("GRS80"),"for NAD83, ",
+                                                                 strong("Clarke1866"),"for NAD27, and ", strong("WGS84"), "for WGS84 datum.
+                                                                 Other values are defaults assumed for NARS.")),
+                                                                       selectInput('sph',"Spheroid options",
+                                                                                   list('GRS80','Clarke1866','WGS84')),
                                                                        textInput('clon','Center longitude (dec. deg.)',value=-96),
                                                                        textInput('clat','Center latitude (dec. deg.)',value=37.5),
                                                                        textInput('sp1','Standard parallel 1 (dec. deg.)',value=29.5),
@@ -169,7 +214,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                    
                    # Select stratum if Simple Random Sample                                 
                    conditionalPanel(condition = "input.locvar == 'srs'",
-                                    selectizeInput("stratumVar", "Select the stratum variable in order to calculate variance based on a simple random sample",
+                                    selectizeInput("stratumVar", "Select the stratum variable in order to calculate 
+                                                   variance based on a simple random sample",
                                                    choices=NULL, multiple=FALSE))
             )  
          ),
@@ -190,7 +236,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                     # add_busy_bar(color="red", centered=TRUE),
                # User must select categorical or continuous variable analysis, depending on response variables selected
                radioButtons("atype","Type of Analysis (pick one)",
-                            choices = c('Categorical (for character variables)' = 'categ', 'Continuous (for numeric variables)' = 'contin'),
+                            choices = c('Categorical (for character variables)' = 'categ', 
+                                        'Continuous (for numeric variables)' = 'contin'),
                             selected='categ'),
              # If continuous analysis selected, select whether CDFs or percentiles are desired.  
              conditionalPanel(condition = "input.atype == 'contin'",
@@ -216,13 +263,15 @@ ui <- fluidPage(theme = shinytheme("united"),
       ),
       tabPanel(title="Run Change Analysis", value='change',
                fluidRow(
-                 h4("If a different set of response variables is necessary from those 
-                 used in the population estimates, 
-                    return to the Prepare Data for Analysis tab to re-select variables."),
+                 h4(p("If a different set of response variables from those 
+                 used in the population estimates is desired, 
+                    return to the", strong("Prepare Data for Analysis"), "tab to re-select variables."), 
+                    style="color:red"),
                  column(3, 
                         # add_busy_spinner(spin='fading-circle', position='full-page'),
                         # User must select years to compare
-                        selectizeInput('chgYear1',"Select two years of data to compare in desired order", choices=NULL, multiple=TRUE),
+                        selectizeInput('chgYear1',"Select two years of data to compare in desired order", 
+                                       choices=NULL, multiple=TRUE),
                         radioButtons("chgCatCont", "Type of variables to analyze",
                                      choices = c(Categorical = 'chgCat', Continuous = 'chgCont'),
                                      select = 'chgCat'),
@@ -301,16 +350,21 @@ server <- function(input, output, session) {
   observe({
     vars <- colnames(dataIn())
     updateSelectizeInput(session, "weightVar", "Select weight variable", choices=vars)
-    updateSelectizeInput(session, 'respVar', 'Select up to 10 response variables - All must be either categorical or numeric', choices=vars, selected = NULL, 
+    updateSelectizeInput(session, 'respVar', 'Select up to 10 response variables - All must be either categorical or numeric', 
+                         choices=vars, selected = NULL, 
                          options = list(maxItems=10))
-    updateSelectizeInput(session, 'coordxVar', "Select the X coordinate variable (or longitude) \n(required only for local neighborhood variance)", 
+    updateSelectizeInput(session, 'coordxVar', "Select the X coordinate variable (or longitude) \n(required only 
+                         for local neighborhood variance)", 
                          choices=vars, selected = NULL)
-    updateSelectizeInput(session, 'coordyVar', "Select the Y coordinate variable (or latitude) \n(required only for local neighborhood variance)", 
+    updateSelectizeInput(session, 'coordyVar', "Select the Y coordinate variable (or latitude) \n(required only 
+                         for local neighborhood variance)", 
                          choices=vars, selected = NULL)
     updateSelectizeInput(session, 'siteVar', 'Select site variable', choices=vars)
-    updateSelectizeInput(session, 'subpopVar', 'Select up to 10 subpopulation variables \n(required if not national estimates only)', choices=vars, selected=NULL,
+    updateSelectizeInput(session, 'subpopVar', 'Select up to 10 subpopulation variables \n(required if not 
+                         national estimates only)', choices=vars, selected=NULL,
                          options = list(maxItems=10))
-    updateSelectizeInput(session, "stratumVar", "Select the stratum variable in order to calculate variance based on a simple random sample",
+    updateSelectizeInput(session, "stratumVar", "Select the stratum variable in order to calculate variance based 
+                         on a simple random sample",
                          choices=c('None', vars))
     updateSelectizeInput(session, "yearVar","Select year variable",
                          choices=c('', vars))
@@ -374,7 +428,8 @@ server <- function(input, output, session) {
               ) 
             }
               # For conversion to Albers projection, select necessary variables and use geodalbers function from spsurvey
-              df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, input$weightVar, input$respVar, 
+              df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, 
+                                               input$weightVar, input$respVar, 
                                                input$subpopVar, yearVName, subVName))
               if(input$xy == TRUE){
                 xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
@@ -382,10 +437,12 @@ server <- function(input, output, session) {
                                       as.numeric(input$sp1),as.numeric(input$sp2))
                 # Combine x and y coordinates back with set of selected variables, select
                 df1 <- cbind(df1, xyCoord)
-                df1 <- subset(df1, select=c(input$siteVar,'xcoord','ycoord',input$weightVar,input$respVar,input$subpopVar,yearVName, subVName))
+                df1 <- subset(df1, select=c(input$siteVar,'xcoord','ycoord',input$weightVar,input$respVar,
+                                            input$subpopVar,yearVName, subVName))
                # If conversion not needed, select variables and rename them to required names 
               }else{
-                df1 <- subset(df1, select=c(input$siteVar,input$coordxVar,input$coordyVar,input$weightVar,input$respVar,
+                df1 <- subset(df1, select=c(input$siteVar,input$coordxVar,input$coordyVar,
+                                            input$weightVar,input$respVar,
                                             input$subpopVar, yearVName, subVName))
                 df1$xcoord <- with(df1, eval(as.name(input$coordxVar)))
                 df1$ycoord <- with(df1, eval(as.name(input$coordyVar)))
@@ -393,14 +450,16 @@ server <- function(input, output, session) {
               } 
               df1$siteID <- with(df1, eval(as.name(input$siteVar)))
               df1$wgt <- with(df1, eval(as.name(input$weightVar)))
-              df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar, yearVName, subVName))
+              df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar, 
+                                            yearVName, subVName))
               
               
           # If local variance not used (SRS selected), need stratum variable but not coordinates 
           }else{
             # validate variable for stratum to make sure it does not overlap with other variables selected
             validate(
-              need(input$stratumVar %nin% c(input$siteVar,input$respVar,input$subpopVar,input$weightVar,yearVName, subVName),
+              need(input$stratumVar %nin% c(input$siteVar,input$respVar,input$subpopVar,
+                                            input$weightVar,yearVName, subVName),
                    "Stratum variable cannot overlap with other variable selections.")
               )
             if(input$chboxYear==TRUE){
@@ -417,7 +476,8 @@ server <- function(input, output, session) {
               df1$stratum <- with(df1, eval(as.name(input$stratumVar)))
               df1$siteID <- with(df1, eval(as.name(input$siteVar)))
               df1$wgt <- with(df1, eval(as.name(input$weightVar)))
-              df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,input$subpopVar, yearVName, subVName))
+              df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,
+                                            input$subpopVar, yearVName, subVName))
             }else{
               df1 <- subset(dataIn(), select=c(input$siteVar, input$weightVar, input$respVar, 
                                                input$subpopVar, yearVName, subVName)) 
