@@ -630,8 +630,7 @@ server <- function(input, output, session) {
       
       # Check for duplicate rows for siteID
       freqSiteChg <- as.data.frame(table(siteID = chgIn$siteID,Year = chgIn[,input$yearVar]))
-      # print(nrow(subset(freqSiteChg, Freq>1)>0))
-      
+
       validate(
         need(nrow(subset(freqSiteChg, Freq>1))==0, paste("There are", nrow(subset(freqSiteChg, Freq>1)), 
                                                          "duplicated sites in this dataset within years or cycles."))
@@ -644,22 +643,24 @@ server <- function(input, output, session) {
       print(input$chgYear1[[1]])
       print(input$chgYear1[[2]])
       
-      chgIn$Survey1 <- ifelse(chgIn[,input$yearVar]==input$chgYear1[[1]], TRUE, FALSE)
-      chgIn$Survey2 <- ifelse(chgIn[,input$yearVar]==input$chgYear1[[2]], TRUE, FALSE)
+      tst1 <- chgIn[,input$yearVar] == input$chgYear1[[1]]
+      tst2 <- chgIn[,input$yearVar] == input$chgYear1[[2]]
 
       # Need to identify sites (based on siteID) that are repeats
       if(input$repeatBox==TRUE){
-        repeatSites <- as.data.frame(table(siteID=chgIn$siteID))
-        repeatSites <- subset(repeatSites, Freq==2)
-        repeatSites$siteID_1 <- repeatSites$siteID
-        repeatSites$siteID_2 <- repeatSites$siteID
-        print("Repeat sites")
-
-        repeatSites <- repeatSites[,c('siteID_1','siteID_2')]
+        rep1 <- chgIn$siteID[tst1] %in% chgIn$siteID[tst2]
+        rep2 <- chgIn$siteID[tst2] %in% chgIn$siteID[tst1]
+        ID1 <- chgIn$siteID[tst1][rep1]
+        ID2 <- chgIn$siteID[tst2][rep2]
+        indx <- match(chgIn$siteID[tst2][rep2], chgIn$siteID[tst1][rep1])
+        ID1 <- ID1[indx]
+        repeatSites <- data.frame(siteID_1 = ID1, siteID_2 = ID2)
+        
       }
       
-      sites <- chgIn[,c('siteID','Survey1','Survey2')]
-      
+      sites <- data.frame(siteID=chgIn$siteID, siteID_1 = tst1, 
+                          siteID_2 = tst2)
+
       if(input$natpop==FALSE){
         subpop <- chgIn[,c('siteID','allSites',input$subpopVar)]
       }else{
@@ -678,13 +679,14 @@ server <- function(input, output, session) {
         }
         
       }
-      
+      print(head(subpop))
+      print(head(design))
       in.data <- chgIn[, c('siteID', input$respVar)]
       
       switch(input$locvar,
              local = {
-               local_1 <- 'local'
-               local_2 <- 'local'
+               local_1 <- 'Local'
+               local_2 <- 'Local'
                },
              srs = {
                local_1 <- 'SRS'
