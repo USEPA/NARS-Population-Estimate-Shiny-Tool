@@ -11,10 +11,10 @@ source("global.r")
 
 
 # Define UI for application that draws a histogram
-ui <- fluidPage(theme = shinytheme("united"),
+ui <- fluidPage(theme = shinytheme("cerulean"),
    shinyjs::useShinyjs(),
    # Application title 
-   navbarPage(title="NARS Population Estimate Calculation Tool",
+   navbarPage(title="NARS Population Estimate Calculation Tool (v. 0.1.1)",
               selected='instructions',position='static-top',
       # Panel with instructions for using this tool
       tabPanel(title='Instructions for Use',value='instructions',
@@ -39,7 +39,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                           NARS estimates. It requires site coordinates to be provided."),
                         tags$ul(
                         tags$li("For local neighborhood variance, select coordinate variables 
-                                (either in latitude/longitude or Albers projection). If coordinates are 
+                                (either in latitude/longitude, Albers projection, or some other projection). 
+                                If coordinates are 
                                 in latitude and longitude, you must provide projection information in order to 
                                 convert them to Albers projection. Default settings are those typically 
                                 used in NARS."),
@@ -50,9 +51,9 @@ ui <- fluidPage(theme = shinytheme("united"),
                 tags$li("You may subset the data for analysis by up to one categorical variable. To do 
                         this, select the check box to subset, then select the variable to subset by.
                         Finally, select one or more categories by which to subset data."),
-                tags$li("Click on the left hand button to view the full dataset if necessary"),
+                tags$li("Click on the left hand button to view the full dataset if necessary."),
                tags$li("Click on the right hand button above the data to subset the data before 
-                       proceeding to the Run Population Estimates tab")
+                       proceeding to the Run Population Estimates tab.")
                ),
                br(),
                h4("Run Population Estimates"),
@@ -72,7 +73,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                h4("Run Change Analysis"),
                tags$ol(
                  tags$li("First select the two years (or sets of years) to compare."),
-                 tags$li("Select type of data to analyze (categorical or continuous."),
+                 tags$li("Select type of data to analyze (categorical or continuous)."),
                  tags$li("If continuous data are selected, select parameter on which to test 
                          for differences (mean or median)."),
                  tags$li("If repeated visits to sites are included in dataset across years or 
@@ -96,7 +97,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                                  cycle (based on the variables for site ID and year/survey cycle selected)."),
                          tags$li("Only delimited files, such as comma- and tab-delimited, are accepted for upload."),
                          tags$li("If local neighborhood variance is desired, coordinates must be provided, either in 
-                                 latitude/longitude (decimal degrees) or Albers projection. If provided in 
+                                 latitude/longitude (decimal degrees) or in some type of projection, such as Albers. 
+                                 If provided in 
                                  latitude/longitude, projection information is needed to convert values. 
                                  Only spheroid need be supplied for conversion."),
                          tags$li("If variance based on a simple random sample is desired (or if coordinates or projection 
@@ -183,7 +185,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                    radioButtons('locvar',"Type of variance estimate to use (select one)",
                                 choices = c('Local neighborhood variance (recommended, used for NARS, 
                                             requires site coordinates)' = 'local',
-                                            'Simple Random Sample (requires stratum but not site coordinates)' = 'srs'),
+                                            'Simple Random Sample (requires stratum but not site 
+                                            coordinates)' = 'srs'),
                                 select = 'local'),
                    # If local, user must select x and y coordinates and convert to Albers if in lat/long
                    conditionalPanel(condition = "input.locvar == 'local'",
@@ -194,8 +197,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                                                    (required only for local neighborhood variance)", 
                                                    choices=NULL, multiple=FALSE),
                                     
-                                    checkboxInput("xy", "Convert latitude/longitude \nto Albers Projection (This is necessary 
-                                                  if using local neighborhood variance.). Current projection information:",
+                                    checkboxInput("xy", "Convert latitude/longitude \nto Albers Projection (this is necessary 
+                                                  if using local neighborhood variance). Current projection information:",
                                 FALSE),
                                 # If conversion from lat/long is needed, provide default as NARS typical projection info, otherwise allow user to enter
                                      conditionalPanel(condition = "input.xy == true",
@@ -220,8 +223,10 @@ ui <- fluidPage(theme = shinytheme("united"),
             )  
          ),
           # Press button to subset data for analysis - must click here first
-         actionButton("resetBtn", "Click to view full dataset"),
-         actionButton("subsetBtn", "Click HERE to prepare data for analysis"),
+         column(4, actionButton("resetBtn", "Click to view full dataset")),
+         column(4, actionButton("subsetBtn", "Click HERE to prepare data for analysis"), offset=2),
+         hr(),
+         br(),
        
           # Show a table of the data
           h4("Data for Analysis"),
@@ -247,11 +252,14 @@ ui <- fluidPage(theme = shinytheme("united"),
              conditionalPanel(condition="input.chboxYear==true",
                               selectizeInput('selYear', 'Select the year for analysis', choices=NULL, multiple=FALSE)),
             
+             p("If the", strong("Run/Refresh Estimates"), "button is grayed out, return to the", 
+               strong("Prepare Data for Analysis"), "tab and click the button that says", 
+               strong("Click HERE to prepare data for analysis")),
              # Once data are prepared, user needs to click to run estimates, or rerun estimates on refreshed data
-             actionButton('runBtn', "Run/Refresh estimates"),
+             shinyjs::disabled(actionButton('runBtn', "Run/Refresh estimates")),
              hr(),
              # Click to download results into a comma-delimited file
-             downloadButton("dwnldcsv","Save Results as .csv file")),
+             shinyjs::disabled(downloadButton("dwnldcsv","Save Results as .csv file"))),
              # Show results here
              column(8,
                     h4("Warnings"),
@@ -263,10 +271,10 @@ ui <- fluidPage(theme = shinytheme("united"),
       ),
       tabPanel(title="Run Change Analysis", value='change',
                fluidRow(
-                 h4(p("If a different set of response variables from those 
+                 h5(p("If a different set of response variables from those 
                  used in the population estimates is desired, 
                     return to the", strong("Prepare Data for Analysis"), "tab to re-select variables."), 
-                    style="color:red"),
+                    style="color:blue"),
                  column(3, 
                         # add_busy_spinner(spin='fading-circle', position='full-page'),
                         # User must select years to compare
@@ -286,10 +294,13 @@ ui <- fluidPage(theme = shinytheme("united"),
                                visits to a site.",
                                value=FALSE),
                  hr(),
-                 actionButton('chgBtn', "Run/Refresh estimates"),
+                 p("If the", strong("Run/Refresh Estimates"), "button is grayed out, return to the", 
+                   strong("Prepare Data for Analysis"), "tab and click the button that says", 
+                   strong("Click HERE to prepare data for analysis")),
+                 shinyjs::disabled(actionButton('chgBtn', "Run/Refresh estimates")),
                  hr(),
                  # Click to download results into a comma-delimited file
-                 downloadButton("chgcsv","Save Change Results as .csv file")),
+                 shinyjs::disabled(downloadButton("chgcsv","Save Change Results as .csv file"))),
                  column(8,
                         h4("Warnings"),
                         tableOutput("warnchg"),
@@ -330,6 +341,9 @@ server <- function(input, output, session) {
   
   observeEvent(input$subsetBtn, {
     shinyjs::disable('dwnldcsv')
+    shinyjs::enable('chgBtn')
+    shinyjs::enable('runBtn')
+    shinyjs::disable('chgcsv')
     if(input$disp == 'head'){
       output$contents <- renderTable({head(dataOut())}, digits=5)
     }else{
