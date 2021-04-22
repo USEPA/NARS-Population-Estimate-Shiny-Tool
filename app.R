@@ -14,7 +14,7 @@ source("global.r")
 ui <- fluidPage(theme = shinytheme("cerulean"),
    shinyjs::useShinyjs(),
    # Application title 
-   navbarPage(title="NARS Population Estimate Calculation Tool (v. 0.1.1)",
+   navbarPage(title="NARS Population Estimate Calculation Tool (v. 1.0)",
               selected='instructions',position='static-top',
       # Panel with instructions for using this tool
       tabPanel(title='Instructions for Use',value='instructions',
