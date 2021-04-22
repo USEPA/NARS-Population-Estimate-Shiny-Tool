@@ -11,7 +11,7 @@ source("global.r")
 
 
 # Define UI for application that draws a histogram
-ui <- fluidPage(theme = shinytheme("cerulean"),
+ui <- fluidPage(theme="style.css",
    shinyjs::useShinyjs(),
    # Application title 
    navbarPage(title="NARS Population Estimate Calculation Tool (v. 1.0)",
@@ -107,6 +107,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                        ),
                br(),
                p('Contact Karen Blocksom at blocksom.karen@epa.gov with questions or feedback.'),
+               p('Last updated on April 22, 2021.'),
                h3('Disclaimer'),
                p('The United States Environmental Protection Agency (EPA) GitHub project code is provided 
                  on an "as is" basis and the user assumes responsibility for its use.  EPA has relinquished 
