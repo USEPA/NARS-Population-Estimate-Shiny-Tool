@@ -107,11 +107,10 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                        ),
                br(),
                p('Contact Karen Blocksom at blocksom.karen@epa.gov with questions or feedback.'),
-               br(),
                h3('Disclaimer'),
                p('The United States Environmental Protection Agency (EPA) GitHub project code is provided 
                  on an "as is" basis and the user assumes responsibility for its use.  EPA has relinquished 
-                 control of the information and no longer has responsibility to protect the integrity , 
+                 control of the information and no longer has responsibility to protect the integrity, 
                  confidentiality, or availability of the information.  Any reference to specific commercial 
                  products, processes, or services by service mark, trademark, manufacturer, or otherwise, 
                  does not constitute or imply their endorsement, recommendation or favoring by EPA.  The EPA 
