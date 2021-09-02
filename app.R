@@ -186,7 +186,9 @@ ui <- fluidPage(theme="style.css",
                                 choices = c('Local neighborhood variance (recommended, used for NARS, 
                                             requires site coordinates)' = 'local',
                                             'Simple Random Sample (requires stratum but not site 
-                                            coordinates)' = 'srs'),
+                                            coordinates)' = 'SRS', 
+                                            'Horvitz-Thompson estimator' = 'HT', 
+                                            'Yates-Grundy Estimator' = 'YG'),
                                 select = 'local'),
                    # If local, user must select x and y coordinates and convert to Albers if in lat/long
                    conditionalPanel(condition = "input.locvar == 'local'",
@@ -197,29 +199,11 @@ ui <- fluidPage(theme="style.css",
                                                    (required only for local neighborhood variance)", 
                                                    choices=NULL, multiple=FALSE),
                                     
-                                    checkboxInput("xy", "Convert latitude/longitude \nto Albers Projection (this is necessary 
-                                                  if using local neighborhood variance). Current projection information:",
-                                FALSE),
-                                # If conversion from lat/long is needed, provide default as NARS typical projection info, otherwise allow user to enter
-                                     conditionalPanel(condition = "input.xy == true",
-                                                     p("Projection options (otherwise provide as x and y coordinates). "),
-                                                     tags$body(p("Use spheroid ",strong("GRS80"),"for NAD83, ",
-                                                                 strong("Clarke1866"),"for NAD27, and ", strong("WGS84"), "for WGS84 datum.
-                                                                 Other values are defaults assumed for NARS.")),
-                                                                       selectInput('sph',"Spheroid options",
-                                                                                   list('GRS80','Clarke1866','WGS84')),
-                                                                       textInput('clon','Center longitude (dec. deg.)',value=-96),
-                                                                       textInput('clat','Center latitude (dec. deg.)',value=37.5),
-                                                                       textInput('sp1','Standard parallel 1 (dec. deg.)',value=29.5),
-                                                                       textInput('sp2','Standard parallel 2 (dec. deg.)',value=45.5)
-                                                                       )
                                                       ),
                    
                    # Select stratum if Simple Random Sample                                 
-                   conditionalPanel(condition = "input.locvar == 'srs'",
-                                    selectizeInput("stratumVar", "Select the stratum variable in order to calculate 
-                                                   variance based on a simple random sample",
-                                                   choices=NULL, multiple=FALSE))
+                   selectizeInput("stratumVar","Select a categorical stratum variable if desired", 
+                                  choices=NULL, multiple=TRUE)
             )  
          ),
           # Press button to subset data for analysis - must click here first
@@ -445,27 +429,27 @@ server <- function(input, output, session) {
               df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, 
                                                input$weightVar, input$respVar, 
                                                input$subpopVar, yearVName, subVName))
-              if(input$xy == TRUE){
-                xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
-                                      as.numeric(input$clon),as.numeric(input$clat),
-                                      as.numeric(input$sp1),as.numeric(input$sp2))
+              # if(input$xy == TRUE){
+              #   xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
+              #                         as.numeric(input$clon),as.numeric(input$clat),
+              #                         as.numeric(input$sp1),as.numeric(input$sp2))
                 # Combine x and y coordinates back with set of selected variables, select
-                df1 <- cbind(df1, xyCoord)
-                df1 <- subset(df1, select=c(input$siteVar,'xcoord','ycoord',input$weightVar,input$respVar,
-                                            input$subpopVar,yearVName, subVName))
-               # If conversion not needed, select variables and rename them to required names 
-              }else{
-                df1 <- subset(df1, select=c(input$siteVar,input$coordxVar,input$coordyVar,
-                                            input$weightVar,input$respVar,
-                                            input$subpopVar, yearVName, subVName))
-                df1$xcoord <- with(df1, eval(as.name(input$coordxVar)))
-                df1$ycoord <- with(df1, eval(as.name(input$coordyVar)))
-
-              } 
-              df1$siteID <- with(df1, eval(as.name(input$siteVar)))
-              df1$wgt <- with(df1, eval(as.name(input$weightVar)))
-              df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar, 
-                                            yearVName, subVName))
+                # df1 <- cbind(df1, xyCoord)
+              #   # df1 <- subset(df1, select=c(input$siteVar,'xcoord','ycoord',input$weightVar,input$respVar,
+              #   #                             input$subpopVar,yearVName, subVName))
+              #  # If conversion not needed, select variables and rename them to required names 
+              # }else{
+              #   df1 <- subset(df1, select=c(input$siteVar,input$coordxVar,input$coordyVar,
+              #                               input$weightVar,input$respVar,
+              #                               input$subpopVar, yearVName, subVName))
+              #   df1$xcoord <- with(df1, eval(as.name(input$coordxVar)))
+              #   df1$ycoord <- with(df1, eval(as.name(input$coordyVar)))
+              # 
+              # } 
+              # df1$siteID <- with(df1, eval(as.name(input$siteVar)))
+              # df1$wgt <- with(df1, eval(as.name(input$weightVar)))
+              # df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar,input$subpopVar, 
+              #                               yearVName, subVName))
               
               
           # If local variance not used (SRS selected), need stratum variable but not coordinates 
@@ -487,18 +471,18 @@ server <- function(input, output, session) {
               df1 <- subset(dataIn(), select=c(input$siteVar, input$stratumVar, input$weightVar, input$respVar, 
                                                input$subpopVar, yearVName, subVName)) 
               
-              df1$stratum <- with(df1, eval(as.name(input$stratumVar)))
-              df1$siteID <- with(df1, eval(as.name(input$siteVar)))
-              df1$wgt <- with(df1, eval(as.name(input$weightVar)))
-              df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,
-                                            input$subpopVar, yearVName, subVName))
+              # df1$stratum <- with(df1, eval(as.name(input$stratumVar)))
+              # df1$siteID <- with(df1, eval(as.name(input$siteVar)))
+              # df1$wgt <- with(df1, eval(as.name(input$weightVar)))
+              # df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,
+              #                               input$subpopVar, yearVName, subVName))
             }else{
               df1 <- subset(dataIn(), select=c(input$siteVar, input$weightVar, input$respVar, 
                                                input$subpopVar, yearVName, subVName)) 
               
-              df1$siteID <- with(df1, eval(as.name(input$siteVar)))
-              df1$wgt <- with(df1, eval(as.name(input$weightVar)))
-              df1 <- subset(df1, select = c('siteID','wgt',input$respVar,input$subpopVar, yearVName, subVName))
+              # df1$siteID <- with(df1, eval(as.name(input$siteVar)))
+              # df1$wgt <- with(df1, eval(as.name(input$weightVar)))
+              # df1 <- subset(df1, select = c('siteID','wgt',input$respVar,input$subpopVar, yearVName, subVName))
             }
             
 
@@ -542,23 +526,23 @@ server <- function(input, output, session) {
                                            input$respVar, yearVName, subVName))
           
           # If conversion from lat/long is necessary, convert, then rename variables with required names
-          if(input$xy == TRUE){
-            xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
-                                  as.numeric(input$clon),as.numeric(input$clat),
-                                  as.numeric(input$sp1),as.numeric(input$sp2))
-            
-            df1 <- cbind(df1, xyCoord)
+          # if(input$xy == TRUE){
+          #   xyCoord <- geodalbers(dataIn()[,input$coordxVar],dataIn()[,input$coordyVar],input$sph,
+          #                         as.numeric(input$clon),as.numeric(input$clat),
+          #                         as.numeric(input$sp1),as.numeric(input$sp2))
+          #   
+          #   df1 <- cbind(df1, xyCoord)
 
-          }else{ # Conversion is not necessary, so just rename and subset variables
-            
-            df1$xcoord <- with(df1, as.numeric(eval(as.name(input$coordxVar))))
-            df1$ycoord <- with(df1, as.numeric(eval(as.name(input$coordyVar))))
-          } 
-          df1$siteID <- with(df1, eval(as.name(input$siteVar)))
-          df1$wgt <- with(df1, as.numeric(eval(as.name(input$weightVar))))
-          df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar,yearVName, subVName))
+          # }else{ # Conversion is not necessary, so just rename and subset variables
+          #   
+          #   df1$xcoord <- with(df1, as.numeric(eval(as.name(input$coordxVar))))
+          #   df1$ycoord <- with(df1, as.numeric(eval(as.name(input$coordyVar))))
+          # } 
+          # df1$siteID <- with(df1, eval(as.name(input$siteVar)))
+          # df1$wgt <- with(df1, as.numeric(eval(as.name(input$weightVar))))
+          # df1 <- subset(df1, select = c('siteID','wgt','xcoord','ycoord',input$respVar,yearVName, subVName))
           
-        # if SRS selected, make sure stratum does not overlap with other variable selections
+        # if stratum selected, make sure stratum does not overlap with other variable selections
         }else{
           validate(
             need(input$stratumVar %nin% c(input$siteVar,input$respVar,input$weightVar),
@@ -584,16 +568,17 @@ server <- function(input, output, session) {
           df1$wgt <- with(df1, as.numeric(eval(as.name(input$weightVar))))
           if(input$stratumVar!= 'None'){
             df1$stratum <- with(df1, eval(as.name(input$stratumVar)))
-            df1 <- subset(df1, select = c('siteID','wgt','stratum',input$respVar,yearVName, subVName))
+            df1 <- subset(df1, select = c(input$siteVar, input$weightVar, input$stratumVar,
+                                          input$respVar,yearVName, subVName))
           }else{
-            df1 <- subset(df1, select = c('siteID','wgt',input$respVar,yearVName, subVName))
+            df1 <- subset(df1, select = c(input$siteVar, input$weightVar,input$respVar,yearVName, subVName))
           }
           
         }
 
       }
       # Drop any rows with weights missing or 0
-      df1 <- subset(df1, !is.na(wgt) & wgt>0)
+      df1 <- subset(df1, !is.na(eval(as.name(input$weightVar))) & eval(as.name(input$weightVar))>0)
       if(input$subcheck==TRUE){
         df1 <- subset(df1, eval(as.name(input$subvar)) %in% input$subcat)
       }
@@ -676,35 +661,43 @@ server <- function(input, output, session) {
                           siteID_2 = tst2)
 
       if(input$natpop==FALSE){
-        subpop <- chgIn[,c('siteID','allSites',input$subpopVar)]
+        subpop <- chgIn[,c(input$siteVar, 'allSites',input$subpopVar)]
       }else{
         chgIn$allSites <- 'All Sites'
-        subpop <- chgIn[, c('siteID','allSites')]
+        subpop <- chgIn[, c(input$siteVar,'allSites')]
       }
       # if local neighborhood variance
       if(input$locvar=='local'){
-        design <- chgIn[, c('siteID', 'wgt', 'xcoord', 'ycoord')]
+        design <- chgIn[, c(input$siteVar, input$weightVar, input$coordxVar, input$coordyVar)]
         
       }else{ # if simple random sample
         if(input$stratumVar!='None'){
-          design <- chgIn[, c('siteID', 'wgt', 'stratum')]
+          design <- chgIn[, c(input$siteVar, input$weightVar, input$stratumVar)]
         }else{
-          design <- chgIn[, c('siteID', 'wgt')]
+          design <- chgIn[, c(input$siteVar, input$weightVar)]
         }
         
       }
       print(head(subpop))
       print(head(design))
-      in.data <- chgIn[, c('siteID', input$respVar)]
+      in.data <- chgIn[, c(input$siteVar, input$respVar)]
       
       switch(input$locvar,
              local = {
                local_1 <- 'Local'
                local_2 <- 'Local'
                },
-             srs = {
+             SRS = {
                local_1 <- 'SRS'
                local_2 <- 'SRS'
+             },
+             HT = {
+               local_1 <- 'HT'
+               local_2 <- 'HT'
+             },
+             YG = {
+               local_1 <- 'YG'
+               local_2 <- 'YG'
              })
       
       if(input$chgCatCont == 'chgCont'){
@@ -715,7 +708,7 @@ server <- function(input, output, session) {
         }
       }
       
-      #if(input$natpop=='FALSE'){
+
         if(input$repeatBox==TRUE){
           if(input$chgCatCont == 'chgCat'){
             chgOut <- change.analysis(sites=sites, repeats=repeatSites, subpop=subpop, design=design,
@@ -784,7 +777,7 @@ server <- function(input, output, session) {
     }
     
     # Check for duplicate rows for siteID
-    freqSite <- as.data.frame(table(siteID=dfIn$siteID))
+    freqSite <- as.data.frame(table(siteID=dfIn[,input$siteVar]))
     # print(nrow(subset(freqSite, Freq>1)>0))
     
     validate(
@@ -811,23 +804,24 @@ server <- function(input, output, session) {
       
       # Create subpop data frame if subpopulations are of interest (National only box not checked)
       if(input$natpop == FALSE){
-        subpop=subset(dfIn, select = c('siteID','allSites',input$subpopVar))
+        subpop=subset(dfIn, select = c(input$siteVar,'allSites',input$subpopVar))
       }
       # Create design data frame depending on options selected
       if(input$locvar == 'local'){
-        design=subset(dfIn,select=c('siteID','wgt','xcoord','ycoord'))
+        design=subset(dfIn,select=c(input$siteVar, input$weightVar, input$coordxVar,
+                                    input$coordyVar))
       }else{
         if(input$stratumVar!='None'){
-          design=subset(dfIn,select=c('siteID','wgt','stratum'))
+          design=subset(dfIn,select=c(input$siteVar, input$weightVar, input$stratumVar))
         }else{
-          design=subset(dfIn, select=c('siteID','wgt'))
+          design=subset(dfIn, select=c(input$siteVar, input$weightVar))
         }
         
       }
       
       # Create data.cat if categorical and data.cont if continuous data
       if(input$atype=='categ'){
-        data.cat=subset(dfIn,select=c('siteID',input$respVar))
+        data.cat=subset(dfIn,select=c(input$siteVar,input$respVar))
       }else{
         # Make sure continuous variables are numeric
         if(length(input$respVar)>1){ # if more than one response variable selected
@@ -837,7 +831,7 @@ server <- function(input, output, session) {
         }
         
         # Select correct variables for input data
-        data.cont=subset(dfIn,select=c('siteID',input$respVar))
+        data.cont=subset(dfIn,select=c(input$siteVar,input$respVar))
       }
       
 
@@ -845,7 +839,7 @@ server <- function(input, output, session) {
       if(input$locvar == 'local'){
         vartype <- 'Local'
       }else{
-        vartype <- 'SRS'
+        vartype <- input$locvar
       }
       
       # User selected categorical analysis, set up cat.analysis function depending on previous selections
