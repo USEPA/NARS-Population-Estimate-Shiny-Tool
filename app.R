@@ -537,9 +537,11 @@ server <- function(input, output, session) {
   
                  updateSelectizeInput(session, 'selYear', 'Select the year for analysis', 
                                       choices = ychoices, selected=NULL)
+               
                 
                  updateSelectizeInput(session, 'chgYear1', "Select two years or design cycles of data to compare", 
                                       choices = ychoices, selected=NULL, options = list(maxItems=2)) 
+                 
                 
                  }
                )
@@ -769,23 +771,23 @@ server <- function(input, output, session) {
                                    stratumID = stratum.in, vartype=vartype)
             
       }else{
-          if(input$natpop == FALSE){ # Subpopulations selected
-            print(input$cdf_pct)
+          # if(input$natpop == FALSE){ # Subpopulations selected
+            
             if(input$cdf_pct=='cdf'){ # Produce CDFs
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
                                       vars=input$respVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
                                       stratumID = stratum.in, vartype=vartype, 
-                                      statistics = 'cdf')
+                                      statistics = 'cdf')$CDF
                             
             }else{ # Just produce percentiles
-              cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
-                            vars=input$respVar, weight = input$weightVar, 
-                            xcoord = xcoord.in, ycoord = ycoord.in,
-                            stratumID = stratum.in, vartype=vartype, 
-                            statistics = 'pct')
+              estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
+                                      vars=input$respVar, weight = input$weightVar, 
+                                      xcoord = xcoord.in, ycoord = ycoord.in,
+                                      stratumID = stratum.in, vartype=vartype,  
+                                      statistics = 'pct')$Pct
             }
-          }
+          # }
       }
       
       remove_modal_spinner()
