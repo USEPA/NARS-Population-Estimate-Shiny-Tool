@@ -158,7 +158,8 @@ ui <- fluidPage(theme="style.css",
                 checkboxInput("subcheck","Subset data using a single categorical variable", FALSE),
                 conditionalPanel(condition="input.subcheck == true",
                                  selectizeInput('subvar', "Select variable to use for subsetting", choices=NULL, multiple=FALSE),
-                                 selectizeInput("subcat","Select one or more categories by which to subset data", choices=NULL, multiple=TRUE))),
+                                 selectizeInput("subcat","Select one or more categories by which to subset data", choices=NULL,
+                                                multiple=TRUE))),
             
             # Provide dropdown menus to allow user to select site, weight, and response variables from those in the imported dataset
             column(4,
@@ -231,7 +232,7 @@ ui <- fluidPage(theme="style.css",
              # If continuous analysis selected, select whether CDFs or percentiles are desired.  
              conditionalPanel(condition = "input.atype == 'contin'",
                               radioButtons("cdf_pct", "Show CDF or percentile results",
-                                           choices = c(CDF = 'cdf', Percentiles = 'pct'),
+                                           choices = c(CDF = 'cdf', Percentiles = 'pct', Mean = 'mean'),
                                            selected = 'pct')),
              conditionalPanel(condition="input.chboxYear==true",
                               selectizeInput('selYear', 'Select the year for analysis', choices=NULL, multiple=FALSE)),
@@ -239,6 +240,8 @@ ui <- fluidPage(theme="style.css",
              p("If the", strong("Run/Refresh Estimates"), "button is grayed out, return to the", 
                strong("Prepare Data for Analysis"), "tab and click the button that says", 
                strong("Click HERE to prepare data for analysis")),
+             p("Note that if all values are very small, the results may appear as zeroes. Save 
+               and view output file to see the results will full digits."),
              # Once data are prepared, user needs to click to run estimates, or rerun estimates on refreshed data
              shinyjs::disabled(actionButton('runBtn', "Run/Refresh estimates")),
              hr(),
@@ -426,9 +429,6 @@ server <- function(input, output, session) {
                      "Year variable cannot overlap with other variable selections")
               ) 
             }
-            # df1 <- subset(dataIn(), select=c(input$siteVar, input$coordxVar, input$coordyVar, 
-            #                                    input$weightVar, input$respVar, 
-            #                                    input$subpopVar, yearVName, subVName))
 
               
           # If local variance not used, need stratum variable but not coordinates 
@@ -445,14 +445,6 @@ server <- function(input, output, session) {
                      "Year variable cannot overlap with other variable selections")
               ) 
             }
-            # Subset the data to the variables selected, then rename any to required names.
-            # if(input$stratumVar!='None'){
-            #   df1 <- subset(dataIn(), select=c(input$siteVar, input$stratumVar, input$weightVar, input$respVar, 
-            #                                    input$subpopVar, yearVName, subVName)) 
-            #  }else{
-            #   df1 <- subset(dataIn(), select=c(input$siteVar, input$weightVar, input$respVar, 
-            #                                    input$subpopVar, yearVName, subVName)) 
-            #  }
           }
           df1 <- dataIn()
           df1$allSites <- 'All Sites'
@@ -569,6 +561,23 @@ server <- function(input, output, session) {
                                                          "duplicated sites in this dataset within years or cycles."))
       )
       
+      # If categorical data, automatically reorder any response variables that are Good/Fair/Poor or 
+      # Low/Moderate/High (allow for all caps versions)
+      if(input$atype=='categ'){
+        for(i in 1:length(input$respVar)){
+          if(all(unique(chgIn[,input$respVar[[i]]]) %in% c('Good','GOOD','Low','LOW',
+                                                          'Fair','FAIR','MODERATE','Moderate',
+                                                          'Poor','POOR','High','HIGH',
+                                                          'Very High','VERY HIGH','Not Assessed'))){
+            chgIn[,input$respVar[[i]]] <- factor(chgIn[,input$respVar[[i]]], 
+                                                levels=c('Good','GOOD','Low','LOW',
+                                                         'Fair','FAIR','MODERATE','Moderate',
+                                                         'Poor','POOR','High','HIGH',
+                                                         'Very High','VERY HIGH','Not Assessed'), 
+                                                ordered=TRUE)
+          }
+        }
+      }
       
       # Need to order by siteID, yearVar
       chgIn <- chgIn[order(chgIn[,input$yearVar],chgIn[,input$siteVar]),]
@@ -780,12 +789,18 @@ server <- function(input, output, session) {
                                       stratumID = stratum.in, vartype=vartype, 
                                       statistics = 'cdf')$CDF
                             
-            }else{ # Just produce percentiles
+            }else if(input$cdf_pct=='pct'){ # Just produce percentiles
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
                                       vars=input$respVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
                                       stratumID = stratum.in, vartype=vartype,  
-                                      statistics = 'pct')$Pct
+                                      statistics = c('pct'))$Pct
+            }else{
+              estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
+                                      vars=input$respVar, weight = input$weightVar, 
+                                      xcoord = xcoord.in, ycoord = ycoord.in,
+                                      stratumID = stratum.in, vartype=vartype,  
+                                      statistics = c('mean'))$Mean
             }
           # }
       }
