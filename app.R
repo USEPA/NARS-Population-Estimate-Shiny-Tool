@@ -14,7 +14,7 @@ source("global.r")
 ui <- fluidPage(theme="style.css",
    shinyjs::useShinyjs(),
    # Application title 
-   navbarPage(title="NARS Population Estimate Calculation Tool (v. 1.0)",
+   navbarPage(title="NARS Population Estimate Calculation Tool (v. 2.0)",
               selected='instructions',position='static-top',
       # Panel with instructions for using this tool
       tabPanel(title='Instructions for Use',value='instructions',
@@ -39,11 +39,7 @@ ui <- fluidPage(theme="style.css",
                           NARS estimates. It requires site coordinates to be provided."),
                         tags$ul(
                         tags$li("For local neighborhood variance, select coordinate variables 
-                                (either in latitude/longitude, Albers projection, or some other projection). 
-                                If coordinates are 
-                                in latitude and longitude, you must provide projection information in order to 
-                                convert them to Albers projection. Default settings are those typically 
-                                used in NARS."),
+                                (Albers projection, or some other projection)."),
                         tags$li("For simple random sample (SRS) variance, selecting a stratum variable 
                                 to better estimate variance is advised but not required. Coordinates are 
                                 not used with type of variance."))),
@@ -96,13 +92,8 @@ ui <- fluidPage(theme="style.css",
                          tags$li("Input data should include only one visit per site and year/survey 
                                  cycle (based on the variables for site ID and year/survey cycle selected)."),
                          tags$li("Only delimited files, such as comma- and tab-delimited, are accepted for upload."),
-                         tags$li("If local neighborhood variance is desired, coordinates must be provided, either in 
-                                 latitude/longitude (decimal degrees) or in some type of projection, such as Albers. 
-                                 If provided in 
-                                 latitude/longitude, projection information is needed to convert values. 
-                                 Only spheroid need be supplied for conversion."),
-                         tags$li("If variance based on a simple random sample is desired (or if coordinates or projection 
-                                 information are not available), the design stratum is needed to better estimate variance."),
+                         tags$li("If local neighborhood variance is desired, coordinates must be provided in some type of projection, such as Albers."),
+                         tags$li("If variance based on a simple random sample is desired (or if coordinates are not available), the design stratum should be provided to better estimate variance."),
                          tags$li("If change analysis is intended, all desired years of data must be contained in one file.")
                        ),
                br(),
@@ -165,6 +156,10 @@ ui <- fluidPage(theme="style.css",
             column(4,
               selectizeInput("siteVar","Select site variable", choices=NULL, multiple=FALSE),
               selectizeInput("weightVar","Select weight variable", choices=NULL, multiple=FALSE),
+              checkboxInput('chboxSize', 'Check box if using size weights'),
+              conditionalPanel(condition = 'input.chboxSize == true',
+                               selectizeInput('szwtVar', 'Select size weight variable',
+                                              choices = NULL, multiple = FALSE)),
               selectizeInput("respVar","Select up to 10 response variables - must all be either categorical or numeric", 
                              choices=NULL, multiple=TRUE),
               checkboxInput('chboxYear', 'Check box if performing change analysis or need to subset data by year 
@@ -235,7 +230,8 @@ ui <- fluidPage(theme="style.css",
                                            choices = c(CDF = 'cdf', Percentiles = 'pct', Mean = 'mean'),
                                            selected = 'pct')),
              conditionalPanel(condition="input.chboxYear==true",
-                              selectizeInput('selYear', 'Select the year for analysis', choices=NULL, multiple=FALSE)),
+                              selectizeInput('selYear', 'Select the year for analysis', 
+                                             choices=NULL, multiple=FALSE)),
             
              p("If the", strong("Run/Refresh Estimates"), "button is grayed out, return to the", 
                strong("Prepare Data for Analysis"), "tab and click the button that says", 
@@ -249,6 +245,9 @@ ui <- fluidPage(theme="style.css",
              shinyjs::disabled(downloadButton("dwnldcsv","Save Results as .csv file"))),
              # Show results here
              column(8,
+                    conditionalPanel(condition = "input.chboxSize == true",
+                                     h4(p(strong("*Note that estimates use size weights")), 
+                                        style='color:blue')),
                     h4("Warnings"),
                     tableOutput("warnest"),
                     h4("Analysis Output"),
@@ -265,6 +264,7 @@ ui <- fluidPage(theme="style.css",
                  column(3, 
                         # add_busy_spinner(spin='fading-circle', position='full-page'),
                         # User must select years to compare
+                        
                         selectizeInput('chgYear1',"Select two years of data to compare in desired order", 
                                        choices=NULL, multiple=TRUE),
                         radioButtons("chgCatCont", "Type of variables to analyze",
@@ -289,6 +289,9 @@ ui <- fluidPage(theme="style.css",
                  # Click to download results into a comma-delimited file
                  shinyjs::disabled(downloadButton("chgcsv","Save Change Results as .csv file"))),
                  column(8,
+                        conditionalPanel(condition = "input.chboxSize == true",
+                                         h4(p(strong("*Note that estimates use size weights")), 
+                                            style='color:blue')),
                         h4("Warnings"),
                         tableOutput("warnchg"),
                         h4("Change Analysis Output"),
@@ -351,6 +354,7 @@ server <- function(input, output, session) {
   observe({
     vars <- colnames(dataIn())
     updateSelectizeInput(session, "weightVar", "Select weight variable", choices=vars)
+    
     updateSelectizeInput(session, 'respVar', 'Select up to 10 response variables - All must be either categorical or numeric', 
                          choices=vars, selected = NULL, 
                          options = list(maxItems=10))
@@ -371,6 +375,8 @@ server <- function(input, output, session) {
                          choices=c('', vars))
     
     updateSelectizeInput(session, "subvar", choices=vars)
+    
+    updateSelectizeInput(session, 'szwtVar', choices=vars)
   })
   
   observeEvent(input$subvar,{
@@ -415,6 +421,12 @@ server <- function(input, output, session) {
                     "Year variable cannot overlap with other variable selections")
              )
           }
+        if(input$chboxSize==TRUE){
+            validate(
+              need(input$szwtVar %nin% c(input$respVar,input$subpopVar,input$weightVar,input$siteVar),
+               "Size weight variable cannot overlap with other variable selections")
+          )
+        }
           # If local variance selected, make sure x and y coordinate variables do not overlap with any already selected     
           if(input$locvar == 'local'){
             validate(
@@ -428,6 +440,13 @@ server <- function(input, output, session) {
                 need(input$yearVar %nin% c(input$coordxVar, input$coordyVar),
                      "Year variable cannot overlap with other variable selections")
               ) 
+            }
+            if(input$chboxSize==TRUE){
+              validate(
+                need(input$szwtVar %nin% c(input$coordxVar,
+                                         input$coordyVar),
+                     "Size weight variable cannot overlap with other variable selections")
+              )
             }
 
               
@@ -445,7 +464,14 @@ server <- function(input, output, session) {
                      "Year variable cannot overlap with other variable selections")
               ) 
             }
+            if(input$chboxSize==TRUE){
+              need(input$szwtVar %nin% c(input$siteVar,input$respVar,input$subpopVar,
+                                         input$weightVar,yearVName, subVName))
+            }
           }
+        
+        
+        
           df1 <- dataIn()
           df1$allSites <- 'All Sites'
         
@@ -637,6 +663,14 @@ server <- function(input, output, session) {
         }
       }
       
+      if(input$chboxSize==TRUE){
+        sizeweight.in <- TRUE
+        sweight.in <- input$szwtVar
+      }else{
+        sizeweight.in <- FALSE
+        sweight.in <- NULL
+      }
+      
       revisitWgt <- FALSE # NOT SURE WHAT THIS SHOULD BE SO ASSUME DEFAULT
       
       chgIn <- dframe(chgIn)
@@ -648,6 +682,7 @@ server <- function(input, output, session) {
                                       survey_names = survey_names, revisitwgt = revisitWgt,
                                       siteID = input$siteVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
+                                      sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in,
                                       vartype = vartype)
           }else{
@@ -656,6 +691,7 @@ server <- function(input, output, session) {
                                       survey_names = survey_names, revisitwgt = revisitWgt,
                                       siteID = input$siteVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
+                                      sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in,
                                       vartype = vartype)
           }
@@ -772,20 +808,29 @@ server <- function(input, output, session) {
         ycoord.in <- input$coordyVar
       }
       
+      if(input$chboxSize==TRUE){
+        sizeweight.in <- TRUE
+        sweight.in <- input$szwtVar
+      }else{
+        sizeweight.in <- FALSE
+        sweight.in <- NULL
+      }
+      
        # User selected categorical analysis, set up cat.analysis function depending on previous selections
       if(input$atype=='categ'){
             estOut <- cat_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
                                    vars=input$respVar, weight = input$weightVar, 
                                    xcoord = xcoord.in, ycoord = ycoord.in,
+                                   sizeweight = sizeweight.in, sweight = sweight.in,
                                    stratumID = stratum.in, vartype=vartype)
             
       }else{
-          # if(input$natpop == FALSE){ # Subpopulations selected
             
             if(input$cdf_pct=='cdf'){ # Produce CDFs
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
                                       vars=input$respVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
+                                      sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in, vartype=vartype, 
                                       statistics = 'cdf')$CDF
                             
@@ -793,12 +838,14 @@ server <- function(input, output, session) {
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
                                       vars=input$respVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
+                                      sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in, vartype=vartype,  
                                       statistics = c('pct'))$Pct
             }else{
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
                                       vars=input$respVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
+                                      sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in, vartype=vartype,  
                                       statistics = c('mean'))$Mean
             }
