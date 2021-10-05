@@ -77,7 +77,7 @@ ui <- fluidPage(theme="style.css",
                          must contain the same value for both years or cycles of data."),
                  tags$li("Click on the Run/Refresh Estimates button. Depending on the number of 
                  responses, subpopulations, and type of analysis, it may take a few 
-                         seconds to several minutes."),
+                         seconds to several minutes.")
                ),
                
                br(),
@@ -156,10 +156,6 @@ ui <- fluidPage(theme="style.css",
             column(4,
               selectizeInput("siteVar","Select site variable", choices=NULL, multiple=FALSE),
               selectizeInput("weightVar","Select weight variable", choices=NULL, multiple=FALSE),
-              checkboxInput('chboxSize', 'Check box if using size weights'),
-              conditionalPanel(condition = 'input.chboxSize == true',
-                               selectizeInput('szwtVar', 'Select size weight variable',
-                                              choices = NULL, multiple = FALSE)),
               selectizeInput("respVar","Select up to 10 response variables - must all be either categorical or numeric", 
                              choices=NULL, multiple=TRUE),
               checkboxInput('chboxYear', 'Check box if performing change analysis or need to subset data by year 
@@ -191,7 +187,7 @@ ui <- fluidPage(theme="style.css",
                                                    choices=NULL, multiple=FALSE),
                                     selectizeInput("coordyVar","Select the Y coordinate variable (or latitude) 
                                                    (required only for local neighborhood variance)", 
-                                                   choices=NULL, multiple=FALSE),
+                                                   choices=NULL, multiple=FALSE)
                                     
                                                       ),
                    
@@ -243,9 +239,9 @@ ui <- fluidPage(theme="style.css",
              shinyjs::disabled(downloadButton("dwnldcsv","Save Results as .csv file"))),
              # Show results here
              column(8,
-                    conditionalPanel(condition = "input.chboxSize == true",
-                                     h4(p(strong("*Note that estimates use size weights")), 
-                                        style='color:blue')),
+                    # conditionalPanel(condition = "input.chboxSize == true",
+                    #                  h4(p(strong("*Note that estimates use size weights")), 
+                    #                     style='color:blue')),
                     h4("Warnings"),
                     tableOutput("warnest"),
                     h4("Analysis Output"),
@@ -287,9 +283,9 @@ ui <- fluidPage(theme="style.css",
                  # Click to download results into a comma-delimited file
                  shinyjs::disabled(downloadButton("chgcsv","Save Change Results as .csv file"))),
                  column(8,
-                        conditionalPanel(condition = "input.chboxSize == true",
-                                         h4(p(strong("*Note that estimates use size weights")), 
-                                            style='color:blue')),
+                        # conditionalPanel(condition = "input.chboxSize == true",
+                        #                  h4(p(strong("*Note that estimates use size weights")), 
+                        #                     style='color:blue')),
                         h4("Warnings"),
                         tableOutput("warnchg"),
                         h4("Change Analysis Output"),
@@ -419,12 +415,6 @@ server <- function(input, output, session) {
                     "Year variable cannot overlap with other variable selections")
              )
           }
-        if(input$chboxSize==TRUE){
-            validate(
-              need(input$szwtVar %nin% c(input$respVar,input$subpopVar,input$weightVar,input$siteVar),
-               "Size weight variable cannot overlap with other variable selections")
-          )
-        }
           # If local variance selected, make sure x and y coordinate variables do not overlap with any already selected     
           if(input$locvar == 'local'){
             validate(
@@ -438,13 +428,6 @@ server <- function(input, output, session) {
                 need(input$yearVar %nin% c(input$coordxVar, input$coordyVar),
                      "Year variable cannot overlap with other variable selections")
               ) 
-            }
-            if(input$chboxSize==TRUE){
-              validate(
-                need(input$szwtVar %nin% c(input$coordxVar,
-                                         input$coordyVar),
-                     "Size weight variable cannot overlap with other variable selections")
-              )
             }
 
               
@@ -462,17 +445,12 @@ server <- function(input, output, session) {
                      "Year variable cannot overlap with other variable selections")
               ) 
             }
-            if(input$chboxSize==TRUE){
-              need(input$szwtVar %nin% c(input$siteVar,input$respVar,input$subpopVar,
-                                         input$weightVar,yearVName, subVName))
-            }
           }
         
         
         
           df1 <- dataIn()
-          #df1$allSites <- 'All Sites'
-        
+ 
       # If All Sites only estimates selected, changes selection of data for analysis
       }else{
         # Use function below to validate input variables as the appropriate type and to make sure the selections do not overlap
@@ -664,15 +642,7 @@ server <- function(input, output, session) {
         }
       }
       
-      if(input$chboxSize==TRUE){
-        sizeweight.in <- TRUE
-        sweight.in <- input$szwtVar
-      }else{
-        sizeweight.in <- FALSE
-        sweight.in <- NULL
-      }
-      
-      revisitWgt <- FALSE # NOT SURE WHAT THIS SHOULD BE SO ASSUME DEFAULT
+       revisitWgt <- FALSE # NOT SURE WHAT THIS SHOULD BE SO ASSUME DEFAULT
       
       chgIn <- dframe(chgIn)
       
@@ -683,7 +653,7 @@ server <- function(input, output, session) {
                                       survey_names = survey_names, revisitwgt = revisitWgt,
                                       siteID = input$siteVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
-                                      sizeweight = sizeweight.in, sweight = sweight.in,
+                                      # sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in,
                                       vartype = vartype, All_Sites = all_sites)
           }else{
@@ -692,7 +662,7 @@ server <- function(input, output, session) {
                                       survey_names = survey_names, revisitwgt = revisitWgt,
                                       siteID = input$siteVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
-                                      sizeweight = sizeweight.in, sweight = sweight.in,
+                                      # sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in,
                                       vartype = vartype, All_Sites = all_sites)
           }
@@ -810,20 +780,12 @@ server <- function(input, output, session) {
         ycoord.in <- input$coordyVar
       }
       
-      if(input$chboxSize==TRUE){
-        sizeweight.in <- TRUE
-        sweight.in <- input$szwtVar
-      }else{
-        sizeweight.in <- FALSE
-        sweight.in <- NULL
-      }
-      
        # User selected categorical analysis, set up cat.analysis function depending on previous selections
       if(input$atype=='categ'){
             estOut <- cat_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
                                    vars=input$respVar, weight = input$weightVar, 
                                    xcoord = xcoord.in, ycoord = ycoord.in,
-                                   sizeweight = sizeweight.in, sweight = sweight.in,
+                                   # sizeweight = sizeweight.in, sweight = sweight.in,
                                    stratumID = stratum.in, vartype=vartype, 
                                    All_Sites = all_sites)
             
@@ -833,7 +795,7 @@ server <- function(input, output, session) {
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
                                       vars=input$respVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
-                                      sizeweight = sizeweight.in, sweight = sweight.in,
+                                      # sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in, vartype=vartype, 
                                       All_Sites = all_sites, 
                                       statistics = 'cdf')$CDF
@@ -842,7 +804,7 @@ server <- function(input, output, session) {
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
                                       vars=input$respVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
-                                      sizeweight = sizeweight.in, sweight = sweight.in,
+                                      # sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in, vartype=vartype, 
                                       All_Sites = all_sites,  
                                       statistics = c('pct'))$Pct
@@ -850,7 +812,7 @@ server <- function(input, output, session) {
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
                                       vars=input$respVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
-                                      sizeweight = sizeweight.in, sweight = sweight.in,
+                                      # sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in, vartype=vartype, 
                                       All_Sites = all_sites,  
                                       statistics = c('mean'))$Mean
