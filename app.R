@@ -168,11 +168,11 @@ ui <- fluidPage(theme="style.css",
                                selectizeInput("yearVar","Select year variable",
                              choices=NULL, multiple=FALSE)),
               
-              checkboxInput('natpop','Only overall (all sites) estimates? Select if no subpopulations of interest',FALSE),
+              checkboxInput('natpop','Calculate overall (all sites) estimates?', TRUE),
+              checkboxInput('subpop', 'Calculate estimates for subpopulations?', FALSE),
               # If national estimates box is NOT checked, show subpopulation dropdown list              
-              conditionalPanel(condition = 'input.natpop == false',
-                               selectizeInput("subpopVar","Select up to 10 subpopulation variables (required if not 
-                                              national estimates only)", 
+              conditionalPanel(condition = 'input.subpop == true',
+                               selectizeInput("subpopVar","Select up to 10 subpopulation variables", 
                                               choices=NULL, multiple=TRUE))
               
             ),
@@ -401,7 +401,7 @@ server <- function(input, output, session) {
       }
       
       print(input$stratumVar)
-      if(input$natpop == FALSE){
+      if(input$subpop == TRUE){
         # Use function below to validate input variables as the appropriate type and to make sure the selections do not overlap
         validate(
           need(input$subpopVar %nin% c(input$siteVar,input$weightVar,input$respVar),
@@ -613,7 +613,10 @@ server <- function(input, output, session) {
       
 
       if(input$natpop==FALSE){
-        chgIn$All_Sites <- factor('All Sites')
+        all_sites <- FALSE
+        # chgIn$All_Sites <- factor('All Sites')
+      }else{
+        all_sites <- TRUE
       }
       
       if(input$chgCatCont == 'chgCat'){
@@ -628,10 +631,10 @@ server <- function(input, output, session) {
         vartype <- 'SRS'
       }
       
-      if(input$natpop == TRUE){
+      if(input$subpop == FALSE){
         subpops.in <- NULL
       }else{
-        subpops.in <- c('All_Sites', input$subpopVar)
+        subpops.in <- input$subpopVar
       }
       
       if(input$stratumVar=='None'){
@@ -682,7 +685,7 @@ server <- function(input, output, session) {
                                       xcoord = xcoord.in, ycoord = ycoord.in,
                                       sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in,
-                                      vartype = vartype)
+                                      vartype = vartype, All_Sites = all_sites)
           }else{
             chgOut <- change_analysis(dframe = chgIn, vars_cont = input$respVar, test = ttype, 
                                       subpops=subpops.in, surveyID = surveyID, 
@@ -691,7 +694,7 @@ server <- function(input, output, session) {
                                       xcoord = xcoord.in, ycoord = ycoord.in,
                                       sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in,
-                                      vartype = vartype)
+                                      vartype = vartype, All_Sites = all_sites)
           }
  
       remove_modal_spinner()
@@ -738,8 +741,9 @@ server <- function(input, output, session) {
     dfIn <- dataOut()
     
     if(input$natpop==FALSE){
-      dfIn$All_Sites <- factor('All Sites')
-      
+      all_sites <- FALSE
+    }else{
+      all_sites <- TRUE
     }
     
     if(input$chboxYear==TRUE){
@@ -782,10 +786,10 @@ server <- function(input, output, session) {
         vartype <- input$locvar
       }
       
-      if(input$natpop == TRUE){
+      if(input$subpop == FALSE){
         subpops.in <- NULL
       }else{
-        subpops.in <- c('All_Sites', input$subpopVar)
+        subpops.in <- input$subpopVar
       }
       
       if(input$stratumVar=='None'){
@@ -820,7 +824,8 @@ server <- function(input, output, session) {
                                    vars=input$respVar, weight = input$weightVar, 
                                    xcoord = xcoord.in, ycoord = ycoord.in,
                                    sizeweight = sizeweight.in, sweight = sweight.in,
-                                   stratumID = stratum.in, vartype=vartype)
+                                   stratumID = stratum.in, vartype=vartype, 
+                                   All_Sites = all_sites)
             
       }else{
             
@@ -830,6 +835,7 @@ server <- function(input, output, session) {
                                       xcoord = xcoord.in, ycoord = ycoord.in,
                                       sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in, vartype=vartype, 
+                                      All_Sites = all_sites, 
                                       statistics = 'cdf')$CDF
                             
             }else if(input$cdf_pct=='pct'){ # Just produce percentiles
@@ -837,14 +843,16 @@ server <- function(input, output, session) {
                                       vars=input$respVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
                                       sizeweight = sizeweight.in, sweight = sweight.in,
-                                      stratumID = stratum.in, vartype=vartype,  
+                                      stratumID = stratum.in, vartype=vartype, 
+                                      All_Sites = all_sites,  
                                       statistics = c('pct'))$Pct
             }else{
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
                                       vars=input$respVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
                                       sizeweight = sizeweight.in, sweight = sweight.in,
-                                      stratumID = stratum.in, vartype=vartype,  
+                                      stratumID = stratum.in, vartype=vartype, 
+                                      All_Sites = all_sites,  
                                       statistics = c('mean'))$Mean
             }
           # }
