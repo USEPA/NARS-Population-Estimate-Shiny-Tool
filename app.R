@@ -471,7 +471,7 @@ server <- function(input, output, session) {
         
         
           df1 <- dataIn()
-          df1$allSites <- 'All Sites'
+          #df1$allSites <- 'All Sites'
         
       # If All Sites only estimates selected, changes selection of data for analysis
       }else{
@@ -566,8 +566,8 @@ server <- function(input, output, session) {
   # Change estimate code
   chgEst <- eventReactive(input$chgBtn,{
     show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait')
-    if(exists("warn.df") && is.data.frame(get("warn.df"))){
-      rm("warn.df", envir=.GlobalEnv)
+    if(exists("warn_df") && is.data.frame(get("warn_df"))){
+      rm("warn_df", envir=.GlobalEnv)
       print('exists')
     }else{
       print("does not")
@@ -612,11 +612,11 @@ server <- function(input, output, session) {
       survey_names <- c(input$chgYear1[[1]], input$chgYear1[[2]])
       
 
-      if(input$natpop==FALSE){
-        all_sites <- FALSE
+      if(input$natpop==TRUE & input$subpop==TRUE){
+        all_sites <- TRUE
         # chgIn$All_Sites <- factor('All Sites')
       }else{
-        all_sites <- TRUE
+        all_sites <- FALSE
       }
       
       if(input$chgCatCont == 'chgCat'){
@@ -709,8 +709,8 @@ server <- function(input, output, session) {
       }
     }
     
-    if(exists('warn.df') && ncol(warn.df)>1){
-      outdf <- list(chgOut=chgOut.1, warndf=warn.df)
+    if(exists('warn_df') && ncol(warn_df)>1){
+      outdf <- list(chgOut=chgOut.1, warndf=warn_df)
     }else{
       outdf <- list(chgOut=chgOut.1, warndf=data.frame(warnings='none'))
     }
@@ -731,8 +731,8 @@ server <- function(input, output, session) {
   dataEst <- eventReactive(input$runBtn,{
     show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait')
     
-    if(exists("warn.df") && is.data.frame(get("warn.df"))){
-      rm("warn.df", envir=.GlobalEnv)
+    if(exists("warn_df") && is.data.frame(get("warn_df"))){
+      rm("warn_df", envir=.GlobalEnv)
       print('exists')
     }else{
       print("does not")
@@ -740,10 +740,10 @@ server <- function(input, output, session) {
     
     dfIn <- dataOut()
     
-    if(input$natpop==FALSE){
-      all_sites <- FALSE
-    }else{
+    if(input$natpop==TRUE & input$subpop==TRUE){
       all_sites <- TRUE
+    }else{
+      all_sites <- FALSE
     }
     
     if(input$chboxYear==TRUE){
@@ -860,8 +860,8 @@ server <- function(input, output, session) {
       
       remove_modal_spinner()
 
-    if(exists('warn.df') && ncol(warn.df)>1){
-      outdf <- list(estOut=estOut, warndf=warn.df)
+    if(exists('warn_df') && ncol(warn_df)>1){
+      outdf <- list(estOut=estOut, warndf=warn_df)
     }else{
       outdf <- list(estOut=estOut, warndf=data.frame(warnings='none'))
     }
@@ -922,7 +922,7 @@ server <- function(input, output, session) {
   
   
   session$onSessionEnded(function() {
-    rm(warn.df,envir=.GlobalEnv)
+    rm(warn_df,envir=.GlobalEnv)
     stopApp()
   })  
   
