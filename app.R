@@ -98,7 +98,7 @@ ui <- fluidPage(theme="style.css",
                        ),
                br(),
                p('Contact Karen Blocksom at blocksom.karen@epa.gov with questions or feedback.'),
-               p('Last updated on April 22, 2021.'),
+               p('Last updated on October 5, 2021.'),
                h3('Disclaimer'),
                p('The United States Environmental Protection Agency (EPA) GitHub project code is provided 
                  on an "as is" basis and the user assumes responsibility for its use.  EPA has relinquished 
@@ -182,9 +182,7 @@ ui <- fluidPage(theme="style.css",
                                 choices = c('Local neighborhood variance (recommended, used for NARS, 
                                             requires site coordinates)' = 'local',
                                             'Simple Random Sample (requires stratum but not site 
-                                            coordinates)' = 'SRS', 
-                                            'Horvitz-Thompson estimator' = 'HT', 
-                                            'Yates-Grundy Estimator' = 'YG'),
+                                            coordinates)' = 'SRS'),
                                 select = 'local'),
                    # If local, user must select x and y coordinates and convert to Albers if in lat/long
                    conditionalPanel(condition = "input.locvar == 'local'",
