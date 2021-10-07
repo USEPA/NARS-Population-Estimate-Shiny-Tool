@@ -645,7 +645,7 @@ server <- function(input, output, session) {
        revisitWgt <- FALSE # NOT SURE WHAT THIS SHOULD BE SO ASSUME DEFAULT
       
       chgIn <- dframe(chgIn)
-      
+
         # if(input$repeatBox==TRUE){
           if(input$chgCatCont == 'chgCat'){
             chgOut <- change_analysis(dframe = chgIn, vars_cat = input$respVar, 
@@ -653,16 +653,15 @@ server <- function(input, output, session) {
                                       survey_names = survey_names, revisitwgt = revisitWgt,
                                       siteID = input$siteVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
-                                      # sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in,
                                       vartype = vartype, All_Sites = all_sites)
           }else{
+            browser()
             chgOut <- change_analysis(dframe = chgIn, vars_cont = input$respVar, test = ttype, 
                                       subpops=subpops.in, surveyID = surveyID, 
                                       survey_names = survey_names, revisitwgt = revisitWgt,
                                       siteID = input$siteVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
-                                      # sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in,
                                       vartype = vartype, All_Sites = all_sites)
           }
@@ -798,7 +797,7 @@ server <- function(input, output, session) {
                                       # sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in, vartype=vartype, 
                                       All_Sites = all_sites, 
-                                      statistics = 'cdf')$CDF
+                                      statistics = 'CDF')$CDF
                             
             }else if(input$cdf_pct=='pct'){ # Just produce percentiles
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
@@ -807,7 +806,7 @@ server <- function(input, output, session) {
                                       # sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in, vartype=vartype, 
                                       All_Sites = all_sites,  
-                                      statistics = c('pct'))$Pct
+                                      statistics = c('Pct'))$Pct
             }else{
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
                                       vars=input$respVar, weight = input$weightVar, 
@@ -815,7 +814,7 @@ server <- function(input, output, session) {
                                       # sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in, vartype=vartype, 
                                       All_Sites = all_sites,  
-                                      statistics = c('mean'))$Mean
+                                      statistics = c('Mean'))$Mean
             }
           # }
       }
