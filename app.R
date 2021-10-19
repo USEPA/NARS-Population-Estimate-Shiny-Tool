@@ -200,7 +200,7 @@ ui <- fluidPage(theme="style.css",
                    
                    # Select stratum if Simple Random Sample                                 
                    selectizeInput("stratumVar","Select a categorical stratum variable if desired", 
-                                  choices=NULL, multiple=TRUE)
+                                  choices=NULL, multiple=FALSE)
             )  
          ),
           # Press button to subset data for analysis - must click here first
@@ -403,7 +403,7 @@ server <- function(input, output, session) {
         subVName <- NULL
       }
       
-      print(input$stratumVar)
+   
       if(input$subpop == TRUE){
         # Use function below to validate input variables as the appropriate type and to make sure the selections do not overlap
         validate(
@@ -482,6 +482,10 @@ server <- function(input, output, session) {
                  "X-coordinate variable cannot overlap with other variable selections."),
             need(input$coordyVar %nin% c(input$siteVar,input$coordxVar,input$respVar,input$weightVar),
                  "Y-coordinate variable cannot overlap with other variable selections.")
+          )
+          validate(
+            need(input$stratumVar %nin% c(input$siteVar,input$respVar,input$weightVar),
+                 "Stratum variable cannot overlap with other variable selections. If no stratum variable, select 'None'")
           )
           if(input$chboxYear==TRUE){
             validate(
@@ -757,12 +761,11 @@ server <- function(input, output, session) {
       }
     }
     
-      
-      # Create varype variable depending on option selected
+      # Create vartype variable depending on option selected
       if(input$locvar == 'local'){
         vartype <- 'Local'
       }else{
-        vartype <- input$locvar
+        vartype <- 'SRS'
       }
       
       if(input$subpop == FALSE){
