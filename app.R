@@ -85,6 +85,10 @@ ui <- fluidPage(theme="style.css",
                br(),
                h4("Minimum requirements:"),
                tags$ul(
+                        tags$li("The R package", strong("spsurvey, v.5.0 or later"), 
+                        "is required. 
+                                Be sure to update this package if an older version is 
+                                already installed." ),
                          tags$li("All variables must be contained in one file and include site IDs, 
                          weights, response variables, subpopulations (if any), and optionally, 
                          coordinates and/or design stratum (depending on type of variance desired)." ),
