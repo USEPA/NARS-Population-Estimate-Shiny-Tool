@@ -557,11 +557,12 @@ server <- function(input, output, session) {
     
     if(exists("warn_df") && is.data.frame(get("warn_df"))){
       rm("warn_df", envir=.GlobalEnv)
-      print('exists')
-    }else{
-      print("does not")
+      # print('exists')
     }
-    
+    # else{
+    #   print("does not")
+    # }
+     
       chgIn <- dataOut()
       
       chgIn <- subset(chgIn, eval(as.name(input$yearVar)) %in% input$chgYear1)
@@ -714,10 +715,11 @@ server <- function(input, output, session) {
     
     if(exists("warn_df") && is.data.frame(get("warn_df"))){
       rm("warn_df", envir=.GlobalEnv)
-      print('exists')
-    }else{
-      print("does not")
+      # print('exists')
     }
+    # else{
+    #   print("does not")
+    # }
     
     dfIn <- dataOut()
     
