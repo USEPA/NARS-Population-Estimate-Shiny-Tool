@@ -24,7 +24,7 @@ ui <- fluidPage(theme="style.css",
                  This app does not include all possible options but does allow typical settings used by NARS for creating 
                  population estimates.'),
                h3("Instructions for Use"),
-               h4("Prepare Data for Analysis tab"),
+               h4("Prepare Data for Analysis"),
                tags$ol(
                  tags$li("Select data file and upload. If the data are to be loaded from a URL, check the
                          box to do so and paste or enter the URL for the file."),
@@ -55,7 +55,7 @@ ui <- fluidPage(theme="style.css",
                h4("Run Population Estimates"),
                tags$ol(
                  tags$li("Select the type of analysis (categorical or continuous)."),
-                 tags$li("If year or design cycle variable was select on data preparation tab, 
+                 tags$li("If year or design cycle variable was selected on the Prepare Data for Analysis tab, 
                          select year or cycle of interest."),
                  tags$li("For continuous analysis, select either CDFs (cumulative distribution 
                          functions) or Percentiles."),
@@ -77,20 +77,23 @@ ui <- fluidPage(theme="style.css",
                          must contain the same value for both years or cycles of data."),
                  tags$li("Click on the Run/Refresh Estimates button. Depending on the number of 
                  responses, subpopulations, and type of analysis, it may take a few 
-                         seconds to several minutes.")
+                         seconds to several minutes."),
+                 tags$li("If any data are changed in the Prepare Data for Analysis tab, years 
+                         must be re-selected before running analysis.")
                ),
                
                br(),
                h4("Minimum requirements:"),
                tags$ul(
                          tags$li("All variables must be contained in one file and include site IDs, 
-                         weights, response variables, subpopulations (if any), and coordinates or 
-                                 design stratum (depending on type of variance desired)." ),
+                         weights, response variables, subpopulations (if any), and optionally, 
+                         coordinates and/or design stratum (depending on type of variance desired)." ),
                          tags$li("All sites included in the dataset should have weight > 0. Any 
                                  records with a missing weight or a weight of 0 will be dropped 
                                  before analysis."),
-                         tags$li("Input data should include only one visit per site and year/survey 
-                                 cycle (based on the variables for site ID and year/survey cycle selected)."),
+                         tags$li("Input data should include", 
+                                 strong("only one visit per site and year/survey cycle"), 
+                                 "(based on the variables for site ID and year/survey cycle selected)."),
                          tags$li("Only delimited files, such as comma- and tab-delimited, are accepted for upload."),
                          tags$li("If local neighborhood variance is desired, coordinates must be provided in some type of projection, such as Albers."),
                          tags$li("If variance based on a simple random sample is desired (or if coordinates are not available), the design stratum should be provided to better estimate variance."),
@@ -98,7 +101,7 @@ ui <- fluidPage(theme="style.css",
                        ),
                br(),
                p('Contact Karen Blocksom at blocksom.karen@epa.gov with questions or feedback.'),
-               p('Last updated on October 5, 2021.'),
+               p('Last updated on October 19, 2021.'),
                h3('Disclaimer'),
                p('The United States Environmental Protection Agency (EPA) GitHub project code is provided 
                  on an "as is" basis and the user assumes responsibility for its use.  EPA has relinquished 
@@ -543,7 +546,7 @@ server <- function(input, output, session) {
   
   # Change estimate code
   chgEst <- eventReactive(input$chgBtn,{
-    show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait')
+    
     if(exists("warn_df") && is.data.frame(get("warn_df"))){
       rm("warn_df", envir=.GlobalEnv)
       print('exists')
@@ -559,8 +562,10 @@ server <- function(input, output, session) {
       freqSiteChg <- as.data.frame(table(siteID = chgIn[,input$siteVar],Year = chgIn[,input$yearVar]))
 
       validate(
-        need(nrow(subset(freqSiteChg, Freq>1))==0, paste("There are", nrow(subset(freqSiteChg, Freq>1)), 
-                                                         "duplicated sites in this dataset within years or cycles."))
+        need(nrow(subset(freqSiteChg, Freq>1))==0, 
+             paste("There are", nrow(subset(freqSiteChg, Freq>1)),
+                   "duplicated sites in this dataset within years or cycles. 
+                   Only one row per site-design cycle combination is permitted in the input data."))
       )
       
       # If categorical data, automatically reorder any response variables that are Good/Fair/Poor or 
@@ -588,7 +593,10 @@ server <- function(input, output, session) {
       print(input$chgYear1[[2]])
       surveyID <- input$yearVar
       survey_names <- c(input$chgYear1[[1]], input$chgYear1[[2]])
-      
+      validate(
+        need(length(survey_names)==2, 
+             paste("Select years or design cycles to compare."))
+      )
 
       if(input$natpop==TRUE & input$subpop==TRUE){
         all_sites <- TRUE
@@ -632,7 +640,6 @@ server <- function(input, output, session) {
       }else{
         ycoord.in <- input$coordyVar
       }
-
       
       if(input$chgCatCont == 'chgCont'){
         if(input$testType == 'mean'){
@@ -643,9 +650,8 @@ server <- function(input, output, session) {
       }
       
        revisitWgt <- FALSE # NOT SURE WHAT THIS SHOULD BE SO ASSUME DEFAULT
+       show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait')
       
-      chgIn <- dframe(chgIn)
-
         # if(input$repeatBox==TRUE){
           if(input$chgCatCont == 'chgCat'){
             chgOut <- change_analysis(dframe = chgIn, vars_cat = input$respVar, 
@@ -656,7 +662,6 @@ server <- function(input, output, session) {
                                       stratumID = stratum.in,
                                       vartype = vartype, All_Sites = all_sites)
           }else{
-            browser()
             chgOut <- change_analysis(dframe = chgIn, vars_cont = input$respVar, test = ttype, 
                                       subpops=subpops.in, surveyID = surveyID, 
                                       survey_names = survey_names, revisitwgt = revisitWgt,
@@ -698,7 +703,6 @@ server <- function(input, output, session) {
   
   # Calculate population estimates 
   dataEst <- eventReactive(input$runBtn,{
-    show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait')
     
     if(exists("warn_df") && is.data.frame(get("warn_df"))){
       rm("warn_df", envir=.GlobalEnv)
@@ -725,9 +729,12 @@ server <- function(input, output, session) {
     
     validate(
       need(nrow(subset(freqSite, Freq>1))==0, 
-           paste("There are", nrow(subset(freqSite, Freq>1)),"duplicated sites in this dataset."))
+           paste("There are", nrow(subset(freqSite, Freq>1)),"duplicated sites in this dataset. 
+                 Only one row per site permitted in the input data."))
     )
 
+    show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait')
+    
     # If categorical data, automatically reorder any response variables that are Good/Fair/Poor or 
     # Low/Moderate/High (allow for all caps versions)
     if(input$atype=='categ'){
@@ -746,8 +753,7 @@ server <- function(input, output, session) {
       }
     }
     
-      dfIn <- dframe(dfIn)
-
+      
       # Create varype variable depending on option selected
       if(input$locvar == 'local'){
         vartype <- 'Local'
