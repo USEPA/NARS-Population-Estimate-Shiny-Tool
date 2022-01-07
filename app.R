@@ -313,7 +313,15 @@ ui <- fluidPage(theme="style.css",
                      #File input helper
                      helper(type = "inline",
                             title = "Categorical Estimate File",
-                            content = c("Choose a file with the same output which spsurveys cat.analysis() function renders."),
+                            content = paste("Choose a file with the same output which the 
+                                     spsurvey package", strong("cat_analysis()"), 
+                                     "function renders. If the 
+                                                 dataset is missing required variables, no 
+                                                 selections will show up in the dropdown menu. 
+                                                 The expected and required variables are:", strong("Type, 
+                                                 Indicator, Subpopulation, Category, NResp, Estimate.P,
+                                                 StdError.P, LCB95Pct.P, UCB95Pct.P, Estimate.U,
+                                                 StdError.U, LCB95Pct.U, UCB95Pct.U")),
                             size = "s", easyClose = TRUE, fade = TRUE),
                    selectInput(inputId = "Tot_Pop",
                                label = HTML("<b>Select Total Population Label</b>"),
@@ -324,7 +332,9 @@ ui <- fluidPage(theme="style.css",
                      #Total Population helper
                      helper(type = "inline",
                             title = "Total Population Label",
-                            content = c("Choose the label which is used to describe the total population in the estimate file (e.g. Statewide, National, all.sites)"),
+                            content = c("Choose the label which is used to describe 
+                                        the total population in the estimate file 
+                                        (e.g. Statewide, National, all.sites)"),
                             size = "s", easyClose = TRUE, fade = TRUE),
                    selectInput(inputId = "Good",
                                label = HTML("<b>Select <span style='color: #5796d1'>'Good'</span> Condition Classes</b>"),
@@ -335,7 +345,13 @@ ui <- fluidPage(theme="style.css",
                      #Condition Category helper
                      helper(type = "inline",
                             title = "Condition Category Color",
-                            content = c("The following inputs ask you to define the condition class colors which will be used in the plots. You may use the same color for multiple conditions."),
+                            content = paste("The following inputs ask you to define the condition classes 
+                                        which will be used in the plots. You may use the same 
+                                        category for multiple conditions.", strong(em("For example, if your dataset
+                                        contains some responses for which Good is the best condition 
+                                        and some for which Low is the best, you can select both for
+                                        plotting. Only those applicable to a given response will be 
+                                        shown in the plot."))),
                             size = "s", easyClose = TRUE, fade = TRUE),
                    selectInput(inputId = "Fair",
                                label = HTML("<b>Select <span style='color: #EE9A00'>'Fair'</span> Condition Classes</b>"),
@@ -366,7 +382,9 @@ ui <- fluidPage(theme="style.css",
                      #Resource Type helper
                      helper(type = "inline",
                             title = "Resource Type",
-                            content = c("This input defines the plot axis label. Resource Type is the resource evaluated in your design (e.g. Stream Miles, Wetland Area, Coastline)."),
+                            content = c("This input defines the plot axis label. Resource Type is 
+                                        the resource evaluated in your design (e.g., Stream Miles, 
+                                        Wetland Area, Coastal Area, Lakes)."),
                             size = "s", easyClose = TRUE, fade = TRUE),
                    actionButton("plotbtn", strong("Plot Population Estimates"), icon=icon("chart-bar")),
                    br(),br(),
@@ -421,7 +439,15 @@ ui <- fluidPage(theme="style.css",
                               #File input helper
                               helper(type = "inline",
                                      title = "CDF Estimate File",
-                                     content = c("Choose a file with the same output which spsurveys cont.analysis() function renders."),
+                                     content = paste("Choose a file with the same output which the 
+                                     spsurvey package", strong("cont_analysis()"), 
+                                     "function renders. If the 
+                                                 dataset is missing required variables, no 
+                                                 selections will show up in the dropdown menu. 
+                                     The expected and required variables are:", strong("Type,
+                                     Subpopulation, Indicator, Value, Estimate.P, Estimate.U,
+                                     StdError.P, StdError.U, LCB95Pct.P, UCB95Pct.P, LCB95Pct.U,
+                                     UCB95Pct.U")),
                                      size = "s", easyClose = TRUE, fade = TRUE),
                             selectInput(inputId = "Tot_Pop_Con",
                                         label = HTML("<b>Select Total Population Label</b>"),
@@ -432,14 +458,18 @@ ui <- fluidPage(theme="style.css",
                               #Total Population helper
                               helper(type = "inline",
                                      title = "Total Population Label",
-                                     content = c("Choose the label which is used to describe the total population in the estimate file (e.g., Statewide, National, all.sites)"),
+                                     content = c("Choose the label which is used to describe the total
+                                                 population in the estimate file (e.g., Statewide, 
+                                                 National, All_Sites)"),
                                      size = "s", easyClose = TRUE, fade = TRUE),
                             textInput("title2", "Add a Plot Title", value = "", width = "300px", placeholder = "Optional"),
                             textInput("resource2", "Define Resource Type", value = "", width = "300px", placeholder = "Resource") %>%
                               #Resource Type helper
                               helper(type = "inline",
                                      title = "Resource Type",
-                                     content = c("This input defines the plot axis label. Resource Type is the resource evaluated in your design (e.g., Stream Miles, Wetland Area, Coastline)."),
+                                     content = c("This input defines the plot axis label. Resource
+                                                 Type is the resource evaluated in your design 
+                                                 (e.g., Stream Miles, Wetland Area, Coastline)."),
                                      size = "s", easyClose = TRUE, fade = TRUE), 
                             actionButton("plotbtncon", strong("Plot Continuous Estimates"), icon=icon("chart-bar"))
                             ,width=3),#sidebarPanel
@@ -492,6 +522,7 @@ ui <- fluidPage(theme="style.css",
    )
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
+  observe_helpers()
    
   # Read in data file as selected
   dataIn <- reactive({
@@ -1106,7 +1137,7 @@ server <- function(input, output, session) {
                    'StdError.P', 'LCB95Pct.P', 'UCB95Pct.P', 'Estimate.U',
                    'StdError.U', 'LCB95Pct.U', 'UCB95Pct.U')
       
-      validate(need(necVars %in% colnames(userEst()),
+      validate(need(all(necVars %in% colnames(userEst())),
                     message = "Dataset does not include all variables in standardized output from spsurvey."))
       
       userEst <- userEst()
@@ -1455,10 +1486,6 @@ server <- function(input, output, session) {
   userCDFEst <- reactive({
     ConEstOut <- read.csv(req(input$ConCDFinput$datapath))
     
-    # validate(need(c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate.P', 'Estimate.U',
-    #                 'StdError.P', 'StdError.U', 'LCB95Pct.P', 'UCB95Pct.P', 'LCB95Pct.U',
-    #                 'UCB95Pct.U') %in% names(ConEstOut),
-    #          "Standardized spsurvey variables not included in dataset."))
     # validate(
     # need(ncol(ConEstOut) == 13,
     #     "Data format is invalid.")
@@ -1475,6 +1502,11 @@ server <- function(input, output, session) {
     if(is.null(input$ConCDFinput) && input$cdf_pct=='cdf'){
       dataEst()[['estOut']]
     } else {
+      validate(need(all(c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate.P', 'Estimate.U',
+                          'StdError.P', 'StdError.U', 'LCB95Pct.P', 'UCB95Pct.P', 'LCB95Pct.U',
+                          'UCB95Pct.U') %in% names(userCDFEst())),
+                    "Standardized spsurvey variables not included in dataset."))
+      
       CDFOut <- userCDFEst() 
     }})
   
