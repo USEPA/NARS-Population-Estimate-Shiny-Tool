@@ -1086,21 +1086,35 @@ server <- function(input, output, session) {
   
   ###################################### Categorical Plots Server ######################
   userEst <- reactive({
-    estOut <- read.csv(req(input$userinput$datapath))
+
+      estOut <- read.csv(req(input$userinput$datapath))
+      
   })
   
   observeEvent(input$runBtn, {
     removeUI(
       selector = "div#userinput1 > div")
-    input$userinput <- NULL
   })
   
   plotDataset <- reactive ({
     if(is.null(input$userinput) && input$atype == 'categ'){
       dataEst()[['estOut']]
     } else {
-      userEst <- userEst() 
+      
+      
+      necVars <- c('Type', 'Indicator', 'Subpopulation', 'Category', 'NResp', 'Estimate.P',
+                   'StdError.P', 'LCB95Pct.P', 'UCB95Pct.P', 'Estimate.U',
+                   'StdError.U', 'LCB95Pct.U', 'UCB95Pct.U')
+      
+      validate(need(necVars %in% colnames(userEst()),
+                    message = "Dataset does not include all variables in standardized output from spsurvey."))
+      
+      userEst <- userEst()
+      print(colnames(userEst))
+      userEst
     }
+    
+    
   })
     
 
@@ -1114,22 +1128,11 @@ server <- function(input, output, session) {
     updateSelectInput(session, "Tot_Pop", choices = totpop)
   })
   
-  
-  con_choices <- reactive({ 
+
+  con_choices <- reactive({
     plotData <- plotDataset()
-# THIS VALIDATION DOES NOT WORK RIGHT NOW - FIX THIS!!! AND FOR CONTINUOUS DATA
-    # necVars <- c('Type', 'Indicator', 'Subpopulation', 'Category', 'NResp', 'Estimate.P',
-    #              'StdError.P', 'LCB95Pct.P', 'UCB95Pct.P', 'Estimate.U',
-    #              'StdError.U', 'LCB95Pct.U', 'UCB95Pct.U')
-    # 
-    # validate(need(all(necVars %in% names(plotData)),
-    #               "Dataset does not include all variables in standardized output from spsurvey."))
     
     plotData <- unique(subset(plotData, !(Category=='Total'), select='Category'))
-    
-    print(plotData)
-    
-    plotData
 
   })
   
@@ -1195,6 +1198,7 @@ server <- function(input, output, session) {
   
   
   observeEvent(input$plotbtn,{
+    
     ind_plot <- plotDataset() 
     
     ind_plot <- unique(ind_plot$Indicator) 
@@ -1284,7 +1288,7 @@ server <- function(input, output, session) {
                     size=2, width=0) +
       scale_fill_manual(values = colors) +
       scale_color_manual(values = colors) +
-      scale_x_discrete(labels = function(x) strwrap(x, width = 15, simplify=FALSE), lims=rev) +
+      scale_x_discrete(labels = function(x) str_wrap(x, width = 15)) +
       theme_bw() +
       labs(
         title = input$title,
@@ -1303,13 +1307,16 @@ server <- function(input, output, session) {
     
     if (input$Estimate == "P Estimates") {
       P1 <- P1 + geom_text(aes(label=paste(format(Estimate),"%",
-                                           sep=""), y=Estimate), hjust = -.05, size = 4, fontface = "bold", color = "#4D4D4D", family="sans", position = position_nudge(x = -0.25)) +
+                                           sep=""), y=Estimate), hjust = -.05, size = 4, 
+                           fontface = "bold", color = "#4D4D4D", family="sans", 
+                           position = position_nudge(x = -0.25)) +
         scale_y_continuous(labels = scales::percent_format(scale = 1)) +
         coord_flip(ylim=c(0, 100)) +
         labs(y = paste0("Percentage of ", input$resource)) 
     } else {
       P1 <- P1 + geom_text(aes(label = format(round(Estimate), big.mark = ","), y=Estimate), 
-                           hjust = -.05, size = 4, fontface = "bold", color = "#4D4D4D", family="sans", position = position_nudge(x = -0.25)) +
+                           hjust = -.05, size = 4, fontface = "bold", color = "#4D4D4D", 
+                           family="sans", position = position_nudge(x = -0.25)) +
         scale_y_continuous(labels = scales::comma) +
         coord_flip() +
         labs(y = input$resource)
@@ -1320,7 +1327,6 @@ server <- function(input, output, session) {
   })
   
   SubEst_plot <- reactive({
-    
     req(input$Ind_Plot, input$Con_Plot, input$Type_Plot)
     #Set colors to users Condition classes
     col1 <- rep("#5796d1", length(input$Good))
@@ -1363,6 +1369,7 @@ server <- function(input, output, session) {
     popest2 <- Dataset
     popest2 <- subset(popest2, !(Category == "Total") & Category == input$Con_Plot &
                         Indicator == input$Ind_Plot & Type == input$Type_Plot)
+    popest2$Subpopulation <-factor(popest2$Subpopulation, levels = rev(unique(popest2$Subpopulation)))
     
 
     P2 <- ggplot(data = popest2, aes(x = Subpopulation, y = Estimate)) +
@@ -1372,7 +1379,7 @@ server <- function(input, output, session) {
                     size=2, width=0) +
       scale_fill_manual(values = colors) +
       scale_color_manual(values = colors) +
-      scale_x_discrete(labels = function(x) strwrap(x, width = 15, simplify=FALSE), lims=rev) +
+      scale_x_discrete(labels = function(x) str_wrap(x, width = 15)) +
       theme_bw() +
       labs(
         title = input$title,
@@ -1448,14 +1455,14 @@ server <- function(input, output, session) {
   userCDFEst <- reactive({
     ConEstOut <- read.csv(req(input$ConCDFinput$datapath))
     
-    validate(need(c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate.P', 'Estimate.U',
-                    'StdError.P', 'StdError.U', 'LCB95Pct.P', 'UCB95Pct.P', 'LCB95Pct.U',
-                    'UCB95Pct.U') %in% names(ConEstOut),
-             "Standardized spsurvey variables not included in dataset."))
-    #validate(
-    # need(ncol(estOut) != 13, 
+    # validate(need(c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate.P', 'Estimate.U',
+    #                 'StdError.P', 'StdError.U', 'LCB95Pct.P', 'UCB95Pct.P', 'LCB95Pct.U',
+    #                 'UCB95Pct.U') %in% names(ConEstOut),
+    #          "Standardized spsurvey variables not included in dataset."))
+    # validate(
+    # need(ncol(ConEstOut) == 13,
     #     "Data format is invalid.")
-    #)
+    # )
   })
   
   
@@ -1528,6 +1535,7 @@ server <- function(input, output, session) {
     CDFDataset <- CDFDataset()
     
     CDFDataset <- subset(CDFDataset, Indicator == input$Ind_Con & Subpopulation %in% input$SubPop_Con)
+    CDFDataset$Subpopulation <-factor(CDFDataset$Subpopulation, levels = rev(unique(CDFDataset$Subpopulation)))
     
     g <- ggplot(CDFDataset, aes(y=Estimate.P, x=Value, color = Subpopulation, 
                                 fill = Subpopulation)) +
@@ -1573,7 +1581,8 @@ server <- function(input, output, session) {
     
     CDFDataset <- CDFDataset()
     CDFDataset <- subset(CDFDataset, Indicator == input$Ind_Con & Subpopulation %in% input$SubPop_Con)
-
+    CDFDataset$Subpopulation <-factor(CDFDataset$Subpopulation, levels = rev(unique(CDFDataset$Subpopulation)))
+    
     g <- ggplot(CDFDataset, aes(x = Estimate.P, y = Subpopulation, fill=Subpopulation)) +
       scale_fill_viridis_d("Population") +
       scale_x_continuous(labels = scales::percent_format(scale = 1), limits = c(0, 100)) +
