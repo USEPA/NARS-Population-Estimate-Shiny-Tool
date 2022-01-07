@@ -1278,11 +1278,13 @@ server <- function(input, output, session) {
     
     #Create Plots
     P1 <- ggplot(data = popest, aes(x = Category, y = Estimate)) +
-      geom_bar(aes(fill = Category, color = Category), alpha = 0.5, stat="identity", position = position_dodge()) +
-      geom_errorbar(aes(ymin = LCB95Pct, ymax = UCB95Pct, color = Category), size=2, width=0) +
+      geom_bar(aes(fill = Category, color = Category), alpha = 0.5, 
+               stat="identity", position = position_dodge()) +
+      geom_errorbar(aes(ymin = LCB95Pct, ymax = UCB95Pct, color = Category), 
+                    size=2, width=0) +
       scale_fill_manual(values = colors) +
       scale_color_manual(values = colors) +
-      scale_x_discrete(labels = function(x) strwrap(x, width = 15, simplify=FALSE)) +
+      scale_x_discrete(labels = function(x) strwrap(x, width = 15, simplify=FALSE), lims=rev) +
       theme_bw() +
       labs(
         title = input$title,
@@ -1370,7 +1372,7 @@ server <- function(input, output, session) {
                     size=2, width=0) +
       scale_fill_manual(values = colors) +
       scale_color_manual(values = colors) +
-      scale_x_discrete(labels = function(x) strwrap(x, width = 15, simplify=FALSE)) +
+      scale_x_discrete(labels = function(x) strwrap(x, width = 15, simplify=FALSE), lims=rev) +
       theme_bw() +
       labs(
         title = input$title,
