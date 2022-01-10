@@ -505,6 +505,8 @@ ui <- fluidPage(theme="style.css",
                                                          width = NULL)))),
                  fluidRow(
                    h3(strong(HTML("<center>CDF Estimates<center/>"))),
+                   h4("NOTE: Plotting and downloading may take a while if there are multiple subpopulations. 
+                      PLEASE BE PATIENT."),
                    column(3,
                           conditionalPanel(condition="input.plotbtncon",
                                            downloadButton("download1", "Download CDF Plot")))),
@@ -1123,11 +1125,20 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$runBtn, {
-    removeUI(
-      selector = "div#userinput1 > div")
+    if(input$atype == 'categ'){
+      removeUI(
+        selector = "div#userinput1 > div")
+    }
   })
   
   plotDataset <- reactive ({
+    hide("plot")
+    hide("plot2")
+    
+    updateSelectInput(session, "Ind_Plot", selected = '')
+    updateSelectInput(session, "Con_Plot", selected = '')
+    updateSelectInput(session, "Type_Plot", selected = '', choices = '')
+    
     if(is.null(input$userinput) && input$atype == 'categ'){
       dataEst()[['estOut']]
     } else {
@@ -1141,11 +1152,12 @@ server <- function(input, output, session) {
                     message = "Dataset does not include all variables in standardized output from spsurvey."))
       
       userEst <- userEst()
+      
       print(colnames(userEst))
       userEst
     }
     
-    
+      
   })
     
 
@@ -1235,6 +1247,8 @@ server <- function(input, output, session) {
     ind_plot <- unique(ind_plot$Indicator) 
     
     updateSelectInput(session, "Ind_Plot", choices = c(ind_plot))
+    
+    show("plot")
   })
   
   observeEvent(input$Ind_Plot,{
@@ -1255,10 +1269,12 @@ server <- function(input, output, session) {
     type_plot.choice <- unique(type_plot$Type)
     
     updateSelectInput(session, "Type_Plot", choices = c(type_plot.choice))
+    
+    show("plot2")
+    
   })
   
   Est_plot <- reactive({
-    
     req(input$Ind_Plot)
     #Set colors to users Condition classes
     col1 <- rep("#5796d1", length(input$Good))
@@ -1448,6 +1464,7 @@ server <- function(input, output, session) {
   
   output$plot <- renderPlot({
     Est_plot()
+    
   })
 
   calcheight <- reactive({
@@ -1463,6 +1480,8 @@ server <- function(input, output, session) {
     req(calcheight())
     calcheight <- calcheight()
     SubEst_plot()
+    
+
   }, height = calcheight)
   
   
@@ -1494,11 +1513,22 @@ server <- function(input, output, session) {
   
   
   observeEvent(input$runBtn,{
-    removeUI(
-      selector = "div#Coninput > div")
+    if(input$atype == 'contin' & input$cdf_pct=='cdf'){
+      removeUI(
+        selector = "div#Coninput > div")
+    }
   })
   
-  CDFDataset <- reactive ({
+  CDFDataset <- reactive({
+    hide("CDFsubplot")
+    hide("Distplot")
+    
+    updateSelectInput(session, "Tot_Pop_Con", selected = '')
+    updateSelectInput(session, "Pop_Con", selected = '')
+    updateSelectInput(session, "Tot_Pop_Con", selected = '')
+    updateSelectInput(session, "Subpop_Con", selected = '')
+    
+    
     if(is.null(input$ConCDFinput) && input$cdf_pct=='cdf'){
       dataEst()[['estOut']]
     } else {
@@ -1508,7 +1538,8 @@ server <- function(input, output, session) {
                     "Standardized spsurvey variables not included in dataset."))
       
       CDFOut <- userCDFEst() 
-    }})
+    }
+  })
   
   
   #Total Population Label Input
@@ -1556,6 +1587,7 @@ server <- function(input, output, session) {
      
     updateSelectInput(session, "SubPop_Con", choices = c(allsites_sub.choice, subpopcon_choice), 
                       selected = allsites_sub.choice)
+    
   })
   
   
@@ -1563,6 +1595,8 @@ server <- function(input, output, session) {
   
   CDF_subplot <- reactive({
     req(input$plotbtncon)
+    show("CDFsubplot")
+    show("Distplot")
     
     CDFDataset <- CDFDataset()
     
