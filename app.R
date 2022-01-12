@@ -315,7 +315,7 @@ ui <- fluidPage(theme="style.css",
                             title = "Categorical Estimate File",
                             content = paste("Choose a file with the same output which the 
                                      spsurvey package", strong("cat_analysis()"), 
-                                     "function renders. If the 
+                                            "function renders. If the 
                                                  dataset is missing required variables, no 
                                                  selections will show up in the dropdown menu. 
                                                  The expected and required variables are:", strong("Type, 
@@ -323,19 +323,22 @@ ui <- fluidPage(theme="style.css",
                                                  StdError.P, LCB95Pct.P, UCB95Pct.P, Estimate.U,
                                                  StdError.U, LCB95Pct.U, UCB95Pct.U")),
                             size = "s", easyClose = TRUE, fade = TRUE),
-                   selectInput(inputId = "Tot_Pop",
-                               label = HTML("<b>Select Total Population Label</b>"),
-                               choices = "",
-                               selected = NULL,
+                   selectInput(inputId = "Estimate",
+                               label = HTML("<b>Select Estimate Type</b>"),
+                               choices = c("Proportion Estimates" = "P Estimates", "Unit Estimates" = "U Estimates"),
                                multiple = FALSE, 
-                               width = "300px") %>%
-                     #Total Population helper
+                               width = "300px")  %>%
+                     #Estimate Type helper
                      helper(type = "inline",
-                            title = "Total Population Label",
-                            content = c("Choose the label which is used to describe 
-                                        the total population in the estimate file 
-                                        (e.g. Statewide, National, all.sites)"),
+                            title = "Estimate Type",
+                            content = c("<b>Proportion Estimates:</b> Proportion of observations that 
+                                        belong to each level of the categorical variable.",
+                                        "<b>Unit Estimates:</b> Total units (i.e. extent) that belong 
+                                        to each level of the categorical variable (total number 
+                                        (point resources), total line length (linear network), or 
+                                        total area (areal network))."),
                             size = "s", easyClose = TRUE, fade = TRUE),
+                   tags$style(HTML(".shiny-output-error-validation {color: #ff0000; font-weight: bold;}")),
                    selectInput(inputId = "Good",
                                label = HTML("<b>Select <span style='color: #5796d1'>'Good'</span> Condition Classes</b>"),
                                choices = "",
@@ -347,7 +350,8 @@ ui <- fluidPage(theme="style.css",
                             title = "Condition Category Color",
                             content = paste("The following inputs ask you to define the condition classes 
                                         which will be used in the plots. You may use the same 
-                                        category for multiple conditions.", strong(em("For example, if your dataset
+                                        category for multiple conditions.", strong(em("For example, if 
+                                        your dataset
                                         contains some responses for which Good is the best condition 
                                         and some for which Low is the best, you can select both for
                                         plotting. Only those applicable to a given response will be 
@@ -386,46 +390,99 @@ ui <- fluidPage(theme="style.css",
                                         the resource evaluated in your design (e.g., Stream Miles, 
                                         Wetland Area, Coastal Area, Lakes)."),
                             size = "s", easyClose = TRUE, fade = TRUE),
-                   actionButton("plotbtn", strong("Plot Population Estimates"), icon=icon("chart-bar")),
+                   actionButton("plotbtn", strong("Plot/Refresh Estimates"), icon=icon("chart-bar")),
                    br(),br(),
                    width = 3),
                  mainPanel(
-                   
                    conditionalPanel(condition="input.plotbtn",
-                                    
-                                    selectInput(inputId = "Estimate",
-                                                label = HTML("<b>Select Estimate Type</b>"),
-                                                choices = c("Proportion Estimates" = "P Estimates", "Unit Estimates" = "U Estimates"),
-                                                multiple = FALSE, 
-                                                width = "200px")),
-                   h3(strong(HTML("<center>Total Population Estimates<center/>"))),
-                   conditionalPanel(condition="input.plotbtn",
-                                    column(3, offset=1,
+                                    column(3,
+                                           tags$head(tags$style(HTML("#Ind_Plot ~ .selectize-control.single .selectize-input {background-color: #FFD133;}"))),
                                            selectInput(inputId = "Ind_Plot",
                                                        label = HTML("<b>Select Indicator</b>"),
                                                        choices = "",
-                                                       multiple = FALSE)),
-                                    br(),
-                                    conditionalPanel(condition="input.plotbtn",
-                                                     downloadButton("downloadPlot1", "Download Total Population Plot"))),
-                   plotOutput("plot", width = "75%", height = "300px"),
-                   br(), br(), br(),
+                                                       multiple = FALSE, 
+                                                       width = "200px") %>%
+                                             #Indicator input helper
+                                             helper(type = "inline",
+                                                    title = "Indicator",
+                                                    content = c("Select the indicator to display 
+                                                                categorical estimates by population."),
+                                                    size = "s", easyClose = TRUE, fade = TRUE),
+                                           
+                                           #column(3, 
+                                           tags$head(tags$style(HTML("#Type_Plot ~ .selectize-control.single .selectize-input {background-color: #FFD133;}"))),
+                                           selectInput(inputId = "Type_Plot",
+                                                       label = HTML("<b>Select Subpopulation Group</b>"),
+                                                       choices = NULL,
+                                                       multiple = FALSE,
+                                                       width = "200px") %>%
+                                             #Subpop Group input helper
+                                             helper(type = "inline",
+                                                    title = "Subpopulation Group",
+                                                    content = c("Select the Subpopulation group 
+                                                                to generate individual subpopulation 
+                                                                estimates and to use in the subpopulation 
+                                                                comparison plot."),
+                                                    size = "s", easyClose = TRUE, fade = TRUE))),
+                   column(8, offset = 2,
+                          h3(strong(HTML("<center>Categorical Estimates by Population<center/>") %>%
+                                      #Condition estimate helper
+                                      helper(type = "inline",
+                                             title = "Categorical Estimates",
+                                             content = c("Cycle through populations to display 
+                                                         categorical estimates and download the plot, 
+                                                         if desired."),
+                                             size = "s", easyClose = TRUE, fade = TRUE)))),
                    fluidRow(
-                     h3(strong(HTML("<center>Subpopulation Estimates<center/>"))),
                      column(3, offset=1,
                             conditionalPanel(condition="input.plotbtn",
-                                             selectInput(inputId = "Type_Plot",
-                                                         label = HTML("<b>Select Population</b>"),
-                                                         choices = "",
-                                                         multiple = FALSE)),
-                            conditionalPanel(condition="input.Type_Plot",
-                                             downloadButton('downloadPlot2', "Download Subpopulation Plot"))),
+                                             selectInput(inputId = "Tot_Pop",
+                                                         label = HTML("<b>Select Subpopulation</b>"),
+                                                         choices = NULL,
+                                                         selected = NULL,
+                                                         multiple = FALSE))),
+                     column(3, offset=1,  
+                            conditionalPanel(condition="input.plotbtn",
+                                             checkboxInput(inputId = "indconlim", 
+                                                           label= "Add Confidence Limit Values", 
+                                                           value = FALSE, 
+                                                           width = NULL)))),
+                   fluidRow(
+                     column(3, offset = 1,
+                            conditionalPanel(condition="input.plotbtn",
+                                             downloadButton("downloadPlot1", "Download Estimate Plot")))),
+                   
+                   plotOutput("plot", width = "75%", height = "300px"),
+                   br(), br(), br(),
+                   column(8, offset = 2,
+                          h3(strong(HTML("<center>Subpopulation Comparison<center/>") %>%
+                                      #Subpopulation helper
+                                      helper(type = "inline",
+                                             title = "Subpopulation Comparison",
+                                             content = c("Cycle through population groups to compare categorical estimates by condition and download plot, if desired."),
+                                             size = "s", easyClose = TRUE, fade = TRUE)))),
+                   fluidRow(  
                      column(3, offset=1,
-                            conditionalPanel(condition="input.Type_Plot",
+                            conditionalPanel(condition="input.plotbtn",
+                                             # tags$head(tags$style(HTML("#Con_Plot ~ .selectize-control.single .selectize-input {border: 1px solid #33ACFF;}"))),
                                              selectInput(inputId = "Con_Plot",
                                                          label = HTML("<b>Select Condition</b>"),
                                                          choices = "",
-                                                         multiple = FALSE)))),
+                                                         multiple = FALSE))),
+                     column(3, offset=1,
+                            conditionalPanel(condition="input.plotbtn",
+                                             checkboxInput(inputId = "goodsort", 
+                                                           label= HTML("Sort Subpopulations by <span style='color: #5796d1'>'Good'</span> Condition"), 
+                                                           value = FALSE, 
+                                                           width = NULL),
+                                             checkboxInput(inputId = "subconlim", 
+                                                           label= "Add Confidence Limit Values", 
+                                                           value = FALSE, 
+                                                           width = NULL)))),
+                   fluidRow(  
+                     column(3, offset=1,
+                            conditionalPanel(condition="input.plotbtn",
+                                             downloadButton('downloadPlot2', "Download Subpopulation Plot")))),
                    plotOutput("plot2", width = "75%"))
                )),
       ####Continuous Plot UI####
@@ -441,7 +498,7 @@ ui <- fluidPage(theme="style.css",
                                      title = "CDF Estimate File",
                                      content = paste("Choose a file with the same output which the 
                                      spsurvey package", strong("cont_analysis()"), 
-                                     "function renders. If the 
+                                                     "function renders. If the 
                                                  dataset is missing required variables, no 
                                                  selections will show up in the dropdown menu. 
                                      The expected and required variables are:", strong("Type,
@@ -449,21 +506,26 @@ ui <- fluidPage(theme="style.css",
                                      StdError.P, StdError.U, LCB95Pct.P, UCB95Pct.P, LCB95Pct.U,
                                      UCB95Pct.U")),
                                      size = "s", easyClose = TRUE, fade = TRUE),
-                            selectInput(inputId = "Tot_Pop_Con",
-                                        label = HTML("<b>Select Total Population Label</b>"),
-                                        choices = "",
-                                        selected = NULL,
+                            selectInput(inputId = "Estimate_CDF",
+                                        label = HTML("<b>Select Estimate Type</b>"),
+                                        choices = c("Proportion Estimates" = "P Estimates_CDF", "Unit Estimates" = "U Estimates_CDF"),
                                         multiple = FALSE, 
-                                        width = "300px") %>%
-                              #Total Population helper
+                                        width = "300px")  %>%
+                              #Estimate Type helper
                               helper(type = "inline",
-                                     title = "Total Population Label",
-                                     content = c("Choose the label which is used to describe the total
-                                                 population in the estimate file (e.g., Statewide, 
-                                                 National, All_Sites)"),
+                                     title = "Estimate Type",
+                                     content = c("<b>Proportion Estimates:</b> Proportion of 
+                                                 observations that belong to each level of the 
+                                                 categorical variable.",
+                                                 "<b>Unit Estimates:</b> Total units (i.e. extent) 
+                                                 that belong to each level of the categorical 
+                                                 variable (total number (point resources), total 
+                                                 line length (linear network), or total area 
+                                                 (areal network))."),
                                      size = "s", easyClose = TRUE, fade = TRUE),
                             textInput("title2", "Add a Plot Title", value = "", width = "300px", placeholder = "Optional"),
-                            textInput("resource2", "Define Resource Type", value = "", width = "300px", placeholder = "Resource") %>%
+                            textInput("units", "Add Indicator Units", value = "", width = "300px", placeholder = "Optional"),
+                            textInput("resource2", "Define Resource Type/Unit", value = "", width = "300px", placeholder = "Resource") %>%
                               #Resource Type helper
                               helper(type = "inline",
                                      title = "Resource Type",
@@ -503,16 +565,41 @@ ui <- fluidPage(theme="style.css",
                                                          label="Log Scale X-Axis", 
                                                          value = FALSE, 
                                                          width = NULL)))),
+                 
+                 column(8, offset = 2,
+                        h3(strong(HTML("<center>CDF Estimates<center/>") %>%
+                                    #CDF helper
+                                    helper(type = "inline",
+                                           title = "Cumulative Distribution Function (CDF)",
+                                           content = c("A Cumulative Distribution Function calculates 
+                                                       the cumulative probability for a given value and 
+                                                       can be used to determine the probability that a 
+                                                       random observation that is taken from the 
+                                                       population will be less than or equal to a certain 
+                                                       value."),
+                                           size = "s", easyClose = TRUE, fade = TRUE))),
+                 hr(),
+                 h4("NOTE: Plotting and downloading may take a while if there are multiple
+                          subpopulations. PLEASE BE PATIENT.")),
                  fluidRow(
-                   h3(strong(HTML("<center>CDF Estimates<center/>"))),
-                   h4("NOTE: Plotting and downloading may take a while if there are multiple subpopulations. 
-                      PLEASE BE PATIENT."),
                    column(3,
                           conditionalPanel(condition="input.plotbtncon",
                                            downloadButton("download1", "Download CDF Plot")))),
                  plotOutput("CDFsubplot", width = "75%"),
                  br(), br(), br(),
-                 h3(strong(HTML("<center>Distribution of Population Estimates<center/>"))),
+                 column(8, offset = 2,
+                        h3(strong(HTML("<center>Distribution of Estimates by Population<center/>") %>%
+                                    #CDF helper
+                                    helper(type = "inline",
+                                           title = "Ridgeline Distribution Plot",
+                                           content = c("A <b>Ridgeline Plot</b>, also known as a Joy Plot, 
+                                                       is used to visualize distributions of several groups.
+                                                       Each group produces a density curve which overlaps 
+                                                       with each other to help visualize differences.",
+                                                       "",
+                                                       "Small vertical lines represent values.",
+                                                       "Large vertical lines represent quartiles."),
+                                           size = "s", easyClose = TRUE, fade = TRUE)))),
                  fluidRow(
                    column(3,
                           conditionalPanel(condition="input.plotbtncon",
@@ -520,8 +607,8 @@ ui <- fluidPage(theme="style.css",
                  br(),
                  plotOutput("Distplot", width = "75%")
                ))
-     )
    )
+)
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
   observe_helpers()
@@ -1132,19 +1219,17 @@ server <- function(input, output, session) {
   })
   
   plotDataset <- reactive ({
-    hide("plot")
-    hide("plot2")
-    
-    updateSelectInput(session, "Ind_Plot", selected = '')
-    updateSelectInput(session, "Con_Plot", selected = '')
-    updateSelectInput(session, "Type_Plot", selected = '', choices = '')
+    # hide("plot")
+    # hide("plot2")
+    # 
+    # updateSelectInput(session, "Ind_Plot", selected = '')
+    # updateSelectInput(session, "Con_Plot", selected = '')
+    # updateSelectInput(session, "Type_Plot", selected = '', choices = '')
     
     if(is.null(input$userinput) && input$atype == 'categ'){
       dataEst()[['estOut']]
     } else {
-      
-      
-      necVars <- c('Type', 'Indicator', 'Subpopulation', 'Category', 'NResp', 'Estimate.P',
+      necVars <- c('Type', 'Indicator', 'Subpopulation', 'Category', 'Estimate.P',
                    'StdError.P', 'LCB95Pct.P', 'UCB95Pct.P', 'Estimate.U',
                    'StdError.U', 'LCB95Pct.U', 'UCB95Pct.U')
       
@@ -1161,32 +1246,23 @@ server <- function(input, output, session) {
   })
     
 
-  
-  #Total Population Label Input
-  observe({
-    totpop <- plotDataset() 
-    
-    totpop <- unique(totpop$Type)
-    
-    updateSelectInput(session, "Tot_Pop", choices = totpop)
-  })
-  
-
   con_choices <- reactive({
     plotData <- plotDataset()
     
     plotData <- unique(subset(plotData, !(Category=='Total'), select='Category'))
-
+    
   })
   
   # Good Condition Input
   observe({
     cc <- con_choices() 
     
-    cc <- subset(cc, !(Category %in% c(input$Fair, input$Poor, input$Not_Assessed, input$Other)))
-    
-    dd <- unique(cc$Category)
-    
+    if(is.null(cc)){
+      cc<-""
+    } else{
+      cc <- subset(cc, !(Category %in% c(input$Fair, input$Poor, input$Not_Assessed, input$Other)))
+      dd <- unique(cc$Category)
+    }
     updateSelectInput(session, "Good", choices = dd, 
                       selected = isolate(input$Good))
   })
@@ -1195,10 +1271,13 @@ server <- function(input, output, session) {
   observe({
     cc <- con_choices() 
     
-    cc <- subset(cc, !(Category %in% c(input$Good, input$Poor, input$Not_Assessed, input$Other)))
+    if(is.null(cc)){
+      cc<-""
+    } else{
+      cc <- subset(cc, !(Category %in% c(input$Good, input$Poor, input$Not_Assessed, input$Other)))
+      dd <- unique(cc$Category)
+    }
     
-    dd <- unique(cc$Category)
-
     updateSelectInput(session, "Fair", choices = dd,  
                       selected = isolate(input$Fair))
   })
@@ -1207,10 +1286,13 @@ server <- function(input, output, session) {
   observe({
     cc <- con_choices() 
     
-    cc <- subset(cc, !(Category %in% c(input$Good, input$Fair, input$Not_Assessed, input$Other)))
+    if(is.null(cc)){
+      cc<-""
+    } else{
+      cc <- subset(cc, !(Category %in% c(input$Good, input$Fair, input$Not_Assessed, input$Other)))
+      dd <- unique(cc$Category)
+    }
     
-    dd <- unique(cc$Category)
-
     updateSelectInput(session, "Poor", choices = dd,  
                       selected = isolate(input$Poor)) 
   })
@@ -1219,10 +1301,13 @@ server <- function(input, output, session) {
   observe({
     cc <- con_choices() 
     
-    cc <- subset(cc, !(Category %in% c(input$Good, input$Poor, input$Fair, input$Other)))
+    if(is.null(cc)){
+      cc<-""
+    } else{
+      cc <- subset(cc, !(Category %in% c(input$Good, input$Poor, input$Fair, input$Other)))
+      dd <- unique(cc$Category)
+    }
     
-    dd <- unique(cc$Category)
-
     updateSelectInput(session, "Not_Assessed", choices = dd,  
                       selected = isolate(input$Not_Assessed))
   })
@@ -1231,14 +1316,16 @@ server <- function(input, output, session) {
   observe({
     cc <- con_choices() 
     
-    cc <- subset(cc, !(Category %in% c(input$Good, input$Poor, input$Fair, input$Not_Assessed)))
+    if(is.null(cc)){
+      cc<-""
+    } else{
+      cc <- subset(cc, !(Category %in% c(input$Good, input$Poor, input$Fair, input$Not_Assessed)))
+      dd <- unique(cc$Category)
+    }
     
-    dd <- unique(cc$Category)
-
     updateSelectInput(session, "Other", choices = dd, 
                       selected = isolate(input$Other))
   })
-  
   
   observeEvent(input$plotbtn,{
     
@@ -1247,18 +1334,6 @@ server <- function(input, output, session) {
     ind_plot <- unique(ind_plot$Indicator) 
     
     updateSelectInput(session, "Ind_Plot", choices = c(ind_plot))
-    
-    show("plot")
-  })
-  
-  observeEvent(input$Ind_Plot,{
-    cc_plot <- plotDataset()
-    
-    cc_plot <- subset(cc_plot, Indicator == input$Ind_Plot & Category %in% c(input$Good, input$Fair, input$Poor, input$Not_Assessed, input$Other))
-    
-    cc_plot.choice <- unique(cc_plot$Category)
-    
-    updateSelectInput(session, "Con_Plot", choices = c(cc_plot.choice))
   })
   
   observeEvent(input$plotbtn,{
@@ -1271,11 +1346,38 @@ server <- function(input, output, session) {
     updateSelectInput(session, "Type_Plot", choices = c(type_plot.choice))
     
     show("plot2")
-    
   })
   
-  Est_plot <- reactive({
-    req(input$Ind_Plot)
+  #Total Population Label Input
+  observeEvent(input$Type_Plot,{
+    
+    tot_pop <- plotDataset()
+    tot_pop <- subset(tot_pop, Type == input$Type_Plot)
+    tot_pop <- unique(tot_pop$Subpopulation)
+    
+    updateSelectInput(session, "Tot_Pop", choices = tot_pop)
+  })
+  
+  
+  observeEvent(input$Ind_Plot,{
+    cc_plot <- plotDataset()
+    
+    cc_plot <- subset(cc_plot, Indicator == input$Ind_Plot & Category %in% c(input$Good, 
+                                                input$Fair, input$Poor, input$Not_Assessed, input$Other))
+    
+    cc_plot.choice <- unique(cc_plot$Category)
+    
+    updateSelectInput(session, "Con_Plot", choices = c(cc_plot.choice))
+  })
+  
+  
+  Est_plot <- eventReactive(c(input$Tot_Pop, input$Ind_Plot, input$plotbtn, input$indconlim),{
+    req(input$Ind_Plot, input$Type_Plot, input$Tot_Pop)
+    
+    # validate(need(!is.null(input$Good) || !is.null(input$Fair) || !is.null(input$Poor) || !is.null(input$Not_Assessed) || !is.null(input$Other), 
+    #               message = "Please input colors for the Condition Classes."))
+    
+    
     #Set colors to users Condition classes
     col1 <- rep("#5796d1", length(input$Good))
     col2 <- rep("#EE9A00", length(input$Fair))
@@ -1288,9 +1390,7 @@ server <- function(input, output, session) {
     names(col4) <- input$Not_Assessed
     names(col5) <- input$Other
     colors <- c(col1, col2, col3, col4, col5)
-    
-    print(colors)
-    
+
     
     if (input$Estimate == "P Estimates") {
       Dataset <- plotDataset()
@@ -1299,10 +1399,17 @@ server <- function(input, output, session) {
                                             'Estimate.P', 'StdError.P', 'LCB95Pct.P',
                                             'UCB95Pct.P'))
       
-      Dataset$LCB95Pct <- with(Dataset, ifelse(LCB95Pct.P < 0, 0, LCB95Pct.P))
-      Dataset$UCB95Pct <- with(Dataset, ifelse(UCB95Pct.P > 100, 100, UCB95Pct.P))
-      Dataset$Estimate <- with(Dataset, round(Estimate.P, 0))
-      Dataset$MoE <- with(Dataset, StdError.P *1.96)
+      Dataset$LCB95Pct.P <- with(Dataset, ifelse(LCB95Pct.P < 0, 0, LCB95Pct.P))
+      Dataset$UCB95Pct.P <- with(Dataset, ifelse(UCB95Pct.P > 100, 100, UCB95Pct.P))
+      Dataset$Estimate.P <- with(Dataset, round(Estimate.P, 0))
+      Dataset$UCB95Pct.P <- with(Dataset, round(UCB95Pct.P, 0))
+      Dataset$LCB95Pct.P <- with(Dataset, round(LCB95Pct.P, 0))
+      
+      
+      names(Dataset)[names(Dataset) == "Estimate.P"] <- "Estimate"
+      names(Dataset)[names(Dataset) == "StdError.P"] <- "StdError"
+      names(Dataset)[names(Dataset) == "LCB95Pct.P"] <- "LCB95"
+      names(Dataset)[names(Dataset) == "UCB95Pct.P"] <- "UCB95"
       
     } else {
       Dataset <- plotDataset()
@@ -1310,28 +1417,40 @@ server <- function(input, output, session) {
       Dataset <- subset(Dataset, select = c('Type', 'Subpopulation', 'Indicator', 'Category',
                                             'Estimate.U', 'StdError.U', 'LCB95Pct.U',
                                             'UCB95Pct.U'))
-      Dataset$LCB95Pct <- Dataset$LCB95Pct.U 
-      Dataset$UCB95Pct <- Dataset$UCB95Pct.U
-      Dataset$Estimate <- Dataset$Estimate.U
-      Dataset$MoE <- Dataset$StdError.U *1.96
- 
+      names(Dataset)[names(Dataset) == "Estimate.U"] <- "Estimate"
+      names(Dataset)[names(Dataset) == "StdError.U"] <- "StdError"
+      names(Dataset)[names(Dataset) == "LCB95Pct.U"] <- "LCB95"
+      names(Dataset)[names(Dataset) == "UCB95Pct.U"] <- "UCB95"
+      
      }
     
+    # Fill in for all combinations of Indicator and Category for consistency across 
+    # subpopulations
+    popest <- Dataset
+    
+    cats.ind <- unique(Dataset[,c('Indicator', 'Category')])
+    cats.sub <- unique(Dataset[,c('Type', 'Subpopulation')])
+    
+    cats.comb <- merge(cats.sub, cats.ind)
+    popest <- merge(popest, cats.comb, by = c('Type','Subpopulation','Indicator','Category'), all=TRUE)
+    popest[is.na(popest)] <- 0
+    
     popest <- subset(Dataset, !(Category == "Total"))
+    
     popest$Category <- with(popest, factor(Category, levels=c(input$Not_Assessed, input$Other, 
                                                               input$Poor, input$Fair, input$Good)))
     
-    popest <- subset(popest, Indicator == input$Ind_Plot & Type == input$Tot_Pop)
-    # popest$Category <- with(popest, droplevels(Category))
+    popest <- subset(popest, Indicator == input$Ind_Plot & Type == input$Type_Plot & 
+                       Subpopulation == input$Tot_Pop)
     
-    print(unique(popest$Category))
-    print(popest)
+    #print(unique(popest$Category))
+    #print(popest)
     
     #Create Plots
     P1 <- ggplot(data = popest, aes(x = Category, y = Estimate)) +
       geom_bar(aes(fill = Category, color = Category), alpha = 0.5, 
                stat="identity", position = position_dodge()) +
-      geom_errorbar(aes(ymin = LCB95Pct, ymax = UCB95Pct, color = Category), 
+      geom_errorbar(aes(ymin = LCB95, ymax = UCB95, color = Category), 
                     size=2, width=0) +
       scale_fill_manual(values = colors) +
       scale_color_manual(values = colors) +
@@ -1356,9 +1475,10 @@ server <- function(input, output, session) {
       P1 <- P1 + geom_text(aes(label=paste(format(Estimate),"%",
                                            sep=""), y=Estimate), hjust = -.05, size = 4, 
                            fontface = "bold", color = "#4D4D4D", family="sans", 
-                           position = position_nudge(x = -0.25)) +
-        scale_y_continuous(labels = scales::percent_format(scale = 1)) +
-        coord_flip(ylim=c(0, 100)) +
+                           position = position_nudge(x = -0.2)) +
+        scale_y_continuous(labels = scales::percent_format(scale = 1),
+                           breaks=c(0,25,50,75,100)) +
+        coord_flip(ylim=c(0, 110)) +
         labs(y = paste0("Percentage of ", input$resource)) 
     } else {
       P1 <- P1 + geom_text(aes(label = format(round(Estimate), big.mark = ","), y=Estimate), 
@@ -1369,12 +1489,34 @@ server <- function(input, output, session) {
         labs(y = input$resource)
     }
     
+    if (input$indconlim == TRUE && input$Estimate == "P Estimates") {
+      P1 <- P1 + geom_text(aes(label=paste(format(LCB95),"%",
+                                           sep=""), y=LCB95), hjust = 1.1, size = 3.5, fontface = "bold", 
+                           color = "#4D4D4D", family="sans", position = position_nudge(x = 0.15)) +
+        geom_text(aes(label=paste(format(UCB95),"%",
+                                  sep=""), y=UCB95), hjust = -.15,size = 3.5, fontface = "bold", 
+                  color = "#4D4D4D", family="sans", position = position_nudge(x = 0.15))
+    }
+
+    if (input$indconlim == TRUE && input$Estimate == "U Estimates") {
+      ylim <- max(popest$UCB95) * 1.1 
+      
+      P1 <- P1 + geom_text(aes(label = format(round(LCB95), big.mark = ","), y=LCB95), 
+                           hjust = 1.1, size = 3.5, fontface = "bold", color = "#4D4D4D", family="sans", position = position_nudge(x = 0.15)) +
+        geom_text(aes(label = format(round(UCB95), big.mark = ","), y=UCB95), 
+                  hjust = .2, size = 3.5, fontface = "bold", color = "#4D4D4D", family="sans", position = position_nudge(x = 0.15)) +
+        ylim(0, ylim)
+    }
+    
     print(P1)
+  
     
   })
   
-  SubEst_plot <- reactive({
-    req(input$Ind_Plot, input$Con_Plot, input$Type_Plot)
+  SubEst_plot <- eventReactive(c(input$plotbtn, input$goodsort, input$subconlim, 
+                                 input$Type_Plot, input$Ind_Plot, input$Con_Plot),{
+    req(input$Type_Plot %nin% c("ALL SITES", "All Sites", "all sites", "All_Sites", "All.Sites", "all_sites", "all.sites", "National", "national", "NATIONAL", "Statewide", "statewide", "STATEWIDE"))
+    
     #Set colors to users Condition classes
     col1 <- rep("#5796d1", length(input$Good))
     col2 <- rep("#EE9A00", length(input$Fair))
@@ -1395,10 +1537,17 @@ server <- function(input, output, session) {
       Dataset <- subset(Dataset, select = c('Type', 'Subpopulation', 'Indicator', 'Category',
                                             'Estimate.P', 'StdError.P', 'LCB95Pct.P',
                                             'UCB95Pct.P'))
-      Dataset$LCB95Pct <- with(Dataset, ifelse(LCB95Pct.P < 0, 0, LCB95Pct.P))
-      Dataset$UCB95Pct <- with(Dataset, ifelse(UCB95Pct.P > 100, 100, UCB95Pct.P))
-      Dataset$Estimate <- with(Dataset, round(Estimate.P, 0))
-      Dataset$MoE <- with(Dataset, StdError.P *1.96)
+      Dataset$LCB95Pct.P <- with(Dataset, ifelse(LCB95Pct.P < 0, 0, LCB95Pct.P))
+      Dataset$UCB95Pct.P <- with(Dataset, ifelse(UCB95Pct.P > 100, 100, UCB95Pct.P))
+      Dataset$Estimate.P <- with(Dataset, round(Estimate.P, 0))
+      Dataset$UCB95Pct.P <- with(Dataset, round(UCB95Pct.P, 0))
+      Dataset$LCB95Pct.P <- with(Dataset, round(LCB95Pct.P, 0))
+      
+      
+      names(Dataset)[names(Dataset) == "Estimate.P"] <- "Estimate"
+      names(Dataset)[names(Dataset) == "StdError.P"] <- "StdError"
+      names(Dataset)[names(Dataset) == "LCB95Pct.P"] <- "LCB95"
+      names(Dataset)[names(Dataset) == "UCB95Pct.P"] <- "UCB95"
       
     } else {
       Dataset <- plotDataset()
@@ -1406,27 +1555,72 @@ server <- function(input, output, session) {
       Dataset <- subset(Dataset, select = c('Type', 'Subpopulation', 'Indicator', 'Category',
                                             'Estimate.U', 'StdError.U', 'LCB95Pct.U',
                                             'UCB95Pct.U'))
-      Dataset$LCB95Pct <- Dataset$LCB95Pct.U 
-      Dataset$UCB95Pct <- Dataset$UCB95Pct.U
-      Dataset$Estimate <- Dataset$Estimate.U
-      Dataset$MoE <- Dataset$StdError.U *1.96
-
+      names(Dataset)[names(Dataset) == "Estimate.U"] <- "Estimate"
+      names(Dataset)[names(Dataset) == "StdError.U"] <- "StdError"
+      names(Dataset)[names(Dataset) == "LCB95Pct.U"] <- "LCB95"
+      names(Dataset)[names(Dataset) == "UCB95Pct.U"] <- "UCB95"
+      
     }
     
+    print(input$Type_Plot)
     popest2 <- Dataset
-    popest2 <- subset(popest2, !(Category == "Total") & Category == input$Con_Plot &
-                        Indicator == input$Ind_Plot & Type == input$Type_Plot)
-    popest2$Subpopulation <-factor(popest2$Subpopulation, levels = rev(unique(popest2$Subpopulation)))
+   
+    popest2 <- subset(popest2, Type == input$Type_Plot)
+  
     
+    cats.ind.1 <- unique(popest2[,c('Indicator', 'Category')])
+    cats.sub.1 <- unique(popest2[,c('Type', 'Subpopulation')])
 
+    cats.comb.1 <- merge(cats.sub.1, cats.ind.1)
+    popest2 <- merge(popest2, cats.comb.1, by = c('Type','Subpopulation','Indicator','Category'),
+                     all=TRUE)
+    # popest2 <- tidyr::complete(popest2, Type, Subpopulation, nesting(Indicator, Category))
+    
+    popest2[is.na(popest2)] <- 0
+    
+    popest2 <- subset(popest2, Indicator == input$Ind_Plot & !(Category == 'Total'))
+    # popest2$Subpopulation <-factor(popest2$Subpopulation, levels = rev(unique(popest2$Subpopulation)))
+    
+    # Creates vector of category variables
+    firstcon <- popest2
+    # NOT SURE WHAT THIS IS TRYING TO DO AND WHY SO COMPLEX
+    firstcon$Category <- factor(firstcon$Category, levels = c(input$Good, input$Fair,
+                                                              input$Poor, input$Other,
+                                                              input$Not_Assessed))
+
+    firstcon <- firstcon[order(firstcon$Type, firstcon$Subpopulation, firstcon$Category),]
+    
+    # firstcon <- dplyr::arrange(firstcon, Type, Subpopulation,
+    #                            factor(Category, levels=c(.env$input$Good, .env$input$Fair, .env$input$Poor, .env$input$Other, .env$input$Not_Assessed)))
+    # firstcon$Type <- with(firstcon, factor(Category, levels=c(input$Good, input$Fair, input$Poor, input$Other, input$Not_Assessed)))
+    firstcon <- subset(firstcon, Category %in% c(input$Good, input$Fair, input$Poor, input$Other, input$Not_Assessed))
+    firstcon <- unique(firstcon$Category)
+    
+    # Creates vector of subpopulations by order of users 'good' condition  
+    suborder <- popest2 
+    suborder <- subset(suborder, Category == firstcon[1])
+    suborder <- suborder[order(suborder$Estimate),]
+    
+    #suborder$Subpopulation <- forcats::fct_reorder(suborder$Subpopulation, suborder$Estimate)
+    suborder <- unique(suborder$Subpopulation)
+    
+    if(input$goodsort == TRUE){
+      # Filters and Arranges user data based on good condition
+      popest2 <- subset(popest2, Category == input$Con_Plot)
+      popest2$Subpopulation <- factor(popest2$Subpopulation, levels = suborder) 
+    } else {
+      popest2 <- subset(popest2, Category == input$Con_Plot)
+      popest2$Subpopulation <- factor(popest2$Subpopulation, 
+                                      levels = rev(unique(popest2$Subpopulation)))
+    }
+    
     P2 <- ggplot(data = popest2, aes(x = Subpopulation, y = Estimate)) +
-      geom_bar(aes(fill = Category, color = Category), alpha = 0.5, 
-               stat="identity", position = position_dodge()) +
-      geom_errorbar(aes(ymin = LCB95Pct, ymax = UCB95Pct, color = Category), 
-                    size=2, width=0) +
+      geom_bar(aes(fill = Category, color = Category), alpha = 0.5, stat="identity", 
+               position = position_dodge()) +
+      geom_errorbar(aes(ymin = LCB95, ymax = UCB95, color = Category), size=2, width=0) +
       scale_fill_manual(values = colors) +
       scale_color_manual(values = colors) +
-      scale_x_discrete(labels = function(x) str_wrap(x, width = 15)) +
+      scale_x_discrete(labels = function(x) str_wrap(x, width = 14)) +
       theme_bw() +
       labs(
         title = input$title,
@@ -1434,7 +1628,7 @@ server <- function(input, output, session) {
         x = NULL)+
       theme(
         plot.title = element_text(size = 16, face = "bold", family="sans", hjust=0.5),
-        plot.subtitle = element_text(size = 14, face = "bold", family="sans"),
+        plot.subtitle = element_text(size = 15, face = "bold", family="sans"),
         panel.grid.minor = element_blank(),
         panel.background = element_rect(fill = "aliceblue"),
         legend.position="none",
@@ -1444,19 +1638,41 @@ server <- function(input, output, session) {
     
     if (input$Estimate == "P Estimates") {
       P2 <- P2 + geom_text(aes(label=paste(format(Estimate),"%",
-                                           sep=""), y=Estimate), hjust = -.05, 
-                           size = 4, fontface = "bold", color = "#4D4D4D", family="sans", 
-                           position = position_nudge(x = -0.25)) +
-        scale_y_continuous(labels = scales::percent_format(scale = 1)) +
-        coord_flip(ylim=c(0, 100)) +
+                                           sep=""), y=Estimate), hjust = -.05, size = 4, 
+                           fontface = "bold", color = "#4D4D4D", family="sans", 
+                           position = position_nudge(x = -0.2)) +
+        scale_y_continuous(labels = scales::percent_format(scale = 1), breaks=c(0,25,50,75,100)) +
+        coord_flip(ylim=c(0, 110)) +
         labs(y = paste0("Percentage of ", input$resource)) 
     } else {
       P2 <- P2 + geom_text(aes(label = format(round(Estimate), big.mark = ","), y=Estimate), 
                            hjust = -.05, size = 4, fontface = "bold", color = "#4D4D4D", 
-                           family="sans", position = position_nudge(x = -0.25)) +
+                           family="sans", position = position_nudge(x = -0.2)) +
         scale_y_continuous(labels = scales::comma) +
         coord_flip() +
         labs(y = paste0("Amount of ", input$resource))
+    }
+    
+    if (input$subconlim == TRUE && input$Estimate == "P Estimates") {
+      P2 <- P2 + geom_text(aes(label=paste(format(LCB95),"%",
+                                           sep=""), y=LCB95), hjust = 1.1, size = 3.5, 
+                           fontface = "bold", 
+                           color = "#4D4D4D", family="sans", position = position_nudge(x = 0.15)) +
+        geom_text(aes(label=paste(format(UCB95),"%",
+                                  sep=""), y=UCB95), hjust = -.15, size = 3.5, fontface = "bold", 
+                  color = "#4D4D4D", family="sans", position = position_nudge(x = 0.15))
+    }
+   
+    if (input$subconlim == TRUE && input$Estimate == "U Estimates") {
+      ylim <- max(popest2$UCB95) * 1.1 
+      
+      P2 <- P2 + geom_text(aes(label = format(round(LCB95), big.mark = ","), y=LCB95), 
+                           hjust = 1.1, size = 3.5, fontface = "bold", color = "#4D4D4D", 
+                           family="sans", position = position_nudge(x = 0.15)) +
+        geom_text(aes(label = format(round(UCB95), big.mark = ","), y=UCB95), 
+                  hjust = .2, size = 3.5, fontface = "bold", color = "#4D4D4D", family="sans", 
+                  position = position_nudge(x = 0.15)) +
+        ylim(0, ylim)
     }
     
     print(P2)
@@ -1480,27 +1696,22 @@ server <- function(input, output, session) {
     req(calcheight())
     calcheight <- calcheight()
     SubEst_plot()
-    
-
   }, height = calcheight)
   
   
   output$downloadPlot1 <- downloadHandler(
-    filename = function() {paste("Indicator_Estimates-", Sys.Date(), ".png", sep="")},
+    filename = function() { paste("Indicator_Estimates-", Sys.Date(), '.png', sep='') },
     content = function(file) {
-      png(file)
-      print(Est_plot())
-      dev.off()
-    })
+      ggsave(file, plot = Est_plot(), width=8, height=4)
+    }
+  )
   
   output$downloadPlot2 <- downloadHandler(
-    filename = function() {paste("SubPop_Estimates-", Sys.Date(), ".png", sep="")},
+    filename = function() { paste("SubPop_Estimates-", Sys.Date(), '.png', sep='') },
     content = function(file) {
-      png(file)
-      print(SubEst_plot())
-      dev.off()
-    })
-  
+      ggsave(file, plot = SubEst_plot())
+    }
+  )
   ####################### Continuous Server ##############################
   userCDFEst <- reactive({
     ConEstOut <- read.csv(req(input$ConCDFinput$datapath))
@@ -1520,14 +1731,14 @@ server <- function(input, output, session) {
   })
   
   CDFDataset <- reactive({
-    hide("CDFsubplot")
-    hide("Distplot")
-    
-    updateSelectInput(session, "Tot_Pop_Con", selected = '')
-    updateSelectInput(session, "Pop_Con", selected = '')
-    updateSelectInput(session, "Tot_Pop_Con", selected = '')
-    updateSelectInput(session, "Subpop_Con", selected = '')
-    
+    # hide("CDFsubplot")
+    # hide("Distplot")
+    # 
+    # updateSelectInput(session, "Tot_Pop_Con", selected = '')
+    # updateSelectInput(session, "Pop_Con", selected = '')
+    # updateSelectInput(session, "Tot_Pop_Con", selected = '')
+    # updateSelectInput(session, "Subpop_Con", selected = '')
+    # 
     
     if(is.null(input$ConCDFinput) && input$cdf_pct=='cdf'){
       dataEst()[['estOut']]
@@ -1542,19 +1753,7 @@ server <- function(input, output, session) {
   })
   
   
-  #Total Population Label Input
   observe({
-    req(CDFDataset())
-    
-    contotpop <- CDFDataset()
-    
-    contotpop.choice <- unique(contotpop$Type)
-    
-    updateSelectInput(session, "Tot_Pop_Con", choices = contotpop.choice)
-  })
-  
-  observe({
-    req(input$Tot_Pop_Con)
     indcon_choice <- CDFDataset()
     
     indcon_choice <- unique(indcon_choice$Indicator)
@@ -1563,7 +1762,6 @@ server <- function(input, output, session) {
   })
   
   observe({
-    req(input$Tot_Pop_Con)
     popcon_choice <- CDFDataset()
     
     popcon_choice <- unique(popcon_choice$Type)
@@ -1581,40 +1779,48 @@ server <- function(input, output, session) {
     
     allsites_sub <- CDFDataset()
     
-    allsites_sub <- subset(allsites_sub, Type==input$Tot_Pop_Con, select = 'Subpopulation')
+    allsites_sub <- subset(allsites_sub, Type %in% c("ALL SITES", "All Sites", "all sites", "All_Sites", "All.Sites", "all_sites", "all.sites", "National", "national", "NATIONAL", "Statewide", "statewide", "STATEWIDE"), select = 'Subpopulation')
     
     allsites_sub.choice <- unique(allsites_sub$Subpopulation)
-     
-    updateSelectInput(session, "SubPop_Con", choices = c(allsites_sub.choice, subpopcon_choice), 
-                      selected = allsites_sub.choice)
     
+    updateSelectInput(session, "SubPop_Con", choices = c(allsites_sub.choice, subpopcon_choice), 
+                      selected = allsites_sub.choice[1])
   })
   
   
   
   
   CDF_subplot <- reactive({
-    req(input$plotbtncon)
-    show("CDFsubplot")
-    show("Distplot")
+    req(input$plotbtncon, input$SubPop_Con)
     
-    CDFDataset <- CDFDataset()
+    if (input$Estimate_CDF == "P Estimates_CDF") {
+      CDFDataset <- CDFDataset()  
+      names(CDFDataset)[names(CDFDataset) == "Estimate.P"] <- "Estimate"
+      names(CDFDataset)[names(CDFDataset) == "StdError.P"] <- "StdError"
+      names(CDFDataset)[names(CDFDataset) == "LCB95Pct.P"] <- "LCB95"
+      names(CDFDataset)[names(CDFDataset) == "UCB95Pct.P"] <- "UCB95"
+      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'NResp', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
+    } else {
+      CDFDataset <- CDFDataset()
+      names(CDFDataset)[names(CDFDataset) == "Estimate.U"] <- "Estimate"
+      names(CDFDataset)[names(CDFDataset) == "StdError.U"] <- "StdError"
+      names(CDFDataset)[names(CDFDataset) == "LCB95Pct.U"] <- "LCB95"
+      names(CDFDataset)[names(CDFDataset) == "UCB95Pct.U"] <- "UCB95"
+      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'NResp', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
+    }
     
     CDFDataset <- subset(CDFDataset, Indicator == input$Ind_Con & Subpopulation %in% input$SubPop_Con)
     CDFDataset$Subpopulation <-factor(CDFDataset$Subpopulation, levels = rev(unique(CDFDataset$Subpopulation)))
     
-    g <- ggplot(CDFDataset, aes(y=Estimate.P, x=Value, color = Subpopulation, 
-                                fill = Subpopulation)) +
+    g <- ggplot(CDFDataset, aes(y=Estimate, x=Value, color = Subpopulation, fill = Subpopulation)) +
       geom_step(size=1) +
-      scale_y_continuous(labels = scales::percent_format(scale = 1)) +
       scale_colour_viridis_d("Population", guide = guide_legend(reverse = TRUE)) +
       scale_fill_viridis_d() +
       theme_bw() +
       labs(
         title = input$title2,
         subtitle= "",
-        y = paste0("Probability of ",input$resource2),
-        x = input$Ind_Con,
+        x = paste0(input$Ind_Con," ",input$units)
       ) +
       theme(
         plot.title = element_text(size = 16, face = "bold", family="sans", hjust=0.5),
@@ -1628,11 +1834,20 @@ server <- function(input, output, session) {
         axis.title.x = element_text(face = "bold", size=14),
         axis.title.y = element_text(face = "bold", size=14))
     
+    
+    if(input$Estimate_CDF == "P Estimates_CDF") {
+      g <- g + scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+        labs(y = paste0("Cumulative Probability ", input$resource2)) 
+    } else {
+      g <- g + scale_y_continuous(labels = scales::comma) +
+        labs(y = paste0("Cumulative amount of ", input$resource2)) 
+    }
+    
     if (is.numeric(input$Thresh)) {
       g <- g + geom_vline(xintercept = input$Thresh, color = "red", size = 1, linetype = "longdash")
     }
     if (input$conflim == TRUE) {
-      g <- g + geom_ribbon(aes(ymin = LCB95Pct.P, ymax = UCB95Pct.P, fill = Subpopulation), alpha = 0.2,
+      g <- g + geom_ribbon(aes(ymin = LCB95, ymax = UCB95, fill = Subpopulation), alpha = 0.2,
                            colour = "transparent", show.legend = FALSE)
     }
     if (input$log == TRUE) {
@@ -1645,19 +1860,34 @@ server <- function(input, output, session) {
   Dist_plot <- reactive({
     req(input$plotbtncon)
     
-    CDFDataset <- CDFDataset()
-    CDFDataset <- subset(CDFDataset, Indicator == input$Ind_Con & Subpopulation %in% input$SubPop_Con)
-    CDFDataset$Subpopulation <-factor(CDFDataset$Subpopulation, levels = rev(unique(CDFDataset$Subpopulation)))
+    if (input$Estimate_CDF == "P Estimates_CDF") {
+      CDFDataset <- CDFDataset()  
+      names(CDFDataset)[names(CDFDataset) == "Estimate.P"] <- "Estimate"
+      names(CDFDataset)[names(CDFDataset) == "StdError.P"] <- "StdError"
+      names(CDFDataset)[names(CDFDataset) == "LCB95Pct.P"] <- "LCB95"
+      names(CDFDataset)[names(CDFDataset) == "UCB95Pct.P"] <- "UCB95"
+      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'NResp', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
+    } else {
+      CDFDataset <- CDFDataset()
+      names(CDFDataset)[names(CDFDataset) == "Estimate.U"] <- "Estimate"
+      names(CDFDataset)[names(CDFDataset) == "StdError.U"] <- "StdError"
+      names(CDFDataset)[names(CDFDataset) == "LCB95Pct.U"] <- "LCB95"
+      names(CDFDataset)[names(CDFDataset) == "UCB95Pct.U"] <- "UCB95"
+      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'NResp', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
+    }
     
-    g <- ggplot(CDFDataset, aes(x = Estimate.P, y = Subpopulation, fill=Subpopulation)) +
+    CDFDataset <- subset(CDFDataset, Indicator == input$Ind_Con & Subpopulation %in% input$SubPop_Con)
+    #CDFDataset <- with(CDFDataset, reorder(Subpopulation, Estimate, decreasing=FALSE))
+    #CDFDataset$Subpopulation <-factor(CDFDataset$Subpopulation, levels = rev(unique(CDFDataset$Subpopulation)))
+    #CDFDataset <- suborder[order(CDFDataset$Estimate),]
+    CDFDataset$Subpopulation <- forcats::fct_reorder(CDFDataset$Subpopulation, CDFDataset$Estimate)
+    
+    g <- ggplot(CDFDataset, aes(x = Estimate, y = Subpopulation, fill=Subpopulation)) +
       scale_fill_viridis_d("Population") +
-      scale_x_continuous(labels = scales::percent_format(scale = 1), limits = c(0, 100)) +
       labs(
         title = input$title2,
         subtitle= "",
-        y = "Probablity Density",
-        x = paste0("Probability of ", input$resource2),
-      ) +
+        y = "Frequency") +
       theme(
         plot.title = element_text(size = 16, face = "bold", family="sans", hjust=0.5),
         plot.subtitle = element_text(size = 14, face = "bold", family="sans"),
@@ -1671,7 +1901,21 @@ server <- function(input, output, session) {
         axis.title.y = element_text(face = "bold", size=14),
         legend.position = "none")
     
-    if (length(input$SubPop_Con) == 1) {
+    if(input$Estimate_CDF == "P Estimates_CDF") {
+      g <- g + scale_x_continuous(labels = scales::percent_format(scale = 1), limits = c(0, 100)) +
+        labs(x = paste0("Percentage of ", input$resource2)) 
+      
+    } else {
+      g <- g + scale_x_continuous(labels = scales::comma) +
+        labs(x = paste0("Amount of ", input$resource2)) 
+    }
+    
+    if (length(input$SubPop_Con) == 1 && input$Estimate_CDF == "U Estimates_CDF") {
+      g + geom_density_ridges(scale = 100000, size = 0.9, jittered_points = TRUE,
+                              position = position_points_jitter(width = 0.5, height = 0),
+                              point_shape = "|", point_size = 3,
+                              quantile_lines = TRUE, alpha=0.8)
+    } else if (length(input$SubPop_Con) == 1)  {
       g + geom_density_ridges(scale = 50, size = 0.5, jittered_points = TRUE,
                               position = position_points_jitter(width = 0.5, height = 0),
                               point_shape = "|", point_size = 3,
