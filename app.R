@@ -19,12 +19,13 @@ ui <- fluidPage(theme="style.css",
       # Panel with instructions for using this tool
       tabPanel(title='Instructions for Use',value='instructions',
                h2("Overview"),
-               p('This Shiny app allows for calculation of population estimates as performed for the National 
-                 Aquatic Resource Surveys (NARS). Estimates based on categorical and continuous variables are possible. 
-                 This app does not include all possible options but does allow typical settings used by NARS for creating 
-                 population estimates.'),
+               p('This Shiny app allows for calculation of population estimates as performed for 
+               the National Aquatic Resource Surveys (NARS) and the plotting of results. 
+               Estimates based on categorical and continuous variables are possible. 
+                 This app does not include all possible options but does allow typical settings 
+                 used by NARS for creating population estimates.'),
                h3("Instructions for Use"),
-               h4("Prepare Data for Analysis"),
+               bsCollapsePanel(title = h4(strong("Prepare Data for Analysis")),
                tags$ol(
                  tags$li("Select data file and upload. If the data are to be loaded from a URL, check the
                          box to do so and paste or enter the URL for the file."),
@@ -33,9 +34,11 @@ ui <- fluidPage(theme="style.css",
                          (if desired). If only overall or 'national' estimates are desired, check the box for overall analysis."),
                  tags$li("If data are to be used for change analysis, select year variable 
                          (or other variable to distinguish design cycles)."),
-                tags$li(p("Select the type of variance you want to use. ", strong("Local neighborhood variance"), 
-                          " uses a site's nearest neighbors to estimate variance, tending to result in smaller 
-                          variance values. This approach is ", em("recommended"),"and is the approach used in 
+                tags$li(p("Select the type of variance you want to use. ", 
+                          strong("Local neighborhood variance"), 
+                          " uses a site's nearest neighbors to estimate variance, tending to 
+                          result in smaller variance values. This approach is ", 
+                          em("recommended"),"and is the approach used in 
                           NARS estimates. It requires site coordinates to be provided."),
                         tags$ul(
                         tags$li("For local neighborhood variance, select coordinate variables 
@@ -50,13 +53,12 @@ ui <- fluidPage(theme="style.css",
                 tags$li("Click on the left hand button to view the full dataset if necessary."),
                tags$li("Click on the right hand button above the data to subset the data before 
                        proceeding to the Run Population Estimates tab.")
-               ),
-               br(),
-               h4("Run Population Estimates"),
+               )),
+               bsCollapsePanel(title = h4(strong("Run Population Estimates")), 
                tags$ol(
                  tags$li("Select the type of analysis (categorical or continuous)."),
-                 tags$li("If year or design cycle variable was selected on the Prepare Data for Analysis tab, 
-                         select year or cycle of interest."),
+                 tags$li("If year or design cycle variable was selected on the Prepare Data for 
+                 Analysis tab, select year or cycle of interest."),
                  tags$li("For continuous analysis, select either CDFs (cumulative distribution 
                          functions) or Percentiles."),
                  tags$li("Click on the Run/Refresh Estimates button. Depending on the number of
@@ -64,9 +66,8 @@ ui <- fluidPage(theme="style.css",
                          to several minutes."),
                  tags$li("If desired, download results to a comma-delimited file by clicking
                          the Save Results button.")
-               ),
-               br(),
-               h4("Run Change Analysis"),
+               )),
+               bsCollapsePanel(title = h4(strong("Run Change Analysis")),
                tags$ol(
                  tags$li("First select the two years (or sets of years) to compare."),
                  tags$li("Select type of data to analyze (categorical or continuous)."),
@@ -80,10 +81,8 @@ ui <- fluidPage(theme="style.css",
                          seconds to several minutes."),
                  tags$li("If any data are changed in the Prepare Data for Analysis tab, years 
                          must be re-selected before running analysis.")
-               ),
-               
-               br(),
-               h4("Minimum requirements:"),
+               )),
+               bsCollapsePanel(title = h4(strong("Minimum requirements for Analysis")),
                tags$ul(
                         tags$li("The R package", strong("spsurvey, v.5.0 or later"), 
                         "is required. 
@@ -99,13 +98,70 @@ ui <- fluidPage(theme="style.css",
                                  strong("only one visit per site and year/survey cycle"), 
                                  "(based on the variables for site ID and year/survey cycle selected)."),
                          tags$li("Only delimited files, such as comma- and tab-delimited, are accepted for upload."),
-                         tags$li("If local neighborhood variance is desired, coordinates must be provided in some type of projection, such as Albers."),
-                         tags$li("If variance based on a simple random sample is desired (or if coordinates are not available), the design stratum should be provided to better estimate variance."),
-                         tags$li("If change analysis is intended, all desired years of data must be contained in one file.")
-                       ),
+                         tags$li("If local neighborhood variance is desired, coordinates must be 
+                                 provided in some type of projection, such as Albers."),
+                         tags$li("If variance based on a simple random sample is desired (or if 
+                                 coordinates are not available), the design stratum should be provided 
+                                 to better estimate variance."),
+                         tags$li("If change analysis is intended, all desired years of data must be 
+                                 contained in one file.")
+                       )),
+               bsCollapsePanel(title = h4(strong("Plot Categorical Estimates")),
+                  tags$ol(
+                    tags$li("Either run population estimates on categorical data either within the 
+                            app or import results into the app."),
+                    tags$li("Variables in dataset must match those expected as output from 
+                            spsurvey::cat_analysis function:", strong("Type, Subpopulation, Indicator, 
+                            Category, Estimate.P, StdError.P, LCB95Pct.P, UCB95Pct.P, Estimate.U,	
+                            StdError.U,	LCB95Pct.U,	UCB95Pct.U")),
+                    tags$li("Select either proportion or unit estimates to plot from Estimate Type."),
+                    tags$li("Select Category values that represent Good, Fair, Poor, Not Assessed, 
+                            and Other condition classes. More than one value per condition class 
+                            in the dataset may be selected. For example, if one response uses 
+                            Good/Fair/Poor and another used At or Below Benchmark/Above Benchmark, 
+                            both Good and At or Below Benchmark can be selected."),
+                    tags$li(strong("Optional:"), "add plot title and define resource type/unit 
+                            (i.e., stream length, number of lakes, coastal or wetland area)"),
+                    tags$li("Click the Plot/Refresh Button to create plots."),
+                    tags$li("From the menus on the right-hand side of the page, select the 
+                            Indicator of interest, and then the Subpopulation Group. Then 
+                            select the Subpopulation of interest. The upper plot shows the 
+                            individual subpopulation and the lower plot show a particular 
+                            condition class across all subpopulations."),
+                    tags$li("To show confidence bound values, click the box above the main 
+                            and/or subpopulation plots."),
+                    tags$li("The default order of the subpopulations in the lower plot is 
+                            alphabetical, but to sort by the estimate of the", em("Good"), 
+                            "class, 
+                            click the box for", em("Sort Subpopulations by Good Condition"),"."),
+                    tags$li("Select", em("Download Estimate Plot"), "or", 
+                    em("Download Subpopulation Plot"), "to 
+                            save a .png file of the output. ")
+                    )),
+               bsCollapsePanel(title = h4(strong("Plot Continuous Estimates")),
+                   tags$ol(
+                     tags$li("Either run population estimates on continuous data to obtain 
+                             CDF estimates within the app, or import results into the app."),
+                     tags$li("Variables in dataset must match those expected as output from 
+                spsurvey::cont_analysis function:", strong("Type, Subpopulation, Indicator, 
+                Value, Estimate.P, StdError.P, LCB95Pct.P, UCB95Pct.P, Estimate.U,	
+                StdError.U,	LCB95Pct.U,	UCB95Pct.U")),
+                     tags$li("Select either proportion or unit estimates to plot 
+                             from Estimate Type."),
+                     tags$li(strong("Optional:"), "Add plot title, indicator units, 
+                             and define resource type/unit."),
+                     tags$li("Click the Plot Continuous Estimates button."),
+                     tags$li("Select indicator from dropdown, then select a subpopulation group. Add 
+                             or remove subpopulations to the plot from the",
+                             em("Add/Remove Subpopulations"),  
+                             "dropdown."),
+                     tags$li(strong("Optional:"), "Add an Indicator Threshold, add confidence bands, and/or 
+                             change the x-axis to log10 scale. Be aware that if you have values 
+                             that are below or equal to zero, points will be excluded from the 
+                             plot if the", em("Log Scale X-Axis"), "option is selected.")
+                     )),
                br(),
                p('Contact Karen Blocksom at blocksom.karen@epa.gov with questions or feedback.'),
-               p('Last updated on October 19, 2021.'),
                h3('Disclaimer'),
                p('The United States Environmental Protection Agency (EPA) GitHub project code is provided 
                  on an "as is" basis and the user assumes responsibility for its use.  EPA has relinquished 
@@ -161,7 +217,13 @@ ui <- fluidPage(theme="style.css",
             
             # Provide dropdown menus to allow user to select site, weight, and response variables from those in the imported dataset
             column(4,
-              selectizeInput("siteVar","Select site variable", choices=NULL, multiple=FALSE),
+              shiny::selectizeInput("siteVar","Select site variable", choices=NULL, multiple=FALSE) %>% 
+                helper(type = "inline", icon = 'exclamation', colour='red',
+                       title = "Site variable selection",
+                       content = paste("Select a site variable. If multiple years and resampled 
+                                       sites are included in the dataset, be sure the site 
+                                       variable has the same value across years."),
+                       size = "s", easyClose = TRUE, fade = TRUE),
               selectizeInput("weightVar","Select weight variable", choices=NULL, multiple=FALSE),
               selectizeInput("respVar","Select up to 10 response variables - must all be either categorical or numeric", 
                              choices=NULL, multiple=TRUE),
@@ -238,7 +300,7 @@ ui <- fluidPage(theme="style.css",
                strong("Prepare Data for Analysis"), "tab and click the button that says", 
                strong("Click HERE to prepare data for analysis")),
              p("Note that if all values are very small, the results may appear as zeroes. Save 
-               and view output file to see the results will full digits."),
+               and view output file to see the results with full digits."),
              # Once data are prepared, user needs to click to run estimates, or rerun estimates on refreshed data
              shinyjs::disabled(actionButton('runBtn', "Run/Refresh estimates")),
              hr(),
@@ -246,9 +308,6 @@ ui <- fluidPage(theme="style.css",
              shinyjs::disabled(downloadButton("dwnldcsv","Save Results as .csv file"))),
              # Show results here
              column(8,
-                    # conditionalPanel(condition = "input.chboxSize == true",
-                    #                  h4(p(strong("*Note that estimates use size weights")), 
-                    #                     style='color:blue')),
                     h4("Warnings"),
                     tableOutput("warnest"),
                     h4("Analysis Output"),
@@ -865,11 +924,7 @@ server <- function(input, output, session) {
     
     if(exists("warn_df") && is.data.frame(get("warn_df"))){
       rm("warn_df", envir=.GlobalEnv)
-      # print('exists')
     }
-    # else{
-    #   print("does not")
-    # }
      
       chgIn <- dataOut()
       
@@ -1023,12 +1078,8 @@ server <- function(input, output, session) {
     
     if(exists("warn_df") && is.data.frame(get("warn_df"))){
       rm("warn_df", envir=.GlobalEnv)
-      # print('exists')
     }
-    # else{
-    #   print("does not")
-    # }
-    
+
     dfIn <- dataOut()
     
     if(input$natpop==TRUE & input$subpop==TRUE){
@@ -1043,8 +1094,7 @@ server <- function(input, output, session) {
     
     # Check for duplicate rows for siteID
     freqSite <- as.data.frame(table(siteID=dfIn[,input$siteVar]))
-    # print(nrow(subset(freqSite, Freq>1)>0))
-    
+
     validate(
       need(nrow(subset(freqSite, Freq>1))==0, 
            paste("There are", nrow(subset(freqSite, Freq>1)),"duplicated sites in this dataset. 
@@ -1206,9 +1256,7 @@ server <- function(input, output, session) {
   
   ###################################### Categorical Plots Server ######################
   userEst <- reactive({
-
       estOut <- read.csv(req(input$userinput$datapath))
-      
   })
   
   observeEvent(input$runBtn, {
@@ -1219,13 +1267,7 @@ server <- function(input, output, session) {
   })
   
   plotDataset <- reactive ({
-    # hide("plot")
-    # hide("plot2")
-    # 
-    # updateSelectInput(session, "Ind_Plot", selected = '')
-    # updateSelectInput(session, "Con_Plot", selected = '')
-    # updateSelectInput(session, "Type_Plot", selected = '', choices = '')
-    
+
     if(is.null(input$userinput) && input$atype == 'categ'){
       dataEst()[['estOut']]
     } else {
@@ -1237,9 +1279,6 @@ server <- function(input, output, session) {
                     message = "Dataset does not include all variables in standardized output from spsurvey."))
       
       userEst <- userEst()
-      
-      print(colnames(userEst))
-      userEst
     }
     
       
@@ -1443,8 +1482,8 @@ server <- function(input, output, session) {
     popest <- subset(popest, Indicator == input$Ind_Plot & Type == input$Type_Plot & 
                        Subpopulation == input$Tot_Pop)
     
-    #print(unique(popest$Category))
-    #print(popest)
+    names.popest <- popest$Type
+    req(input$Type_Plot %in% names.popest)  
     
     #Create Plots
     P1 <- ggplot(data = popest, aes(x = Category, y = Estimate)) +
@@ -1517,6 +1556,7 @@ server <- function(input, output, session) {
                                  input$Type_Plot, input$Ind_Plot, input$Con_Plot),{
     req(input$Type_Plot %nin% c("ALL SITES", "All Sites", "all sites", "All_Sites", "All.Sites", "all_sites", "all.sites", "National", "national", "NATIONAL", "Statewide", "statewide", "STATEWIDE"))
     
+                                    
     #Set colors to users Condition classes
     col1 <- rep("#5796d1", length(input$Good))
     col2 <- rep("#EE9A00", length(input$Fair))
@@ -1562,7 +1602,6 @@ server <- function(input, output, session) {
       
     }
     
-    print(input$Type_Plot)
     popest2 <- Dataset
    
     popest2 <- subset(popest2, Type == input$Type_Plot)
@@ -1613,6 +1652,10 @@ server <- function(input, output, session) {
       popest2$Subpopulation <- factor(popest2$Subpopulation, 
                                       levels = rev(unique(popest2$Subpopulation)))
     }
+    
+    names <- popest2$Type
+    # pluck(popest2, "Type") 
+    req(input$Type_Plot %in% names)                               
     
     P2 <- ggplot(data = popest2, aes(x = Subpopulation, y = Estimate)) +
       geom_bar(aes(fill = Category, color = Category), alpha = 0.5, stat="identity", 
@@ -1731,15 +1774,7 @@ server <- function(input, output, session) {
   })
   
   CDFDataset <- reactive({
-    # hide("CDFsubplot")
-    # hide("Distplot")
-    # 
-    # updateSelectInput(session, "Tot_Pop_Con", selected = '')
-    # updateSelectInput(session, "Pop_Con", selected = '')
-    # updateSelectInput(session, "Tot_Pop_Con", selected = '')
-    # updateSelectInput(session, "Subpop_Con", selected = '')
-    # 
-    
+ 
     if(is.null(input$ConCDFinput) && input$cdf_pct=='cdf'){
       dataEst()[['estOut']]
     } else {
@@ -1799,14 +1834,14 @@ server <- function(input, output, session) {
       names(CDFDataset)[names(CDFDataset) == "StdError.P"] <- "StdError"
       names(CDFDataset)[names(CDFDataset) == "LCB95Pct.P"] <- "LCB95"
       names(CDFDataset)[names(CDFDataset) == "UCB95Pct.P"] <- "UCB95"
-      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'NResp', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
+      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
     } else {
       CDFDataset <- CDFDataset()
       names(CDFDataset)[names(CDFDataset) == "Estimate.U"] <- "Estimate"
       names(CDFDataset)[names(CDFDataset) == "StdError.U"] <- "StdError"
       names(CDFDataset)[names(CDFDataset) == "LCB95Pct.U"] <- "LCB95"
       names(CDFDataset)[names(CDFDataset) == "UCB95Pct.U"] <- "UCB95"
-      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'NResp', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
+      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
     }
     
     CDFDataset <- subset(CDFDataset, Indicator == input$Ind_Con & Subpopulation %in% input$SubPop_Con)
@@ -1866,14 +1901,14 @@ server <- function(input, output, session) {
       names(CDFDataset)[names(CDFDataset) == "StdError.P"] <- "StdError"
       names(CDFDataset)[names(CDFDataset) == "LCB95Pct.P"] <- "LCB95"
       names(CDFDataset)[names(CDFDataset) == "UCB95Pct.P"] <- "UCB95"
-      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'NResp', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
+      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
     } else {
       CDFDataset <- CDFDataset()
       names(CDFDataset)[names(CDFDataset) == "Estimate.U"] <- "Estimate"
       names(CDFDataset)[names(CDFDataset) == "StdError.U"] <- "StdError"
       names(CDFDataset)[names(CDFDataset) == "LCB95Pct.U"] <- "LCB95"
       names(CDFDataset)[names(CDFDataset) == "UCB95Pct.U"] <- "UCB95"
-      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'NResp', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
+      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
     }
     
     CDFDataset <- subset(CDFDataset, Indicator == input$Ind_Con & Subpopulation %in% input$SubPop_Con)
@@ -1942,7 +1977,6 @@ server <- function(input, output, session) {
   
   calcheight2 <- reactive({
     req(input$SubPop_Con)
-    print(input$SubPop_Con)
     popcount <- CDFDataset()
     
     popcount <- unique(subset(popcount, Subpopulation %in% input$SubPop_Con, select = 'Subpopulation'))
