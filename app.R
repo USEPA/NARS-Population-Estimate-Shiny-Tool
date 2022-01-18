@@ -363,25 +363,31 @@ ui <- fluidPage(theme="style.css",
       tabPanel(title="Plot Categorical Estimates",
                fluidRow(
                  sidebarPanel(
-                   div(id = "userinput1",
-                       fileInput(
-                         inputId = "userinput",
-                         label = strong("Choose Categorical Estimate File"),
-                         placeholder = "Must be a .csv file",
-                         accept = c(".csv"))) %>%
-                     #File input helper
-                     helper(type = "inline",
-                            title = "Categorical Estimate File",
-                            content = paste("Choose a file with the same output which the 
-                                     spsurvey package", strong("cat_analysis()"), 
-                                            "function renders. If the 
-                                                 dataset is missing required variables, no 
-                                                 selections will show up in the dropdown menu. 
-                                                 The expected and required variables are:", strong("Type, 
-                                                 Indicator, Subpopulation, Category, NResp, Estimate.P,
-                                                 StdError.P, LCB95Pct.P, UCB95Pct.P, Estimate.U,
-                                                 StdError.U, LCB95Pct.U, UCB95Pct.U")),
-                            size = "s", easyClose = TRUE, fade = TRUE),
+                   radioButtons(inputId="catinput", 
+                                label=strong("Choose Categorical Estimate Dataset to Use:"), 
+                                choices=c("Upload Estimate Data File", "Current Estimate Data"), 
+                                selected = "Upload Estimate Data File",
+                                inline=FALSE),
+                   uiOutput("catui"),
+                   # div(id = "userinput1",
+                   #     fileInput(
+                   #       inputId = "userinput",
+                   #       label = strong("Choose Categorical Estimate File"),
+                   #       placeholder = "Must be a .csv file",
+                   #       accept = c(".csv"))) %>%
+                   #   #File input helper
+                   #   helper(type = "inline",
+                   #          title = "Categorical Estimate File",
+                   #          content = paste("Choose a file with the same output which the 
+                   #                   spsurvey package", strong("cat_analysis()"), 
+                   #                          "function renders. If the 
+                   #                               dataset is missing required variables, no 
+                   #                               selections will show up in the dropdown menu. 
+                   #                               The expected and required variables are:", strong("Type, 
+                   #                               Indicator, Subpopulation, Category, NResp, Estimate.P,
+                   #                               StdError.P, LCB95Pct.P, UCB95Pct.P, Estimate.U,
+                   #                               StdError.U, LCB95Pct.U, UCB95Pct.U")),
+                   #          size = "s", easyClose = TRUE, fade = TRUE),
                    selectInput(inputId = "Estimate",
                                label = HTML("<b>Select Estimate Type</b>"),
                                choices = c("Proportion Estimates" = "P Estimates", "Unit Estimates" = "U Estimates"),
@@ -546,25 +552,32 @@ ui <- fluidPage(theme="style.css",
                )),
       ####Continuous Plot UI####
       tabPanel(title="Plot Continuous Estimates",
-               sidebarPanel(div(id = "Coninput",
-                                fileInput(
-                                  inputId = "ConCDFinput",
-                                  label = strong("Choose CDF Analysis file"),
-                                  placeholder = "Must be a .csv file",
-                                  accept = c(".csv"))) %>%
-                              #File input helper
-                              helper(type = "inline",
-                                     title = "CDF Estimate File",
-                                     content = paste("Choose a file with the same output which the 
-                                     spsurvey package", strong("cont_analysis()"), 
-                                                     "function renders. If the 
-                                                 dataset is missing required variables, no 
-                                                 selections will show up in the dropdown menu. 
-                                     The expected and required variables are:", strong("Type,
-                                     Subpopulation, Indicator, Value, Estimate.P, Estimate.U,
-                                     StdError.P, StdError.U, LCB95Pct.P, UCB95Pct.P, LCB95Pct.U,
-                                     UCB95Pct.U")),
-                                     size = "s", easyClose = TRUE, fade = TRUE),
+               sidebarPanel(
+                 radioButtons(inputId="coninput", 
+                              label=strong("Choose Continuous Estimate Dataset to Use:"), 
+                              choices=c("Upload Estimate Data File", "Current Estimate Data"), 
+                              selected = "Upload Estimate Data File",
+                              inline=FALSE),
+                 uiOutput("conui"),
+                 # div(id = "Coninput",
+                 #                fileInput(
+                 #                  inputId = "ConCDFinput",
+                 #                  label = strong("Choose CDF Analysis file"),
+                 #                  placeholder = "Must be a .csv file",
+                 #                  accept = c(".csv"))) %>%
+                 #              #File input helper
+                 #              helper(type = "inline",
+                 #                     title = "CDF Estimate File",
+                 #                     content = paste("Choose a file with the same output which the 
+                 #                     spsurvey package", strong("cont_analysis()"), 
+                 #                                     "function renders. If the 
+                 #                                 dataset is missing required variables, no 
+                 #                                 selections will show up in the dropdown menu. 
+                 #                     The expected and required variables are:", strong("Type,
+                 #                     Subpopulation, Indicator, Value, Estimate.P, Estimate.U,
+                 #                     StdError.P, StdError.U, LCB95Pct.P, UCB95Pct.P, LCB95Pct.U,
+                 #                     UCB95Pct.U")),
+                 #                     size = "s", easyClose = TRUE, fade = TRUE),
                             selectInput(inputId = "Estimate_CDF",
                                         label = HTML("<b>Select Estimate Type</b>"),
                                         choices = c("Proportion Estimates" = "P Estimates_CDF", "Unit Estimates" = "U Estimates_CDF"),
@@ -1260,18 +1273,37 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$runBtn, {
-    if(input$atype == 'categ'){
-      removeUI(
-        selector = "div#userinput1 > div")
-    }
+    updateRadioButtons(session, "catinput", selected = "Current Estimate Data")
   })
   
-  plotDataset <- reactive ({
+  output$catui <- renderUI({
+    req(input$catinput != "Current Estimate Data")
+    div(id = "userinput1",
+        fileInput(
+          inputId = "userinput",
+          label = strong("Choose Categorical Estimate File"),
+          placeholder = "Must be a .csv file",
+          accept = c(".csv"))) %>%
+      #File input helper
+      helper(type = "inline",
+             title = "Categorical Estimate File",
+             content = paste("Choose a file with the same output which the 
+                                     spsurvey package", strong("cat_analysis()"), 
+                             "function renders. If the 
+                                                 dataset is missing required variables, no 
+                                                 selections will show up in the dropdown menu. 
+                                                 The expected and required variables are:", strong("Type, 
+                                                 Indicator, Subpopulation, Category, NResp, Estimate.P,
+                                                 StdError.P, LCB95Pct.P, UCB95Pct.P, Estimate.U,
+                                                 StdError.U, LCB95Pct.U, UCB95Pct.U")),
+             size = "s", easyClose = TRUE, fade = TRUE)
+  })
 
-    if(is.null(input$userinput) && input$atype == 'categ'){
+  plotDataset <- eventReactive(c(input$userinput, input$runBtn, input$catinput), {
+    if(input$catinput == "Current Estimate Data" && input$atype == 'categ') {
       dataEst()[['estOut']]
     } else {
-      necVars <- c('Type', 'Indicator', 'Subpopulation', 'Category', 'Estimate.P',
+      necVars <- c('Type', 'Indicator', 'Subpopulation', 'Category', 'NResp', 'Estimate.P',
                    'StdError.P', 'LCB95Pct.P', 'UCB95Pct.P', 'Estimate.U',
                    'StdError.U', 'LCB95Pct.U', 'UCB95Pct.U')
       
@@ -1279,13 +1311,15 @@ server <- function(input, output, session) {
                     message = "Dataset does not include all variables in standardized output from spsurvey."))
       
       userEst <- userEst()
+      print(colnames(userEst))
+      userEst
     }
     
-      
-  })
     
-
-  con_choices <- reactive({
+  })
+  
+  con_choices <- eventReactive(c(input$userinput, input$runBtn, input$catinput),{
+    req(plotDataset())
     plotData <- plotDataset()
     
     plotData <- unique(subset(plotData, !(Category=='Total'), select='Category'))
@@ -1384,7 +1418,6 @@ server <- function(input, output, session) {
     
     updateSelectInput(session, "Type_Plot", choices = c(type_plot.choice))
     
-    show("plot2")
   })
   
   #Total Population Label Input
@@ -1412,10 +1445,6 @@ server <- function(input, output, session) {
   
   Est_plot <- eventReactive(c(input$Tot_Pop, input$Ind_Plot, input$plotbtn, input$indconlim),{
     req(input$Ind_Plot, input$Type_Plot, input$Tot_Pop)
-    
-    # validate(need(!is.null(input$Good) || !is.null(input$Fair) || !is.null(input$Poor) || !is.null(input$Not_Assessed) || !is.null(input$Other), 
-    #               message = "Please input colors for the Condition Classes."))
-    
     
     #Set colors to users Condition classes
     col1 <- rep("#5796d1", length(input$Good))
@@ -1758,24 +1787,37 @@ server <- function(input, output, session) {
   ####################### Continuous Server ##############################
   userCDFEst <- reactive({
     ConEstOut <- read.csv(req(input$ConCDFinput$datapath))
-    
-    # validate(
-    # need(ncol(ConEstOut) == 13,
-    #     "Data format is invalid.")
-    # )
   })
   
   
-  observeEvent(input$runBtn,{
-    if(input$atype == 'contin' & input$cdf_pct=='cdf'){
-      removeUI(
-        selector = "div#Coninput > div")
-    }
+  observeEvent(input$runBtn, {
+    updateRadioButtons(session, "coninput", selected = "Current Estimate Data")
   })
   
-  CDFDataset <- reactive({
- 
-    if(is.null(input$ConCDFinput) && input$cdf_pct=='cdf'){
+  output$conui <- renderUI({
+    req(input$coninput != "Current Estimate Data")
+    fileInput(
+      inputId = "ConCDFinput",
+      label = strong("Choose CDF Analysis file"),
+      placeholder = "Must be a .csv file",
+      accept = c(".csv")) %>%
+      #File input helper
+      helper(type = "inline",
+             title = "CDF Estimate File",
+             content = paste("Choose a file with the same output which the 
+                                     spsurvey package", strong("cont_analysis()"), 
+                             "function renders. If the 
+                                                 dataset is missing required variables, no 
+                                                 selections will show up in the dropdown menu. 
+                                     The expected and required variables are:", strong("Type,
+                                     Subpopulation, Indicator, Value, Estimate.P, Estimate.U,
+                                     StdError.P, StdError.U, LCB95Pct.P, UCB95Pct.P, LCB95Pct.U,
+                                     UCB95Pct.U")),
+             size = "s", easyClose = TRUE, fade = TRUE)
+  })
+  
+  CDFDataset <- eventReactive(c(input$ConCDFinput, input$runBtn, input$coninput), {
+    if(input$coninput == "Current Estimate Data" && input$cdf_pct=='cdf') {
       dataEst()[['estOut']]
     } else {
       validate(need(all(c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate.P', 'Estimate.U',
@@ -1784,8 +1826,8 @@ server <- function(input, output, session) {
                     "Standardized spsurvey variables not included in dataset."))
       
       CDFOut <- userCDFEst() 
-    }
-  })
+    }})
+  
   
   
   observe({
@@ -1821,9 +1863,6 @@ server <- function(input, output, session) {
     updateSelectInput(session, "SubPop_Con", choices = c(allsites_sub.choice, subpopcon_choice), 
                       selected = allsites_sub.choice[1])
   })
-  
-  
-  
   
   CDF_subplot <- reactive({
     req(input$plotbtncon, input$SubPop_Con)
