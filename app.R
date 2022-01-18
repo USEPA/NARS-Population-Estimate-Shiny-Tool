@@ -1756,9 +1756,13 @@ server <- function(input, output, session) {
   })
 
   calcheight <- reactive({
-    req(input$Type_Plot)
-    
     popest <- plotDataset()
+    # Prevents plotting error
+    names.popest <- popest$Type
+    
+    req(input$Type_Plot %in% names.popest)
+    
+    # popest <- plotDataset()
     popest <- unique(subset(popest, Type == input$Type_Plot, select = 'Subpopulation'))
     
     calcheight <- 70 * length(popest$Subpopulation)})
