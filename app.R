@@ -216,14 +216,14 @@ ui <- fluidPage(theme="style.css",
                                                 multiple=TRUE))),
             
             # Provide dropdown menus to allow user to select site, weight, and response variables from those in the imported dataset
-            column(4,
+            column(3,
               shiny::selectizeInput("siteVar","Select site variable", choices=NULL, multiple=FALSE) %>% 
                 helper(type = "inline", icon = 'exclamation', colour='red',
                        title = "Site variable selection",
                        content = paste("Select a site variable. If multiple years and resampled 
                                        sites are included in the dataset, be sure the site 
                                        variable has the same value across years."),
-                       size = "s", easyClose = TRUE, fade = TRUE),
+                       size = "s", easyClose = TRUE, fade = TRUE, position = 'left'),
               selectizeInput("weightVar","Select weight variable", choices=NULL, multiple=FALSE),
               selectizeInput("respVar","Select up to 10 response variables - must all be either categorical or numeric", 
                              choices=NULL, multiple=TRUE),
@@ -242,7 +242,7 @@ ui <- fluidPage(theme="style.css",
               
             ),
             # Set up type of variance to use in estimates: local or SRS
-            column(4,
+            column(3,
                    radioButtons('locvar',"Type of variance estimate to use (select one)",
                                 choices = c('Local neighborhood variance (recommended, used for NARS, 
                                             requires site coordinates)' = 'local',
@@ -369,25 +369,6 @@ ui <- fluidPage(theme="style.css",
                                 selected = "Upload Estimate Data File",
                                 inline=FALSE),
                    uiOutput("catui"),
-                   # div(id = "userinput1",
-                   #     fileInput(
-                   #       inputId = "userinput",
-                   #       label = strong("Choose Categorical Estimate File"),
-                   #       placeholder = "Must be a .csv file",
-                   #       accept = c(".csv"))) %>%
-                   #   #File input helper
-                   #   helper(type = "inline",
-                   #          title = "Categorical Estimate File",
-                   #          content = paste("Choose a file with the same output which the 
-                   #                   spsurvey package", strong("cat_analysis()"), 
-                   #                          "function renders. If the 
-                   #                               dataset is missing required variables, no 
-                   #                               selections will show up in the dropdown menu. 
-                   #                               The expected and required variables are:", strong("Type, 
-                   #                               Indicator, Subpopulation, Category, NResp, Estimate.P,
-                   #                               StdError.P, LCB95Pct.P, UCB95Pct.P, Estimate.U,
-                   #                               StdError.U, LCB95Pct.U, UCB95Pct.U")),
-                   #          size = "s", easyClose = TRUE, fade = TRUE),
                    selectInput(inputId = "Estimate",
                                label = HTML("<b>Select Estimate Type</b>"),
                                choices = c("Proportion Estimates" = "P Estimates", "Unit Estimates" = "U Estimates"),
@@ -1765,8 +1746,12 @@ server <- function(input, output, session) {
     # popest <- plotDataset()
     popest <- unique(subset(popest, Type == input$Type_Plot, select = 'Subpopulation'))
     
-    calcheight <- 70 * length(popest$Subpopulation)})
-  
+    if(length(popest$Subpopulation) < 4){
+      calcheight <- 120 * length(popest$Subpopulation)
+    }else{
+      calcheight <- 70 * length(popest$Subpopulation)
+    }
+  })
   
   output$plot2 <- renderPlot({
     req(calcheight())
@@ -2024,7 +2009,7 @@ server <- function(input, output, session) {
     
     popcount <- unique(subset(popcount, Subpopulation %in% input$SubPop_Con, select = 'Subpopulation'))
     
-    if (length(input$SubPop_Con) == 1) {
+    if (length(input$SubPop_Con) < 3) {
       calcheight <- 250
     } else {
       calcheight <- 100 * length(popcount$Subpopulation)}})
