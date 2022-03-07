@@ -82,7 +82,7 @@ ui <- fluidPage(theme="style.css",
                  tags$li("If any data are changed in the Prepare Data for Analysis tab, years 
                          must be re-selected before running analysis.")
                )),
-               bsCollapsePanel(title = h4(strong("Minimum requirements for Analysis")),
+               bsCollapsePanel(title = h4(strong("Minimum Requirements for Analysis")),
                tags$ul(
                         tags$li("The R package", strong("spsurvey, v.5.0 or later"), 
                         "is required. 
@@ -336,10 +336,10 @@ ui <- fluidPage(theme="style.css",
                                                       selected = 'mean')),
                         
                  # Once data are prepared, user needs to click to run estimates, or rerun estimates on refreshed data
-                 checkboxInput("repeatBox", "Are there repeat visits for any sites? If so, 
-                               be sure the selected Site ID variable is the same for both 
-                               visits to a site.",
-                               value=FALSE),
+                 # checkboxInput("repeatBox", "Are there repeat visits for any sites? If so, 
+                 #               be sure the selected Site ID variable is the same for both 
+                 #               visits to a site.",
+                 #               value=FALSE),
                  hr(),
                  p("If the", strong("Run/Refresh Estimates"), "button is grayed out, return to the", 
                    strong("Prepare Data for Analysis"), "tab and click the button that says", 
@@ -936,21 +936,21 @@ server <- function(input, output, session) {
       
       # If categorical data, automatically reorder any response variables that are Good/Fair/Poor or 
       # Low/Moderate/High (allow for all caps versions)
-      if(input$atype=='categ'){
-        for(i in 1:length(input$respVar)){
-          if(all(unique(chgIn[,input$respVar[[i]]]) %in% c('Good','GOOD','Low','LOW',
-                                                          'Fair','FAIR','MODERATE','Moderate',
-                                                          'Poor','POOR','High','HIGH',
-                                                          'Very High','VERY HIGH','Not Assessed'))){
-            chgIn[,input$respVar[[i]]] <- factor(chgIn[,input$respVar[[i]]], 
-                                                levels=c('Good','GOOD','Low','LOW',
-                                                         'Fair','FAIR','MODERATE','Moderate',
-                                                         'Poor','POOR','High','HIGH',
-                                                         'Very High','VERY HIGH','Not Assessed'), 
-                                                ordered=TRUE)
-          }
-        }
-      }
+      # if(input$atype=='categ'){
+      #   for(i in 1:length(input$respVar)){
+      #     if(all(unique(chgIn[,input$respVar[[i]]]) %in% c('Good','GOOD','Low','LOW',
+      #                                                     'Fair','FAIR','MODERATE','Moderate',
+      #                                                     'Poor','POOR','High','HIGH',
+      #                                                     'Very High','VERY HIGH','Not Assessed'))){
+      #       chgIn[,input$respVar[[i]]] <- factor(chgIn[,input$respVar[[i]]], 
+      #                                           levels=c('Good','GOOD','Low','LOW',
+      #                                                    'Fair','FAIR','MODERATE','Moderate',
+      #                                                    'Poor','POOR','High','HIGH',
+      #                                                    'Very High','VERY HIGH','Not Assessed'), 
+      #                                           ordered=TRUE)
+      #     }
+      #   }
+      # }
       
       # Need to order by siteID, yearVar
       chgIn <- chgIn[order(chgIn[,input$yearVar],chgIn[,input$siteVar]),]
@@ -1015,14 +1015,14 @@ server <- function(input, output, session) {
         }
       }
       
-       revisitWgt <- FALSE # NOT SURE WHAT THIS SHOULD BE SO ASSUME DEFAULT
+       #revisitWgt <- FALSE # NOT SURE WHAT THIS SHOULD BE SO ASSUME DEFAULT
        show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait')
-      
+
         # if(input$repeatBox==TRUE){
           if(input$chgCatCont == 'chgCat'){
             chgOut <- change_analysis(dframe = chgIn, vars_cat = input$respVar, 
                                       subpops=subpops.in, surveyID = surveyID,  
-                                      survey_names = survey_names, revisitwgt = revisitWgt,
+                                      survey_names = survey_names, 
                                       siteID = input$siteVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
                                       stratumID = stratum.in,
@@ -1030,7 +1030,7 @@ server <- function(input, output, session) {
           }else{
             chgOut <- change_analysis(dframe = chgIn, vars_cont = input$respVar, test = ttype, 
                                       subpops=subpops.in, surveyID = surveyID, 
-                                      survey_names = survey_names, revisitwgt = revisitWgt,
+                                      survey_names = survey_names, 
                                       siteID = input$siteVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
                                       stratumID = stratum.in,
@@ -1041,6 +1041,23 @@ server <- function(input, output, session) {
       
     if(input$chgCatCont == 'chgCat'){
       chgOut.1 <- chgOut$catsum
+      
+      # Order the Category values only if all values fall within those below using factors
+      if(all(unique(chgOut.1$Category %in% c('Good','GOOD','Low','LOW',
+                                                           'Fair','FAIR','MODERATE','Moderate',
+                                                           'Poor','POOR','High','HIGH',
+                                                           'Very High','VERY HIGH','Not Assessed')))){
+            chgOut.1$Category <- factor(chgOut.1$Category, 
+                                                 levels=c('Good','GOOD','Low','LOW',
+                                                          'Fair','FAIR','MODERATE','Moderate',
+                                                          'Poor','POOR','High','HIGH',
+                                                          'Very High','VERY HIGH','Not Assessed'), 
+                                                 ordered=TRUE)
+            chgOut.1$Category <- droplevels(chgOut.1$Category)
+            
+            chgOut.1 <- chgOut.1[with(chgOut.1, order(Type, Subpopulation, Indicator, Category)),]
+        }
+      
     }else{
       if(input$testType == 'mean'){
         chgOut.1 <- chgOut$contsum_mean
@@ -1218,8 +1235,10 @@ server <- function(input, output, session) {
       }else{
         if(input$cdf_pct=='cdf'){
           paste("Continuous_CDF_Output_",Sys.Date(), ".csv", sep = "")
-        }else{
+        }else if(input$cdf_pct=='pct'){
           paste("Continuous_Percentiles_Output_",Sys.Date(), ".csv", sep = "")
+        }else{
+          paste("Continuous_Means_Output_", Sys.Date(), ".csv", sep="")
         }
       }
     },
