@@ -45,7 +45,7 @@ ui <- fluidPage(theme="style.css",
                                 (Albers projection, or some other projection)."),
                         tags$li("For simple random sample (SRS) variance, selecting a stratum variable 
                                 to better estimate variance is advised but not required. Coordinates are 
-                                not used with type of variance."))),
+                                not used with this type of variance."))),
                 br(),
                 tags$li("You may subset the data for analysis by up to one categorical variable. To do 
                         this, select the check box to subset, then select the variable to subset by.
@@ -54,6 +54,31 @@ ui <- fluidPage(theme="style.css",
                tags$li("Click on the right hand button above the data to subset the data before 
                        proceeding to the Run Population Estimates tab.")
                )),
+               bsCollapsePanel(title = h4(strong("Minimum Requirements for Analysis")),
+                               tags$ul(
+                                 tags$li("The R package", strong("spsurvey, v.5.0 or later"), 
+                                         "is required. 
+                                Be sure to update this package if an older version is 
+                                already installed." ),
+                                 tags$li("All variables must be contained in one file and include site IDs, 
+                         weights, response variables, subpopulations (if any), and optionally, 
+                         coordinates and/or design stratum (depending on type of variance desired)." ),
+                                 tags$li("All sites included in the dataset should have weight > 0. Any 
+                                 records with a missing weight or a weight of 0 will be dropped 
+                                 before analysis."),
+                                 tags$li("Input data should include", 
+                                         strong("only one row per site and year/survey cycle"), 
+                                         "(based on the variables for site ID and year/survey cycle selected). No within year revisits should be included, and all variables used in analysis should be separate columns in the dataset (i.e., wide format)."),
+                                 tags$li("Only delimited files, such as comma- and tab-delimited, are accepted for upload."),
+                                 tags$li("If local neighborhood variance is desired, coordinates must be 
+                                 provided in some type of projection, such as Albers."),
+                                 tags$li("If variance based on a simple random sample is desired (or if 
+                                 coordinates are not available), the design stratum should be provided 
+                                 to better estimate variance."),
+                                 tags$li("If change analysis is intended, all desired years of data must be 
+                                 contained in one file, with a single variable that identifies 
+                                         the individual years or survey cycles included.")
+                               )),
                bsCollapsePanel(title = h4(strong("Run Population Estimates")), 
                tags$ol(
                  tags$li("Select the type of analysis (categorical or continuous)."),
@@ -61,6 +86,8 @@ ui <- fluidPage(theme="style.css",
                  Analysis tab, select year or cycle of interest."),
                  tags$li("For continuous analysis, select either CDFs (cumulative distribution 
                          functions) or Percentiles."),
+                 tags$li("Note that if data are missing for continuous variables, 
+                         those sites are ignored in analysis."),
                  tags$li("Click on the Run/Refresh Estimates button. Depending on the number of
                          responses, subpopulations, and type of analysis, it may take a few seconds 
                          to several minutes."),
@@ -73,39 +100,16 @@ ui <- fluidPage(theme="style.css",
                  tags$li("Select type of data to analyze (categorical or continuous)."),
                  tags$li("If continuous data are selected, select parameter on which to test 
                          for differences (mean or median)."),
-                 tags$li("If repeated visits to sites are included in dataset across years or 
-                         cycles, check box. If selected, note that site ID variable selected 
-                         must contain the same value for both years or cycles of data."),
+                 # tags$li("If repeated visits to sites are included in dataset across years or 
+                 #         cycles, check box. If selected, note that site ID variable selected 
+                 #         must contain the same value for both years or cycles of data."),
                  tags$li("Click on the Run/Refresh Estimates button. Depending on the number of 
                  responses, subpopulations, and type of analysis, it may take a few 
                          seconds to several minutes."),
                  tags$li("If any data are changed in the Prepare Data for Analysis tab, years 
                          must be re-selected before running analysis.")
                )),
-               bsCollapsePanel(title = h4(strong("Minimum Requirements for Analysis")),
-               tags$ul(
-                        tags$li("The R package", strong("spsurvey, v.5.0 or later"), 
-                        "is required. 
-                                Be sure to update this package if an older version is 
-                                already installed." ),
-                         tags$li("All variables must be contained in one file and include site IDs, 
-                         weights, response variables, subpopulations (if any), and optionally, 
-                         coordinates and/or design stratum (depending on type of variance desired)." ),
-                         tags$li("All sites included in the dataset should have weight > 0. Any 
-                                 records with a missing weight or a weight of 0 will be dropped 
-                                 before analysis."),
-                         tags$li("Input data should include", 
-                                 strong("only one visit per site and year/survey cycle"), 
-                                 "(based on the variables for site ID and year/survey cycle selected)."),
-                         tags$li("Only delimited files, such as comma- and tab-delimited, are accepted for upload."),
-                         tags$li("If local neighborhood variance is desired, coordinates must be 
-                                 provided in some type of projection, such as Albers."),
-                         tags$li("If variance based on a simple random sample is desired (or if 
-                                 coordinates are not available), the design stratum should be provided 
-                                 to better estimate variance."),
-                         tags$li("If change analysis is intended, all desired years of data must be 
-                                 contained in one file.")
-                       )),
+               
                bsCollapsePanel(title = h4(strong("Plot Categorical Estimates")),
                   tags$ol(
                     tags$li("Either run population estimates on categorical data either within the 
@@ -217,13 +221,14 @@ ui <- fluidPage(theme="style.css",
             
             # Provide dropdown menus to allow user to select site, weight, and response variables from those in the imported dataset
             column(3,
-              shiny::selectizeInput("siteVar","Select site variable", choices=NULL, multiple=FALSE) %>% 
-                helper(type = "inline", icon = 'exclamation', colour='red',
+              shiny::selectizeInput("siteVar", label="Select site variable", 
+                                    choices=NULL, multiple=FALSE) %>% 
+                helper(type = "inline", icon = 'exclamation', colour='#B72E16',
                        title = "Site variable selection",
                        content = paste("Select a site variable. If multiple years and resampled 
                                        sites are included in the dataset, be sure the site 
                                        variable has the same value across years."),
-                       size = "s", easyClose = TRUE, fade = TRUE, position = 'left'),
+                       size = "s", easyClose = TRUE, fade = TRUE),
               selectizeInput("weightVar","Select weight variable", choices=NULL, multiple=FALSE),
               selectizeInput("respVar","Select up to 10 response variables - must all be either categorical or numeric", 
                              choices=NULL, multiple=TRUE),
@@ -238,7 +243,9 @@ ui <- fluidPage(theme="style.css",
               # If national estimates box is NOT checked, show subpopulation dropdown list              
               conditionalPanel(condition = 'input.subpop == true',
                                selectizeInput("subpopVar","Select up to 10 subpopulation variables", 
-                                              choices=NULL, multiple=TRUE))
+                                              choices=NULL, multiple=TRUE)),
+              
+              h5(p(strong("If ANY changes have been made to your choices, you MUST click the button to prepare data for analysis again!"), style="color:#B72E16"))
               
             ),
             # Set up type of variance to use in estimates: local or SRS
@@ -267,7 +274,7 @@ ui <- fluidPage(theme="style.css",
          ),
           # Press button to subset data for analysis - must click here first
          column(4, actionButton("resetBtn", "Click to view full dataset")),
-         column(4, actionButton("subsetBtn", "Click HERE to prepare data for analysis"), offset=2),
+         column(4, actionButton("subsetBtn", strong("Click HERE to prepare data for analysis"), style="color:#B72E16"), offset=2),
          hr(),
          br(),
        
@@ -308,6 +315,9 @@ ui <- fluidPage(theme="style.css",
              shinyjs::disabled(downloadButton("dwnldcsv","Save Results as .csv file"))),
              # Show results here
              column(8,
+                    h4("If output is not as expected, be sure you chose the correct ", 
+                       strong("Type of Analysis"), "(Categorical or Continuous) for your data",
+                       style="color:#225D9D"),
                     h4("Warnings"),
                     tableOutput("warnest"),
                     h4("Analysis Output"),
@@ -317,10 +327,12 @@ ui <- fluidPage(theme="style.css",
       ),
       tabPanel(title="Run Change Analysis", value='change',
                fluidRow(
-                 h5(p("If a different set of response variables from those 
+                 h4("  ", "If a different set of response variables from those 
                  used in the population estimates is desired, 
-                    return to the", strong("Prepare Data for Analysis"), "tab to re-select variables."), 
-                    style="color:blue"),
+                    return to the", strong("Prepare Data for Analysis"), 
+                        "tab to re-select variables. Then click the button to 
+                        prepare data for analysis again.", 
+                    style="color:#225D9D"),
                  column(3, 
                         # add_busy_spinner(spin='fading-circle', position='full-page'),
                         # User must select years to compare
@@ -336,10 +348,6 @@ ui <- fluidPage(theme="style.css",
                                                       selected = 'mean')),
                         
                  # Once data are prepared, user needs to click to run estimates, or rerun estimates on refreshed data
-                 # checkboxInput("repeatBox", "Are there repeat visits for any sites? If so, 
-                 #               be sure the selected Site ID variable is the same for both 
-                 #               visits to a site.",
-                 #               value=FALSE),
                  hr(),
                  p("If the", strong("Run/Refresh Estimates"), "button is grayed out, return to the", 
                    strong("Prepare Data for Analysis"), "tab and click the button that says", 
@@ -428,7 +436,8 @@ ui <- fluidPage(theme="style.css",
                                multiple = TRUE, 
                                width = "300px"),
                    textInput("title", "Add a Plot Title", value = "", width = "300px", placeholder = "Optional"),
-                   textInput("resource", "Define Resource Type/Unit", value = "", width = "300px", placeholder = "Resource") %>%
+                   textInput("resource", "Define Resource Type/Unit", value = "", 
+                             width = "300px", placeholder = "Resource") %>%
                      #Resource Type helper
                      helper(type = "inline",
                             title = "Resource Type",
@@ -535,30 +544,11 @@ ui <- fluidPage(theme="style.css",
       tabPanel(title="Plot Continuous Estimates",
                sidebarPanel(
                  radioButtons(inputId="coninput", 
-                              label=strong("Choose Continuous Estimate Dataset to Use:"), 
+                              label=strong("Choose Cumulative Distribution Function (CDF) Estimate Dataset to Use:"), 
                               choices=c("Upload Estimate Data File", "Current Estimate Data"), 
                               selected = "Upload Estimate Data File",
                               inline=FALSE),
                  uiOutput("conui"),
-                 # div(id = "Coninput",
-                 #                fileInput(
-                 #                  inputId = "ConCDFinput",
-                 #                  label = strong("Choose CDF Analysis file"),
-                 #                  placeholder = "Must be a .csv file",
-                 #                  accept = c(".csv"))) %>%
-                 #              #File input helper
-                 #              helper(type = "inline",
-                 #                     title = "CDF Estimate File",
-                 #                     content = paste("Choose a file with the same output which the 
-                 #                     spsurvey package", strong("cont_analysis()"), 
-                 #                                     "function renders. If the 
-                 #                                 dataset is missing required variables, no 
-                 #                                 selections will show up in the dropdown menu. 
-                 #                     The expected and required variables are:", strong("Type,
-                 #                     Subpopulation, Indicator, Value, Estimate.P, Estimate.U,
-                 #                     StdError.P, StdError.U, LCB95Pct.P, UCB95Pct.P, LCB95Pct.U,
-                 #                     UCB95Pct.U")),
-                 #                     size = "s", easyClose = TRUE, fade = TRUE),
                             selectInput(inputId = "Estimate_CDF",
                                         label = HTML("<b>Select Estimate Type</b>"),
                                         choices = c("Proportion Estimates" = "P Estimates_CDF", "Unit Estimates" = "U Estimates_CDF"),
@@ -587,7 +577,7 @@ ui <- fluidPage(theme="style.css",
                                                  (e.g., Stream Miles, Wetland Area, Coastline)."),
                                      size = "s", easyClose = TRUE, fade = TRUE), 
                             actionButton("plotbtncon", strong("Plot Continuous Estimates"), icon=icon("chart-bar"))
-                            ,width=3),#sidebarPanel
+                            ,width=4),#sidebarPanel
                mainPanel(
                  column(3, offset=1,
                         conditionalPanel(condition="input.plotbtncon",
@@ -662,7 +652,7 @@ ui <- fluidPage(theme="style.css",
                ))
    )
 )
-# Define server logic required to draw a histogram
+
 server <- function(input, output, session) {
   observe_helpers()
    
@@ -764,8 +754,14 @@ server <- function(input, output, session) {
         subVName <- NULL
       }
       
-   
-      if(input$subpop == TRUE){
+      print(input$subpopVar)
+
+    if(input$subpop==TRUE & is.null(input$subpopVar)){
+      validate(!is.null(input$subpopVar), "Choose a subpopulation variable or
+               uncheck the subpopulation box!")
+    }
+      
+      if(input$subpop == TRUE & !is.null(input$subpopVar)){
         # Use function below to validate input variables as the appropriate type and to make sure the selections do not overlap
         validate(
           need(input$subpopVar %nin% c(input$siteVar,input$weightVar,input$respVar),
@@ -934,24 +930,7 @@ server <- function(input, output, session) {
                    Only one row per site-design cycle combination is permitted in the input data."))
       )
       
-      # If categorical data, automatically reorder any response variables that are Good/Fair/Poor or 
-      # Low/Moderate/High (allow for all caps versions)
-      # if(input$atype=='categ'){
-      #   for(i in 1:length(input$respVar)){
-      #     if(all(unique(chgIn[,input$respVar[[i]]]) %in% c('Good','GOOD','Low','LOW',
-      #                                                     'Fair','FAIR','MODERATE','Moderate',
-      #                                                     'Poor','POOR','High','HIGH',
-      #                                                     'Very High','VERY HIGH','Not Assessed'))){
-      #       chgIn[,input$respVar[[i]]] <- factor(chgIn[,input$respVar[[i]]], 
-      #                                           levels=c('Good','GOOD','Low','LOW',
-      #                                                    'Fair','FAIR','MODERATE','Moderate',
-      #                                                    'Poor','POOR','High','HIGH',
-      #                                                    'Very High','VERY HIGH','Not Assessed'), 
-      #                                           ordered=TRUE)
-      #     }
-      #   }
-      # }
-      
+
       # Need to order by siteID, yearVar
       chgIn <- chgIn[order(chgIn[,input$yearVar],chgIn[,input$siteVar]),]
       
@@ -1960,10 +1939,10 @@ server <- function(input, output, session) {
     
     CDFDataset <- subset(CDFDataset, Indicator == input$Ind_Con & Subpopulation %in% input$SubPop_Con)
     #CDFDataset <- with(CDFDataset, reorder(Subpopulation, Estimate, decreasing=FALSE))
-    #CDFDataset$Subpopulation <-factor(CDFDataset$Subpopulation, levels = rev(unique(CDFDataset$Subpopulation)))
+    CDFDataset$Subpopulation <-factor(CDFDataset$Subpopulation, levels = rev(unique(CDFDataset$Subpopulation)))
     #CDFDataset <- suborder[order(CDFDataset$Estimate),]
-    CDFDataset$Subpopulation <- forcats::fct_reorder(CDFDataset$Subpopulation, CDFDataset$Estimate)
-    
+    # CDFDataset$Subpopulation <- forcats::fct_reorder(CDFDataset$Subpopulation, CDFDataset$Estimate)
+
     g <- ggplot(CDFDataset, aes(x = Estimate, y = Subpopulation, fill=Subpopulation)) +
       scale_fill_viridis_d("Population") +
       labs(
