@@ -32,12 +32,11 @@ ui <- fluidPage(theme="style.css",
                  tags$li("The variables in that file will populate dropdown lists on that tab."),
                  tags$li("Select variables to serve as site IDs, weights, response variables, and subpopulations
                          (if desired). If only overall or 'national' estimates are desired, check the box for overall analysis."),
-                 tags$li("If data are to be used for change analysis, select year variable 
-                         (or other variable to distinguish design cycles)."),
+                 tags$li("If data are to be used for change analysis, select the variable that distinguishes between design cycles (we usually assume this variable represents year)."),
                 tags$li(p("Select the type of variance you want to use. ", 
                           strong("Local neighborhood variance"), 
                           " uses a site's nearest neighbors to estimate variance, tending to 
-                          result in smaller variance values. This approach is ", 
+                          result in smaller variance values than variance based on a simple random sample. This approach is ", 
                           em("recommended"),"and is the approach used in 
                           NARS estimates. It requires site coordinates to be provided."),
                         tags$ul(
@@ -268,12 +267,12 @@ ui <- fluidPage(theme="style.css",
                                                       ),
                    
                    # Select stratum if Simple Random Sample                                 
-                   selectizeInput("stratumVar","Select a categorical stratum variable if desired", 
+                   selectizeInput("stratumVar","Select a categorical stratum variable if desired. May be used for either variance type.", 
                                   choices=NULL, multiple=FALSE)
             )  
          ),
           # Press button to subset data for analysis - must click here first
-         column(4, actionButton("resetBtn", "Click to view full dataset")),
+         column(4, actionButton("resetBtn", "Click to revert back to full dataset or change data display")),
          column(4, actionButton("subsetBtn", strong("Click HERE to prepare data for analysis"), style="color:#B72E16"), offset=2),
          hr(),
          br(),
@@ -334,9 +333,7 @@ ui <- fluidPage(theme="style.css",
                         prepare data for analysis again.", 
                     style="color:#225D9D"),
                  column(3, 
-                        # add_busy_spinner(spin='fading-circle', position='full-page'),
                         # User must select years to compare
-                        
                         selectizeInput('chgYear1',"Select two years of data to compare in desired order", 
                                        choices=NULL, multiple=TRUE),
                         radioButtons("chgCatCont", "Type of variables to analyze",
@@ -357,10 +354,7 @@ ui <- fluidPage(theme="style.css",
                  # Click to download results into a comma-delimited file
                  shinyjs::disabled(downloadButton("chgcsv","Save Change Results as .csv file"))),
                  column(8,
-                        # conditionalPanel(condition = "input.chboxSize == true",
-                        #                  h4(p(strong("*Note that estimates use size weights")), 
-                        #                     style='color:blue')),
-                        h4("Warnings"),
+                         h4("Warnings"),
                         tableOutput("warnchg"),
                         h4("Change Analysis Output"),
                         tableOutput("changes"))
@@ -514,7 +508,7 @@ ui <- fluidPage(theme="style.css",
                                       #Subpopulation helper
                                       helper(type = "inline",
                                              title = "Subpopulation Comparison",
-                                             content = c("Cycle through population groups to compare categorical estimates by condition and download plot, if desired."),
+                                             content = c("Cycle through population groups to compare categorical estimates by condition and download plot, if desired. If there are no subpopulations, no subpopulation plots will appear."),
                                              size = "s", easyClose = TRUE, fade = TRUE)))),
                    fluidRow(  
                      column(3, offset=1,
@@ -995,7 +989,7 @@ server <- function(input, output, session) {
       }
       
        #revisitWgt <- FALSE # NOT SURE WHAT THIS SHOULD BE SO ASSUME DEFAULT
-       show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait')
+       show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait. To stop this process, select Session>Interrupt R and close the browser window.')
 
         # if(input$repeatBox==TRUE){
           if(input$chgCatCont == 'chgCat'){
@@ -1091,7 +1085,8 @@ server <- function(input, output, session) {
                  Only one row per site permitted in the input data."))
     )
 
-    show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait')
+    
+    show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait. To stop this process, select Session>Interrupt R and close the browser window.')
     
     # If categorical data, automatically reorder any response variables that are Good/Fair/Poor or 
     # Low/Moderate/High (allow for all caps versions)
