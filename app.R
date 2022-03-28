@@ -14,6 +14,9 @@ source("global.r")
 ui <- fluidPage(theme="style.css",
    shinyjs::useShinyjs(),
    # Application title 
+
+# INSTRUCTIONS ------------------------------------------------------------
+
    navbarPage(title="NARS Population Estimate Calculation Tool (v. 2.0)",
               selected='instructions',position='static-top',
       # Panel with instructions for using this tool
@@ -175,6 +178,8 @@ ui <- fluidPage(theme="style.css",
                  seal and logo shall not be used in any manner to imply endorsement of any commercial product
                  or activity by EPA or the United States Government.')),
 
+# PREPARE DATA ------------------------------------------------------------
+
       # Panel to import and select data to analyze
       tabPanel(title='Prepare Data for Analysis',value="prepdata",
        
@@ -283,6 +288,10 @@ ui <- fluidPage(theme="style.css",
         
         
       ),
+
+# RUN POPULATION ESTIMATES ------------------------------------------------
+
+
       # Tab to run population estimates
       tabPanel(title="Run Population Estimates",value="runest",
           fluidRow(     
@@ -324,6 +333,10 @@ ui <- fluidPage(theme="style.css",
           )
 
       ),
+
+# RUN CHANGE ANALYSIS -----------------------------------------------------
+
+
       tabPanel(title="Run Change Analysis", value='change',
                fluidRow(
                  h4("  ", "If a different set of response variables from those 
@@ -361,6 +374,10 @@ ui <- fluidPage(theme="style.css",
                )
                
           ),
+
+# PLOT DATA ---------------------------------------------------------------
+
+
       ####Categorical Plot UI####
       tabPanel(title="Plot Categorical Estimates",
                fluidRow(
@@ -649,6 +666,9 @@ ui <- fluidPage(theme="style.css",
 
 server <- function(input, output, session) {
   observe_helpers()
+
+# Read in Data for Preparation --------------------------------------------
+
    
   # Read in data file as selected
   dataIn <- reactive({
@@ -733,6 +753,9 @@ server <- function(input, output, session) {
 
   })
   
+
+# After Prepare Data for Analysis Button Clicked --------------------------
+
 
   # Once subset button is clicked, validate selections to make sure any variable only occurs in set of selections
   dataOut <- eventReactive(input$subsetBtn,{
@@ -902,6 +925,9 @@ server <- function(input, output, session) {
                  }
                )
   
+
+# Run Change Estimates Code -----------------------------------------------
+
   
   # Change estimate code
   chgEst <- eventReactive(input$chgBtn,{
@@ -923,7 +949,19 @@ server <- function(input, output, session) {
                    "duplicated sites in this dataset within years or cycles. 
                    Only one row per site-design cycle combination is permitted in the input data."))
       )
-      
+      if(input$chgCatCont=='chgCat'){
+        
+        validate(
+          need(all('character' %in% lapply(chgIn[,input$respVar], class)),
+               'At least one response variable is numeric data. Do you mean to run CONTINUOUS analysis?')
+        )
+      }else{
+        print(typeof(chgIn[,input$respVar]))
+        validate(
+          need(all('numeric' %in% lapply(chgIn[,input$respVar], class)),
+               'At least one response variable is character. Do you mean to run CATEGORICAL analysis?')
+        )
+      }
 
       # Need to order by siteID, yearVar
       chgIn <- chgIn[order(chgIn[,input$yearVar],chgIn[,input$siteVar]),]
@@ -1056,6 +1094,9 @@ server <- function(input, output, session) {
     chgEst()[['warndf']]
   })
   
+
+# Single Year Population Estimates ----------------------------------------
+
   
   # Calculate population estimates 
   dataEst <- eventReactive(input$runBtn,{
@@ -1084,7 +1125,22 @@ server <- function(input, output, session) {
            paste("There are", nrow(subset(freqSite, Freq>1)),"duplicated sites in this dataset. 
                  Only one row per site permitted in the input data."))
     )
-
+    
+    # VALIDATION of variable types
+    
+    if(input$atype=='categ'){
+      
+      validate(
+        need(all('character' %in% lapply(dfIn[,input$respVar], class)),
+        'At least one response variable is numeric data. Do you mean to run CONTINUOUS analysis?')
+      )
+    }else{
+      print(typeof(dfIn[,input$respVar]))
+      validate(
+        need(all('numeric' %in% lapply(dfIn[,input$respVar], class)),
+             'At least one response variable is character. Do you mean to run CATEGORICAL analysis?')
+      )
+    }
     
     show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait. To stop this process, select Session>Interrupt R and close the browser window.')
     
@@ -1197,6 +1253,9 @@ server <- function(input, output, session) {
   output$warnest <- renderTable({
     dataEst()[['warndf']]
   })
+
+
+# Download Analysis Results -----------------------------------------------
 
   
   # Only enable download button once population estimates are produced
