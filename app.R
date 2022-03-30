@@ -9,7 +9,6 @@
 
 source("global.r")
 
-
 # Define UI for application that draws a histogram
 ui <- fluidPage(theme="style.css",
    shinyjs::useShinyjs(),
@@ -1334,9 +1333,11 @@ server <- function(input, output, session) {
 
   plotDataset <- eventReactive(c(input$userinput, input$runBtn, input$catinput), {
     if(input$catinput == "Current Estimate Data" && input$atype == 'categ') {
+      
       dataEst()[['estOut']]
+      
     } else {
-      necVars <- c('Type', 'Indicator', 'Subpopulation', 'Category', 'NResp', 'Estimate.P',
+      necVars <- c('Type', 'Indicator', 'Subpopulation', 'Category', 'Estimate.P',
                    'StdError.P', 'LCB95Pct.P', 'UCB95Pct.P', 'Estimate.U',
                    'StdError.U', 'LCB95Pct.U', 'UCB95Pct.U')
       
@@ -1857,16 +1858,14 @@ server <- function(input, output, session) {
              size = "s", easyClose = TRUE, fade = TRUE)
   })
   
+  
   CDFDataset <- eventReactive(c(input$ConCDFinput, input$runBtn, input$coninput), {
+    
     if(input$coninput == "Current Estimate Data" && input$cdf_pct=='cdf') {
       dataEst()[['estOut']]
     } else {
-      validate(need(all(c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate.P', 'Estimate.U',
-                          'StdError.P', 'StdError.U', 'LCB95Pct.P', 'UCB95Pct.P', 'LCB95Pct.U',
-                          'UCB95Pct.U') %in% names(userCDFEst())),
-                    "Standardized spsurvey variables not included in dataset."))
-      
       CDFOut <- userCDFEst() 
+     
     }})
   
   
@@ -1907,16 +1906,24 @@ server <- function(input, output, session) {
   
   CDF_subplot <- reactive({
     req(input$plotbtncon, input$SubPop_Con)
+    necVars <- c('Type', 'Subpopulation', 'Indicator', 'Value',
+                 'Estimate.P', 'Estimate.U',
+                 'StdError.P', 'StdError.U', 'LCB95Pct.P',
+                 'UCB95Pct.P', 'LCB95Pct.U',
+                 'UCB95Pct.U')
+
+    validate(need(all(necVars %in% colnames(userCDFEst())),
+                  message = "Dataset does not include all variables in standardized output from spsurvey."))
+    
+    CDFDataset <- CDFDataset() 
     
     if (input$Estimate_CDF == "P Estimates_CDF") {
-      CDFDataset <- CDFDataset()  
       names(CDFDataset)[names(CDFDataset) == "Estimate.P"] <- "Estimate"
       names(CDFDataset)[names(CDFDataset) == "StdError.P"] <- "StdError"
       names(CDFDataset)[names(CDFDataset) == "LCB95Pct.P"] <- "LCB95"
       names(CDFDataset)[names(CDFDataset) == "UCB95Pct.P"] <- "UCB95"
       CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
     } else {
-      CDFDataset <- CDFDataset()
       names(CDFDataset)[names(CDFDataset) == "Estimate.U"] <- "Estimate"
       names(CDFDataset)[names(CDFDataset) == "StdError.U"] <- "StdError"
       names(CDFDataset)[names(CDFDataset) == "LCB95Pct.U"] <- "LCB95"
@@ -1974,16 +1981,16 @@ server <- function(input, output, session) {
   
   Dist_plot <- reactive({
     req(input$plotbtncon)
-    
+    CDFDataset <- CDFDataset()
     if (input$Estimate_CDF == "P Estimates_CDF") {
-      CDFDataset <- CDFDataset()  
+        
       names(CDFDataset)[names(CDFDataset) == "Estimate.P"] <- "Estimate"
       names(CDFDataset)[names(CDFDataset) == "StdError.P"] <- "StdError"
       names(CDFDataset)[names(CDFDataset) == "LCB95Pct.P"] <- "LCB95"
       names(CDFDataset)[names(CDFDataset) == "UCB95Pct.P"] <- "UCB95"
       CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
     } else {
-      CDFDataset <- CDFDataset()
+      
       names(CDFDataset)[names(CDFDataset) == "Estimate.U"] <- "Estimate"
       names(CDFDataset)[names(CDFDataset) == "StdError.U"] <- "StdError"
       names(CDFDataset)[names(CDFDataset) == "LCB95Pct.U"] <- "LCB95"
