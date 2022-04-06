@@ -733,8 +733,7 @@ server <- function(input, output, session) {
     updateSelectizeInput(session, 'subpopVar', 'Select up to 10 subpopulation variables \n(required if not 
                          national estimates only)', choices=vars, selected=NULL,
                          options = list(maxItems=10))
-    updateSelectizeInput(session, "stratumVar", "Select the stratum variable in order to calculate variance based 
-                         on a simple random sample",
+    updateSelectizeInput(session, "stratumVar", "Select a categorical stratum variable if desired. May be used for either variance type.",
                          choices=c('None', vars), selected='None')
     updateSelectizeInput(session, "yearVar","Select year variable",
                          choices=c('', vars))
