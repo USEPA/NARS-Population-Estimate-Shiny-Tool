@@ -11,6 +11,7 @@ source("global.r")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
+  # Template Start -------
   tags$html(class = "no-js", lang="en"),
   tags$head(
     tags$meta(charset="utf-8"),
@@ -206,13 +207,13 @@ ui <- fluidPage(
     </header>
     <main id="main" class="main" role="main" tabindex="-1">'
   ),
-  
+# Template End ------  
   
   
    shinyjs::useShinyjs(),
    # Application title 
 
-# INSTRUCTIONS ------------------------------------------------------------
+# Instructions ------------------------------------------------------------
 
    navbarPage(title="NARS Population Estimate Calculation Tool (v. 2.0)",
               header = # Individual Page Header
@@ -400,7 +401,7 @@ ui <- fluidPage(
                  seal and logo shall not be used in any manner to imply endorsement of any commercial product
                  or activity by EPA or the United States Government.')),
 
-# PREPARE DATA ------------------------------------------------------------
+# Prepare Data ------------------------------------------------------------
 
       # Panel to import and select data to analyze
       tabPanel(title='Prepare Data for Analysis',value="prepdata",
@@ -511,7 +512,7 @@ ui <- fluidPage(
         
       ),
 
-# RUN POPULATION ESTIMATES ------------------------------------------------
+# Run Population Estimates ------------------------------------------------
 
 
       # Tab to run population estimates
@@ -556,7 +557,7 @@ ui <- fluidPage(
 
       ),
 
-# RUN CHANGE ANALYSIS -----------------------------------------------------
+# Run Change Analysis -----------------------------------------------------
 
 
       tabPanel(title="Run Change Analysis", value='change',
@@ -597,7 +598,7 @@ ui <- fluidPage(
                
           ),
 
-# PLOT DATA ---------------------------------------------------------------
+# Plot Data ---------------------------------------------------------------
 
 
       ####Categorical Plot UI####
@@ -884,7 +885,7 @@ ui <- fluidPage(
                  plotOutput("Distplot", width = "75%")
                ))
    ),
-# Site Footer
+# Site Footer ----
 HTML(
   '</main>
       <footer class="footer" role="contentinfo">
@@ -1060,6 +1061,7 @@ HTML(
 )
 )
 
+# Begin Server ----
 server <- function(input, output, session) {
   observe_helpers()
 
