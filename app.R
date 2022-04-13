@@ -36,7 +36,7 @@ ui <- fluidPage(
     tags$meta(name="viewport", content="width=device-width, initial-scale=1.0"),
     tags$meta(`http-equiv`="x-ua-compatible", content="ie=edge"),
     tags$script(src = "js/pattern-lab-head-script.js"),
-    tags$title('ContDataQC | US EPA'),
+    #tags$title('ContDataQC | US EPA'),
     tags$link(rel="icon", type="image/x-icon", href="https://www.epa.gov/themes/epa_theme/images/favicon.ico"),
     tags$meta(name="msapplication-TileColor", content="#FFFFFF"),
     tags$meta(name="msapplication-TileImage", content="https://www.epa.gov/themes/epa_theme/images/favicon-144.png"),
@@ -507,8 +507,7 @@ ui <- fluidPage(
        
           # Show a table of the data
           h4("Data for Analysis"),
-          tableOutput("contents")
-        
+          DT::dataTableOutput("contents")
         
       ),
 
@@ -550,9 +549,11 @@ ui <- fluidPage(
                        strong("Type of Analysis"), "(Categorical or Continuous) for your data",
                        style="color:#225D9D"),
                     h4("Warnings"),
-                    tableOutput("warnest"),
+                    DT::dataTableOutput("warnest"),
+                    
                     h4("Analysis Output"),
-                    tableOutput("popest"))
+                    DT::dataTableOutput("popest")
+                    )
           )
 
       ),
@@ -591,9 +592,12 @@ ui <- fluidPage(
                  shinyjs::disabled(downloadButton("chgcsv","Save Change Results as .csv file"))),
                  column(8,
                          h4("Warnings"),
-                        tableOutput("warnchg"),
+                        DT::dataTableOutput("warnchg"),
+                        
                         h4("Change Analysis Output"),
-                        tableOutput("changes"))
+                        DT::dataTableOutput("changes")
+                        )
+                        
                )
                
           ),
@@ -1099,17 +1103,22 @@ server <- function(input, output, session) {
     shinyjs::enable('runBtn')
     shinyjs::disable('chgcsv')
     if(input$disp == 'head'){
-      output$contents <- renderTable({head(dataOut())}, digits=5)
+      output$contents <- DT::renderDataTable({head(dataOut())}, options = list(digits=5, rownames=F, 
+                                             scrollX=TRUE, scrollY=TRUE))
     }else{
-      output$contents <- renderTable({dataOut()}, digits=5)
+      output$contents <- DT::renderDataTable({dataOut()}, options = list(digits=5, rownames=F, 
+                                     scrollX=TRUE, scrollY=TRUE))
     }
   })
   
   observeEvent(input$resetBtn, {
     if(input$disp == 'head'){
-      output$contents <- renderTable({head(dataIn())}, digits=5)
+      output$contents <- DT::renderDataTable({head(dataIn())}, 
+                                             options = list(digits=5, rownames=F, 
+                                                            scrollX=TRUE, scrollY=TRUE))
     }else{
-      output$contents <- renderTable({dataIn()}, digits=5)
+      output$contents <- DT::renderDataTable({dataIn()}, options = list(digits=5, rownames=F, 
+                                                                        scrollX=TRUE, scrollY=TRUE))
     }
   })
   
@@ -1483,13 +1492,13 @@ server <- function(input, output, session) {
     
   })
   # Use change output to create a table
-  output$changes <- renderTable({
+  output$changes <- DT::renderDataTable({
     chgEst()[['chgOut']]
-  })
+  }, options = list(scrollX=TRUE, scrollY=TRUE, rownames=F, searching=FALSE))
   
-  output$warnchg <- renderTable({
+  output$warnchg <- DT::renderDataTable({
     chgEst()[['warndf']]
-  })
+  }, options = list(scrollX=TRUE, scrollY=TRUE, rownames=F, searching=FALSE))
   
 
 # Single Year Population Estimates ----------------------------------------
@@ -1643,13 +1652,13 @@ server <- function(input, output, session) {
   
   
   # Output the population estimates to a table
-  output$popest <- renderTable({
+  output$popest <- DT::renderDataTable({
     dataEst()[['estOut']]
-  })
+  }, options = list(scrollX=TRUE, scrollY=TRUE, rownames=F, searching=FALSE))
   
-  output$warnest <- renderTable({
+  output$warnest <- DT::renderDataTable({
     dataEst()[['warndf']]
-  })
+  }, options = list(scrollX=TRUE, scrollY=TRUE, rownames=F, searching=FALSE))
 
 
 # Download Analysis Results -----------------------------------------------
