@@ -527,7 +527,7 @@ ui <- fluidPage(
              # If continuous analysis selected, select whether CDFs or percentiles are desired.  
              conditionalPanel(condition = "input.atype == 'contin'",
                               radioButtons("cdf_pct", "Show CDF or percentile results",
-                                           choices = c(CDF = 'cdf', Percentiles = 'pct', Mean = 'mean'),
+                                           choices = c(CDF = 'cdf', Percentiles = 'pct', Mean = 'mean', Total = 'total'),
                                            selected = 'pct')),
              conditionalPanel(condition="input.chboxYear==true",
                               selectizeInput('selYear', 'Select the year for analysis', 
@@ -1627,7 +1627,7 @@ server <- function(input, output, session) {
                                       stratumID = stratum.in, vartype=vartype, 
                                       All_Sites = all_sites,  
                                       statistics = c('Pct'))$Pct
-            }else{
+            }else if(input$cdf_pct=='mean'){
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
                                       vars=input$respVar, weight = input$weightVar, 
                                       xcoord = xcoord.in, ycoord = ycoord.in,
@@ -1635,6 +1635,14 @@ server <- function(input, output, session) {
                                       stratumID = stratum.in, vartype=vartype, 
                                       All_Sites = all_sites,  
                                       statistics = c('Mean'))$Mean
+            }else{
+              estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in, 
+                                      vars=input$respVar, weight = input$weightVar, 
+                                      xcoord = xcoord.in, ycoord = ycoord.in,
+                                      # sizeweight = sizeweight.in, sweight = sweight.in,
+                                      stratumID = stratum.in, vartype=vartype, 
+                                      All_Sites = all_sites,  
+                                      statistics = c('Total'))$Total  
             }
           # }
       }
