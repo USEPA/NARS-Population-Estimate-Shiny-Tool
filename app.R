@@ -310,7 +310,7 @@ ui <- fluidPage(
                  tags$li("If year or design cycle variable was selected on the Prepare Data for 
                  Analysis tab, select year or cycle of interest."),
                  tags$li("For continuous analysis, select either CDFs (cumulative distribution 
-                         functions) or Percentiles."),
+                         functions), percentiles, means, or totals."),
                  tags$li("Note that if data are missing for continuous variables, 
                          those sites are ignored in analysis."),
                  tags$li("Click on the Run/Refresh Estimates button. Depending on the number of
@@ -526,8 +526,8 @@ ui <- fluidPage(
                             selected='categ'),
              # If continuous analysis selected, select whether CDFs or percentiles are desired.  
              conditionalPanel(condition = "input.atype == 'contin'",
-                              radioButtons("cdf_pct", "Show CDF or percentile results",
-                                           choices = c(CDF = 'cdf', Percentiles = 'pct', Mean = 'mean', Total = 'total'),
+                              radioButtons("cdf_pct", "Show CDF, percentile, mean, or total results",
+                                           choices = c(CDF = 'cdf', Percentiles = 'pct', Means = 'mean', Totals = 'total'),
                                            selected = 'pct')),
              conditionalPanel(condition="input.chboxYear==true",
                               selectizeInput('selYear', 'Select the year for analysis', 
