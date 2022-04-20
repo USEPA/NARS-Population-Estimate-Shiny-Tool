@@ -215,7 +215,7 @@ ui <- fluidPage(
 
 # Instructions ------------------------------------------------------------
 
-   navbarPage(title="NARS Population Estimate Calculation Tool (v. 2.0)",
+   navbarPage(title="NARS Population Estimate Calculation Tool (v. 2.0.1)",
               header = # Individual Page Header
                 HTML(
                   '<div class="l-page  has-footer">
