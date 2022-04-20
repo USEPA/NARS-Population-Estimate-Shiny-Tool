@@ -1362,7 +1362,7 @@ server <- function(input, output, session) {
                'At least one response variable is numeric data. Do you mean to run CONTINUOUS analysis?')
         )
       }else{
-        print(typeof(chgIn[,input$respVar]))
+        
         validate(
           need(all('numeric' %in% lapply(chgIn[,input$respVar], class)),
                'At least one response variable is character. Do you mean to run CATEGORICAL analysis?')
@@ -1541,7 +1541,7 @@ server <- function(input, output, session) {
         'At least one response variable is numeric data. Do you mean to run CONTINUOUS analysis?')
       )
     }else{
-      print(typeof(dfIn[,input$respVar]))
+      
       validate(
         need(all('numeric' %in% lapply(dfIn[,input$respVar], class)),
              'At least one response variable is character. Do you mean to run CATEGORICAL analysis?')
