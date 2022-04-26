@@ -1,8 +1,8 @@
 # NARS_PopEst
-Repository for Shiny app that serves as a wrapper for spsurvey package used in population estimates for NARS studies. Updated to v. 2.0.1 as of 19 October 2021 to use the updated spsurvey package (v.5.3). 
+Repository for Shiny app that serves as a wrapper for spsurvey package used in population estimates for NARS studies. Updated to v. 2.0.1 as of April 2022 to use the updated spsurvey package (v.5.3). 
 
 ## Description
-This project contains R Shiny code for to use the spsurvey package to calculate NARS-type population estimates on continuous or categorical data, with multiple response variables and multiple subpopulations.
+This project contains R Shiny code to use the spsurvey package to calculate NARS-type population estimates on continuous or categorical data, with multiple response variables and multiple subpopulations. It also includes the ability to plot analysis results of continuous or categorical data.
 
 ## Notes
 The necessary packages for this app to work should automatically download and install. Occasionally, there is an issue and they do not all download and install. In this case, you can install the packages before running the app. The necessary packages are shiny, spsurvey, Hmisc, shinyjs, shinythemes, shinybusy, shinyhelper, ggplot2, ggridges, stringr, shinyBS, and DT. The spsurvey package must be v. 5.3 or later.
