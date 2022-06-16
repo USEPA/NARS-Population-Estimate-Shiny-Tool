@@ -1,0 +1,10 @@
+---
+applications:
+- name: nars-popest-stage
+  memory: 750M
+  disk quota: 1024M
+  routes:
+    - route: nars-popest-stage.app.cloud.gov
+  buildpacks:
+    - r_buildpack
+  command: R -f shiny.R

@@ -1,0 +1,17 @@
+---
+packages:
+- cran_mirror: https://cloud.r-project.org/
+  num_threads: 2
+  packages:
+    - name: stringr
+    - name: spsurvey
+    - name: RJSONIO
+    - name: Hmisc
+    - name: shinyjs
+    - name: shinythemes
+    - name: shinybusy
+    - name: shinyhelper
+    - name: ggplot2
+    - name: ggridges
+    - name: shinyBS
+    - name: DT
