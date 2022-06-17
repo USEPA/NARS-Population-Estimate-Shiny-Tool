@@ -2506,7 +2506,7 @@ server <- function(input, output, session) {
   if(!dir.exists('/home/vcap/app')) {
     session$onSessionEnded(function() {
       rm(warn_df,envir=.GlobalEnv)
-      # stopApp()
+      stopApp()
     })
   }
 
