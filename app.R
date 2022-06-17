@@ -1433,7 +1433,7 @@ server <- function(input, output, session) {
       }
 
        #revisitWgt <- FALSE # NOT SURE WHAT THIS SHOULD BE SO ASSUME DEFAULT
-       show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait. To stop this process, select Session>Interrupt R and close the browser window.')
+       show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait.')
 
         # if(input$repeatBox==TRUE){
           if(input$chgCatCont == 'chgCat'){
@@ -1548,7 +1548,7 @@ server <- function(input, output, session) {
       )
     }
 
-    show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait. To stop this process, select Session>Interrupt R and close the browser window.')
+    show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait.')
 
     # If categorical data, automatically reorder any response variables that are Good/Fair/Poor or
     # Low/Moderate/High (allow for all caps versions)
@@ -2506,7 +2506,7 @@ server <- function(input, output, session) {
   if(!dir.exists('/home/vcap/app')) {
     session$onSessionEnded(function() {
       rm(warn_df,envir=.GlobalEnv)
-      stopApp()
+      # stopApp()
     })
   }
 
