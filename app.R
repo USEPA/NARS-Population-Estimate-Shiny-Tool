@@ -1155,7 +1155,7 @@ server <- function(input, output, session) {
 
       catchoices <- as.character(sort(unique(dataIn()[[input$subvar]])))
 
-      updateSelectizeInput(session, 'subcat', choices = catchoices, selected=NULL)
+      updateSelectizeInput(session, 'subcat', choices = catchoices, selected=NULL, server=TRUE)
 
   })
 
@@ -2505,7 +2505,8 @@ server <- function(input, output, session) {
   # End session if browser window is closed
   if(!dir.exists('/home/vcap/app')) {
     session$onSessionEnded(function() {
-      rm(warn_df,envir=.GlobalEnv)
+        # rm(warn_df,envir=.GlobalEnv)
+       
       stopApp()
     })
   }
