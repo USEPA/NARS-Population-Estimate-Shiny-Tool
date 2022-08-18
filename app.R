@@ -11,7 +11,6 @@ source("global.r")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-  # Template Start -------
   tags$html(class = "no-js", lang="en"),
   tags$head(
     tags$meta(charset="utf-8"),
@@ -35,8 +34,7 @@ ui <- fluidPage(
     tags$meta(name="HandheldFriendly", content="true"),
     tags$meta(name="viewport", content="width=device-width, initial-scale=1.0"),
     tags$meta(`http-equiv`="x-ua-compatible", content="ie=edge"),
-    tags$script(src = "js/pattern-lab-head-script.js"),
-    #tags$title('ContDataQC | US EPA'),
+    tags$title('ContDataQC | US EPA'),
     tags$link(rel="icon", type="image/x-icon", href="https://www.epa.gov/themes/epa_theme/images/favicon.ico"),
     tags$meta(name="msapplication-TileColor", content="#FFFFFF"),
     tags$meta(name="msapplication-TileImage", content="https://www.epa.gov/themes/epa_theme/images/favicon-144.png"),
@@ -65,7 +63,7 @@ ui <- fluidPage(
     tags$link(rel="stylesheet", media="all", href="https://www.epa.gov/core/themes/stable/css/system/components/tree-child.module.css?r6lsex"),
     tags$link(rel="stylesheet", media="all", href="https://www.epa.gov/themes/epa_theme/css/styles.css?r6lsex"),
     tags$link(rel="stylesheet", media="all", href="https://www.epa.gov/themes/epa_theme/css-lib/colorbox.min.css?r6lsex"),
-
+    
     tags$script(src = 'https://cdnjs.cloudflare.com/ajax/libs/uswds/3.0.0-beta.3/js/uswds-init.min.js'),
     #fix container-fluid that boostrap RShiny uses
     tags$style(HTML(
@@ -84,17 +82,15 @@ ui <- fluidPage(
   tags$body(class="path-themes not-front has-wide-template", id="top",
             tags$script(src = 'https://cdnjs.cloudflare.com/ajax/libs/uswds/3.0.0-beta.3/js/uswds.min.js')
   ),
-
+  
   # Site Header
   HTML(
     '<div class="skiplinks" role="navigation" aria-labelledby="skip-to-main">
       <a id="skip-to-main" href="#main" class="skiplinks__link visually-hidden focusable">Skip to main content</a>
     </div>
-
     <!-- Google Tag Manager (noscript) -->
     <!--noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-L8ZB" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript-->
     <!-- End Google Tag Manager (noscript) -->
-
     <div class="dialog-off-canvas-main-canvas" data-off-canvas-main-canvas>
     <section class="usa-banner" aria-label="Official government website">
       <div class="usa-accordion">
@@ -207,6 +203,8 @@ ui <- fluidPage(
     </header>
     <main id="main" class="main" role="main" tabindex="-1">'
   ),
+  
+  
 # Template End ------
 
 
@@ -988,7 +986,7 @@ HTML(
                   <svg class="icon icon--social" aria-hidden="true" viewBox="0 0 448 512" id="facebook-square" xmlns="http://www.w3.org/2000/svg">
                     <!-- use xlink:href="https://www.epa.gov/themes/epa_theme/images/sprite.artifact.svg#facebook-square"></use-->
                     <path fill="currentcolor" d="M400 32H48A48 48 0 000 80v352a48 48 0 0048 48h137.25V327.69h-63V256h63v-54.64c0-62.15 37-96.48 93.67-96.48 27.14 0 55.52 4.84 55.52 4.84v61h-31.27c-30.81 0-40.42 19.12-40.42 38.73V256h68.78l-11 71.69h-57.78V480H400a48 48 0 0048-48V80a48 48 0 00-48-48z"></path>
-                  </svg>
+                  </svg> 
                   <span class="usa-tag external-link__tag" title="Exit EPA Website">
                     <span aria-hidden="true">Exit</span>
                     <span class="u-visually-hidden"> Exit EPA Website</span>
@@ -1063,7 +1061,7 @@ HTML(
       </svg>
     </a>'
 )
-)
+) # END fluidPage
 
 # Begin Server ----
 server <- function(input, output, session) {
