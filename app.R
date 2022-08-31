@@ -212,9 +212,10 @@ ui <- fluidPage(
    # Application title
 
 # Instructions ------------------------------------------------------------
-   titlePanel(span("NARS Population Estimate Calculation Tool (v. 2.0.1)",
-              style = "font-weight: bold; font-size: 28px")),
-   navbarPage(title="",
+   # titlePanel(span("NARS Population Estimate Calculation Tool (v. 2.0.1)",
+   #            style = "font-weight: bold; font-size: 28px")),
+   navbarPage(title=span("NARS Population Estimate Calculation Tool (v. 2.0.1)",
+                         style = "font-weight: bold; font-size: 24px"),         
               header = # Individual Page Header
                 HTML(
                   '<div class="l-page  has-footer">
@@ -224,7 +225,7 @@ ui <- fluidPage(
             <div class="web-area-title"></div>
           </div>
           <div class="l-page__header-last">
-            <a href="#" class="header-link">Contact Us</a>
+            <a href="https://www.epa.gov/national-aquatic-resource-surveys/forms/contact-us-about-national-aquatic-resource-surveys" class="header-link">Contact Us</a>
           </div>
         </div>
         <article class="article">'
@@ -235,7 +236,7 @@ ui <- fluidPage(
     </div>
     <div class="l-page__footer">
       <div class="l-constrain">
-        <p><a href="#">Contact Us</a> to ask a question, provide feedback, or report a problem.</p>
+        <p><a href="https://www.epa.gov/national-aquatic-resource-surveys/forms/contact-us-about-national-aquatic-resource-surveys">Contact Us</a> to ask a question, provide feedback, or report a problem.</p>
       </div>
     </div>
   </div>'
