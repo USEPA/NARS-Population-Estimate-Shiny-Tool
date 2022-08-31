@@ -34,7 +34,7 @@ ui <- fluidPage(
     tags$meta(name="HandheldFriendly", content="true"),
     tags$meta(name="viewport", content="width=device-width, initial-scale=1.0"),
     tags$meta(`http-equiv`="x-ua-compatible", content="ie=edge"),
-    tags$title('ContDataQC | US EPA'),
+    # tags$title('ContDataQC | US EPA'),
     tags$link(rel="icon", type="image/x-icon", href="https://www.epa.gov/themes/epa_theme/images/favicon.ico"),
     tags$meta(name="msapplication-TileColor", content="#FFFFFF"),
     tags$meta(name="msapplication-TileImage", content="https://www.epa.gov/themes/epa_theme/images/favicon-144.png"),
