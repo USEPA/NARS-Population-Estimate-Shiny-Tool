@@ -1175,7 +1175,7 @@ server <- function(input, output, session) {
         subVName <- NULL
       }
 
-      print(input$subpopVar)
+      # print(input$subpopVar)
 
     if(input$subpop==TRUE & is.null(input$subpopVar)){
       validate(!is.null(input$subpopVar), "Choose a subpopulation variable or
@@ -1370,8 +1370,8 @@ server <- function(input, output, session) {
       # Need to order by siteID, yearVar
       chgIn <- chgIn[order(chgIn[,input$yearVar],chgIn[,input$siteVar]),]
 
-      print(input$chgYear1[[1]])
-      print(input$chgYear1[[2]])
+      # print(input$chgYear1[[1]])
+      # print(input$chgYear1[[2]])
       surveyID <- input$yearVar
       survey_names <- c(input$chgYear1[[1]], input$chgYear1[[2]])
       validate(
@@ -1682,8 +1682,10 @@ server <- function(input, output, session) {
           paste("Continuous_CDF_Output_",Sys.Date(), ".csv", sep = "")
         }else if(input$cdf_pct=='pct'){
           paste("Continuous_Percentiles_Output_",Sys.Date(), ".csv", sep = "")
-        }else{
+        }else if(input$cdf_pct=='mean'){
           paste("Continuous_Means_Output_", Sys.Date(), ".csv", sep="")
+        }else{
+          paste("Continuous_Totals_Output_", Sys.Date(), ".csv", sep='')
         }
       }
     },
@@ -1758,7 +1760,7 @@ server <- function(input, output, session) {
                     message = "Dataset does not include all variables in standardized output from spsurvey."))
 
       userEst <- userEst()
-      print(colnames(userEst))
+      # print(colnames(userEst))
       userEst
     }
 
@@ -2325,7 +2327,7 @@ server <- function(input, output, session) {
                  'UCB95Pct.P', 'LCB95Pct.U',
                  'UCB95Pct.U')
 
-    validate(need(all(necVars %in% colnames(userCDFEst())),
+    validate(need(all(necVars %in% colnames(CDFDataset())),
                   message = "Dataset does not include all variables in standardized output from spsurvey."))
 
     CDFDataset <- CDFDataset()
