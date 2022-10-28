@@ -542,6 +542,10 @@ ui <- fluidPage(
              conditionalPanel(condition="input.chboxYear==true",
                               selectizeInput('selYear', 'Select the year for analysis',
                                              choices=NULL, multiple=FALSE)),
+             
+             radioButtons('ciSize', 'Confidence level', 
+                          choices = c('90%' = '90', '95%' = '95'),
+                          selected = '95'),
 
              p("If the", strong("Run/Refresh Estimates"), "button is grayed out, return to the",
                strong("Prepare Data for Analysis"), "tab and click the button that says",
@@ -591,6 +595,9 @@ ui <- fluidPage(
                                                       choices = c(Mean='mean', Median='median'),
                                                       selected = 'mean')),
 
+                        radioButtons('ciSize_chg', 'Confidence level', 
+                                     choices = c('90%' = '90', '95%' = '95'),
+                                     selected = '95'),
                  # Once data are prepared, user needs to click to run estimates, or rerun estimates on refreshed data
                  hr(),
                  p("If the", strong("Run/Refresh Estimates"), "button is grayed out, return to the",
@@ -631,7 +638,8 @@ ui <- fluidPage(
                                multiple = FALSE,
                                width = "300px")  %>%
                      #Estimate Type helper
-                     helper(type = "inline",
+                     helper(type = "inline", 
+                            icon = 'circle-question',
                             title = "Estimate Type",
                             content = c("<b>Proportion Estimates:</b> Proportion of observations that
                                         belong to each level of the categorical variable.",
@@ -648,7 +656,7 @@ ui <- fluidPage(
                                multiple = TRUE,
                                width = "300px") %>%
                      #Condition Category helper
-                     helper(type = "inline",
+                     helper(type = "inline", icon = 'circle-question',
                             title = "Condition Category Color",
                             content = paste("The following inputs ask you to define the condition classes
                                         which will be used in the plots. You may use the same
@@ -687,7 +695,7 @@ ui <- fluidPage(
                    textInput("resource", "Define Resource Type/Unit", value = "",
                              width = "300px", placeholder = "Resource") %>%
                      #Resource Type helper
-                     helper(type = "inline",
+                     helper(type = "inline", icon = 'circle-question',
                             title = "Resource Type",
                             content = c("This input defines the plot axis label. Resource Type is
                                         the resource evaluated in your design (e.g., Stream Miles,
@@ -706,7 +714,8 @@ ui <- fluidPage(
                                                        multiple = FALSE,
                                                        width = "200px") %>%
                                              #Indicator input helper
-                                             helper(type = "inline",
+                                             helper(type = "inline", 
+                                                    icon = 'circle-question',
                                                     title = "Indicator",
                                                     content = c("Select the indicator to display
                                                                 categorical estimates by population."),
@@ -721,6 +730,7 @@ ui <- fluidPage(
                                                        width = "200px") %>%
                                              #Subpop Group input helper
                                              helper(type = "inline",
+                                                    icon = 'circle-question',
                                                     title = "Subpopulation Group",
                                                     content = c("Select the Subpopulation group
                                                                 to generate individual subpopulation
@@ -731,6 +741,7 @@ ui <- fluidPage(
                           h3(strong(HTML("<center>Categorical Estimates by Population<center/>") %>%
                                       #Condition estimate helper
                                       helper(type = "inline",
+                                             icon = 'circle-question',
                                              title = "Categorical Estimates",
                                              content = c("Cycle through populations to display
                                                          categorical estimates and download the plot,
@@ -761,6 +772,7 @@ ui <- fluidPage(
                           h3(strong(HTML("<center>Subpopulation Comparison<center/>") %>%
                                       #Subpopulation helper
                                       helper(type = "inline",
+                                             icon = 'circle-question',
                                              title = "Subpopulation Comparison",
                                              content = c("Cycle through population groups to compare categorical estimates by condition and download plot, if desired. If there are no subpopulations, no subpopulation plots will appear."),
                                              size = "s", easyClose = TRUE, fade = TRUE)))),
@@ -804,6 +816,7 @@ ui <- fluidPage(
                                         width = "300px")  %>%
                               #Estimate Type helper
                               helper(type = "inline",
+                                     icon = 'circle-question',
                                      title = "Estimate Type",
                                      content = c("<b>Proportion Estimates:</b> Proportion of
                                                  observations that belong to each level of the
@@ -819,6 +832,7 @@ ui <- fluidPage(
                             textInput("resource2", "Define Resource Type/Unit", value = "", width = "300px", placeholder = "Resource") %>%
                               #Resource Type helper
                               helper(type = "inline",
+                                     icon = 'circle-question',
                                      title = "Resource Type",
                                      content = c("This input defines the plot axis label. Resource
                                                  Type is the resource evaluated in your design
@@ -861,6 +875,7 @@ ui <- fluidPage(
                         h3(strong(HTML("<center>CDF Estimates<center/>") %>%
                                     #CDF helper
                                     helper(type = "inline",
+                                           icon = 'circle-question',
                                            title = "Cumulative Distribution Function (CDF)",
                                            content = c("A Cumulative Distribution Function calculates
                                                        the cumulative probability for a given value and
@@ -882,6 +897,7 @@ ui <- fluidPage(
                         h3(strong(HTML("<center>Distribution of Estimates by Population<center/>") %>%
                                     #CDF helper
                                     helper(type = "inline",
+                                           icon = 'circle-question',
                                            title = "Ridgeline Distribution Plot",
                                            content = c("A <b>Ridgeline Plot</b>, also known as a Joy Plot,
                                                        is used to visualize distributions of several groups.
@@ -1441,6 +1457,12 @@ server <- function(input, output, session) {
           ttype <- 'median'
         }
       }
+      
+      if(input$ciSize_chg == '95'){
+        conf.in = 95
+      }else{
+        conf.in = 90
+      }
 
        #revisitWgt <- FALSE # NOT SURE WHAT THIS SHOULD BE SO ASSUME DEFAULT
        show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait.')
@@ -1453,15 +1475,18 @@ server <- function(input, output, session) {
                                       siteID = input$siteVar, weight = input$weightVar,
                                       xcoord = xcoord.in, ycoord = ycoord.in,
                                       stratumID = stratum.in,
-                                      vartype = vartype, All_Sites = all_sites)
+                                      vartype = vartype, All_Sites = all_sites,
+                                      conf = conf.in)
           }else{
-            chgOut <- change_analysis(dframe = chgIn, vars_cont = input$respVar, test = ttype,
+            chgOut <- change_analysis(dframe = chgIn, vars_cont = input$respVar, 
+                                      test = ttype,
                                       subpops=subpops.in, surveyID = surveyID,
                                       survey_names = survey_names,
                                       siteID = input$siteVar, weight = input$weightVar,
                                       xcoord = xcoord.in, ycoord = ycoord.in,
                                       stratumID = stratum.in,
-                                      vartype = vartype, All_Sites = all_sites)
+                                      vartype = vartype, All_Sites = all_sites,
+                                      conf = conf.in)
           }
 
       remove_modal_spinner()
@@ -1608,6 +1633,12 @@ server <- function(input, output, session) {
       }else{
         ycoord.in <- input$coordyVar
       }
+    
+      if(input$ciSize == '95'){
+        conf.in = 95
+      }else{
+        conf.in = 90
+      }
 
        # User selected categorical analysis, set up cat.analysis function depending on previous selections
       if(input$atype=='categ'){
@@ -1616,7 +1647,7 @@ server <- function(input, output, session) {
                                    xcoord = xcoord.in, ycoord = ycoord.in,
                                    # sizeweight = sizeweight.in, sweight = sweight.in,
                                    stratumID = stratum.in, vartype=vartype,
-                                   All_Sites = all_sites)
+                                   conf = conf.in, All_Sites = all_sites)
 
       }else{
 
@@ -1626,7 +1657,7 @@ server <- function(input, output, session) {
                                       xcoord = xcoord.in, ycoord = ycoord.in,
                                       # sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in, vartype=vartype,
-                                      All_Sites = all_sites,
+                                      conf = conf.in, All_Sites = all_sites,
                                       statistics = 'CDF')$CDF
 
             }else if(input$cdf_pct=='pct'){ # Just produce percentiles
@@ -1635,7 +1666,7 @@ server <- function(input, output, session) {
                                       xcoord = xcoord.in, ycoord = ycoord.in,
                                       # sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in, vartype=vartype,
-                                      All_Sites = all_sites,
+                                      conf = conf.in, All_Sites = all_sites,
                                       statistics = c('Pct'))$Pct
             }else if(input$cdf_pct=='mean'){
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in,
@@ -1643,7 +1674,7 @@ server <- function(input, output, session) {
                                       xcoord = xcoord.in, ycoord = ycoord.in,
                                       # sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in, vartype=vartype,
-                                      All_Sites = all_sites,
+                                      conf = conf.in, All_Sites = all_sites,
                                       statistics = c('Mean'))$Mean
             }else{
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in,
@@ -1651,7 +1682,7 @@ server <- function(input, output, session) {
                                       xcoord = xcoord.in, ycoord = ycoord.in,
                                       # sizeweight = sizeweight.in, sweight = sweight.in,
                                       stratumID = stratum.in, vartype=vartype,
-                                      All_Sites = all_sites,
+                                      conf = conf.in, All_Sites = all_sites,
                                       statistics = c('Total'))$Total
             }
           # }
@@ -1744,7 +1775,8 @@ server <- function(input, output, session) {
           placeholder = "Must be a .csv file",
           accept = c(".csv"))) %>%
       #File input helper
-      helper(type = "inline",
+      helper(type = "inline", 
+             icon = 'circle-question',
              title = "Categorical Estimate File",
              content = paste("Choose a file with the same output which the
                                      spsurvey package", strong("cat_analysis()"),
@@ -1753,8 +1785,10 @@ server <- function(input, output, session) {
                                                  selections will show up in the dropdown menu.
                                                  The expected and required variables are:", strong("Type,
                                                  Indicator, Subpopulation, Category, NResp, Estimate.P,
-                                                 StdError.P, LCB95Pct.P, UCB95Pct.P, Estimate.U,
-                                                 StdError.U, LCB95Pct.U, UCB95Pct.U")),
+                                                 StdError.P, LCBXXPct.P, UCBXXPct.P, Estimate.U,
+                                                 StdError.U, LCBXXPct.U, UCBXXPct.U, where XX is the
+                                                 confidence level (90 or 95 from the analysis part of
+                                                 this application)")),
              size = "s", easyClose = TRUE, fade = TRUE)
   })
 
@@ -1764,9 +1798,18 @@ server <- function(input, output, session) {
       dataEst()[['estOut']]
 
     } else {
+      cival <- str_extract(colnames(userEst()), '[:digit:][:digit:]') %>%
+        unique()
+      
+      cival <- subset(cival, !is.na(cival))
+      
+      validate(need(length(cival)==1, message = 'More than one confidence level included. Must only have values from a single confidence level.'))
+      
       necVars <- c('Type', 'Indicator', 'Subpopulation', 'Category', 'Estimate.P',
-                   'StdError.P', 'LCB95Pct.P', 'UCB95Pct.P', 'Estimate.U',
-                   'StdError.U', 'LCB95Pct.U', 'UCB95Pct.U')
+                   'StdError.P', paste0('LCB', cival, 'Pct.P'), 
+                   paste0('UCB', cival, 'Pct.P'), 'Estimate.U',
+                   'StdError.U', paste0('LCB', cival, 'Pct.U'), 
+                   paste0('UCB', cival, 'Pct.U'))
 
       validate(need(all(necVars %in% colnames(userEst())),
                     message = "Dataset does not include all variables in standardized output from spsurvey."))
@@ -1920,13 +1963,17 @@ server <- function(input, output, session) {
     names(col5) <- input$Other
     colors <- c(col1, col2, col3, col4, col5)
 
+    cival <- str_extract(colnames(plotDataset()), '[:digit:][:digit:]') %>%
+      unique()
+    
+    cival <- subset(cival, !is.na(cival))
 
     if (input$Estimate == "P Estimates") {
       Dataset <- plotDataset()
 
       Dataset <- subset(Dataset, select = c('Type', 'Subpopulation', 'Indicator', 'Category',
-                                            'Estimate.P', 'StdError.P', 'LCB95Pct.P',
-                                            'UCB95Pct.P'))
+                                            'Estimate.P', 'StdError.P', paste0('LCB', cival, 'Pct.P'),
+                                            paste0('UCB', cival, 'Pct.P')))
 
       Dataset$LCB95Pct.P <- with(Dataset, ifelse(LCB95Pct.P < 0, 0, LCB95Pct.P))
       Dataset$UCB95Pct.P <- with(Dataset, ifelse(UCB95Pct.P > 100, 100, UCB95Pct.P))
@@ -1937,19 +1984,19 @@ server <- function(input, output, session) {
 
       names(Dataset)[names(Dataset) == "Estimate.P"] <- "Estimate"
       names(Dataset)[names(Dataset) == "StdError.P"] <- "StdError"
-      names(Dataset)[names(Dataset) == "LCB95Pct.P"] <- "LCB95"
-      names(Dataset)[names(Dataset) == "UCB95Pct.P"] <- "UCB95"
+      names(Dataset)[names(Dataset) == paste0("LCB", cival, "Pct.P")] <- paste0("LCB", cival)
+      names(Dataset)[names(Dataset) == paste0("UCB", cival, "Pct.P")] <- paste0("UCB", cival)
 
     } else {
       Dataset <- plotDataset()
 
       Dataset <- subset(Dataset, select = c('Type', 'Subpopulation', 'Indicator', 'Category',
-                                            'Estimate.U', 'StdError.U', 'LCB95Pct.U',
-                                            'UCB95Pct.U'))
+                                            'Estimate.U', 'StdError.U', paste0('LCB', cival, 'Pct.U'),
+                                            paste0('UCB', cival, 'Pct.U')))
       names(Dataset)[names(Dataset) == "Estimate.U"] <- "Estimate"
       names(Dataset)[names(Dataset) == "StdError.U"] <- "StdError"
-      names(Dataset)[names(Dataset) == "LCB95Pct.U"] <- "LCB95"
-      names(Dataset)[names(Dataset) == "UCB95Pct.U"] <- "UCB95"
+      names(Dataset)[names(Dataset) == paste0("LCB", cival, "Pct.U")] <-"LCB"
+      names(Dataset)[names(Dataset) == paste0("UCB", cival, "Pct.U")] <- "UCB"
 
      }
 
@@ -1979,7 +2026,7 @@ server <- function(input, output, session) {
     P1 <- ggplot(data = popest, aes(x = Category, y = Estimate)) +
       geom_bar(aes(fill = Category, color = Category), alpha = 0.5,
                stat="identity", position = position_dodge()) +
-      geom_errorbar(aes(ymin = LCB95, ymax = UCB95, color = Category),
+      geom_errorbar(aes(ymin = LCB, ymax = UCB, color = Category),
                     size=2, width=0) +
       scale_fill_manual(values = colors) +
       scale_color_manual(values = colors) +
@@ -2019,20 +2066,20 @@ server <- function(input, output, session) {
     }
 
     if (input$indconlim == TRUE && input$Estimate == "P Estimates") {
-      P1 <- P1 + geom_text(aes(label=paste(format(LCB95),"%",
-                                           sep=""), y=LCB95), hjust = 1.1, size = 3.5, fontface = "bold",
+      P1 <- P1 + geom_text(aes(label=paste(format(LCB),"%",
+                                           sep=""), y=LCB), hjust = 1.1, size = 3.5, fontface = "bold",
                            color = "#4D4D4D", family="sans", position = position_nudge(x = 0.15)) +
-        geom_text(aes(label=paste(format(UCB95),"%",
-                                  sep=""), y=UCB95), hjust = -.15,size = 3.5, fontface = "bold",
+        geom_text(aes(label=paste(format(UCB),"%",
+                                  sep=""), y=UCB), hjust = -.15,size = 3.5, fontface = "bold",
                   color = "#4D4D4D", family="sans", position = position_nudge(x = 0.15))
     }
 
     if (input$indconlim == TRUE && input$Estimate == "U Estimates") {
       ylim <- max(popest$UCB95) * 1.1
 
-      P1 <- P1 + geom_text(aes(label = format(round(LCB95), big.mark = ","), y=LCB95),
+      P1 <- P1 + geom_text(aes(label = format(round(LCB), big.mark = ","), y=LCB),
                            hjust = 1.1, size = 3.5, fontface = "bold", color = "#4D4D4D", family="sans", position = position_nudge(x = 0.15)) +
-        geom_text(aes(label = format(round(UCB95), big.mark = ","), y=UCB95),
+        geom_text(aes(label = format(round(UCB), big.mark = ","), y=UCB),
                   hjust = .2, size = 3.5, fontface = "bold", color = "#4D4D4D", family="sans", position = position_nudge(x = 0.15)) +
         ylim(0, ylim)
     }
@@ -2060,36 +2107,47 @@ server <- function(input, output, session) {
     names(col5) <- input$Other
     colors <- c(col1, col2, col3, col4, col5)
 
+    cival <- str_extract(colnames(plotDataset()), '[:digit:][:digit:]') %>%
+      unique()
+    
+    cival <- subset(cival, !is.na(cival))
+    
 
     if (input$Estimate == "P Estimates") {
       Dataset <- plotDataset()
 
       Dataset <- subset(Dataset, select = c('Type', 'Subpopulation', 'Indicator', 'Category',
-                                            'Estimate.P', 'StdError.P', 'LCB95Pct.P',
-                                            'UCB95Pct.P'))
-      Dataset$LCB95Pct.P <- with(Dataset, ifelse(LCB95Pct.P < 0, 0, LCB95Pct.P))
-      Dataset$UCB95Pct.P <- with(Dataset, ifelse(UCB95Pct.P > 100, 100, UCB95Pct.P))
+                                            'Estimate.P', 'StdError.P', 
+                                            paste0('LCB', cival, 'Pct.P'),
+                                            paste0('UCB', cival, 'Pct.P'))) 
+      names(Dataset)[names(Dataset) == paste0('LCB', cival, 'Pct.P')] <- "LCB"
+      names(Dataset)[names(Dataset) == paste0('UCB', cival, 'Pct.P')] <- "UCB"
+      
+      Dataset$LCBPct.P <- with(Dataset, ifelse(LCB < 0, 0, LCB))
+      Dataset$UCBPct.P <- with(Dataset, ifelse(UCB > 100, 100, UCB))
       Dataset$Estimate.P <- with(Dataset, round(Estimate.P, 0))
-      Dataset$UCB95Pct.P <- with(Dataset, round(UCB95Pct.P, 0))
-      Dataset$LCB95Pct.P <- with(Dataset, round(LCB95Pct.P, 0))
+      Dataset$UCBPct.P <- with(Dataset, round(UCB, 0))
+      Dataset$LCBPct.P <- with(Dataset, round(LCB, 0))
 
 
       names(Dataset)[names(Dataset) == "Estimate.P"] <- "Estimate"
       names(Dataset)[names(Dataset) == "StdError.P"] <- "StdError"
-      names(Dataset)[names(Dataset) == "LCB95Pct.P"] <- "LCB95"
-      names(Dataset)[names(Dataset) == "UCB95Pct.P"] <- "UCB95"
+      
 
     } else {
       Dataset <- plotDataset()
 
       Dataset <- subset(Dataset, select = c('Type', 'Subpopulation', 'Indicator', 'Category',
-                                            'Estimate.U', 'StdError.U', 'LCB95Pct.U',
-                                            'UCB95Pct.U'))
+                                            'Estimate.U', 'StdError.U', 
+                                            paste0('LCB', cival, 'Pct.U'),
+                                            paste0('UCB', cival, 'Pct.U'))) 
+      
+      names(Dataset)[names(Dataset) == paste0('LCB', cival, 'Pct.U')] <- "LCB"
+      names(Dataset)[names(Dataset) == paste0('UCB', cival, 'Pct.U')] <- "UCB"
+      
       names(Dataset)[names(Dataset) == "Estimate.U"] <- "Estimate"
       names(Dataset)[names(Dataset) == "StdError.U"] <- "StdError"
-      names(Dataset)[names(Dataset) == "LCB95Pct.U"] <- "LCB95"
-      names(Dataset)[names(Dataset) == "UCB95Pct.U"] <- "UCB95"
-
+      
     }
 
     popest2 <- Dataset
@@ -2150,7 +2208,7 @@ server <- function(input, output, session) {
     P2 <- ggplot(data = popest2, aes(x = Subpopulation, y = Estimate)) +
       geom_bar(aes(fill = Category, color = Category), alpha = 0.5, stat="identity",
                position = position_dodge()) +
-      geom_errorbar(aes(ymin = LCB95, ymax = UCB95, color = Category), size=2, width=0) +
+      geom_errorbar(aes(ymin = LCB, ymax = UCB, color = Category), size=2, width=0) +
       scale_fill_manual(values = colors) +
       scale_color_manual(values = colors) +
       scale_x_discrete(labels = function(x) str_wrap(x, width = 14)) +
@@ -2187,22 +2245,22 @@ server <- function(input, output, session) {
     }
 
     if (input$subconlim == TRUE && input$Estimate == "P Estimates") {
-      P2 <- P2 + geom_text(aes(label=paste(format(LCB95),"%",
-                                           sep=""), y=LCB95), hjust = 1.1, size = 3.5,
+      P2 <- P2 + geom_text(aes(label=paste(format(LCB),"%",
+                                           sep=""), y=LCB), hjust = 1.1, size = 3.5,
                            fontface = "bold",
                            color = "#4D4D4D", family="sans", position = position_nudge(x = 0.15)) +
-        geom_text(aes(label=paste(format(UCB95),"%",
-                                  sep=""), y=UCB95), hjust = -.15, size = 3.5, fontface = "bold",
+        geom_text(aes(label=paste(format(UCB),"%",
+                                  sep=""), y=UCB), hjust = -.15, size = 3.5, fontface = "bold",
                   color = "#4D4D4D", family="sans", position = position_nudge(x = 0.15))
     }
 
     if (input$subconlim == TRUE && input$Estimate == "U Estimates") {
       ylim <- max(popest2$UCB95) * 1.1
 
-      P2 <- P2 + geom_text(aes(label = format(round(LCB95), big.mark = ","), y=LCB95),
+      P2 <- P2 + geom_text(aes(label = format(round(LCB), big.mark = ","), y=LCB),
                            hjust = 1.1, size = 3.5, fontface = "bold", color = "#4D4D4D",
                            family="sans", position = position_nudge(x = 0.15)) +
-        geom_text(aes(label = format(round(UCB95), big.mark = ","), y=UCB95),
+        geom_text(aes(label = format(round(UCB), big.mark = ","), y=UCB),
                   hjust = .2, size = 3.5, fontface = "bold", color = "#4D4D4D", family="sans",
                   position = position_nudge(x = 0.15)) +
         ylim(0, ylim)
@@ -2272,6 +2330,7 @@ server <- function(input, output, session) {
       accept = c(".csv")) %>%
       #File input helper
       helper(type = "inline",
+             icon = 'circle-question',
              title = "CDF Estimate File",
              content = paste("Choose a file with the same output which the
                                      spsurvey package", strong("cont_analysis()"),
@@ -2280,8 +2339,10 @@ server <- function(input, output, session) {
                                                  selections will show up in the dropdown menu.
                                      The expected and required variables are:", strong("Type,
                                      Subpopulation, Indicator, Value, Estimate.P, Estimate.U,
-                                     StdError.P, StdError.U, LCB95Pct.P, UCB95Pct.P, LCB95Pct.U,
-                                     UCB95Pct.U")),
+                                     StdError.P, StdError.U, LCBXXPct.P, UCBXXPct.P, Estimate.U,
+                                                 StdError.U, LCBXXPct.U, UCBXXPct.U, where XX is the
+                                                 confidence level (90 or 95 from the analysis part of
+                                                 this application)")),
              size = "s", easyClose = TRUE, fade = TRUE)
   })
 
