@@ -761,6 +761,7 @@ ui <- fluidPage(
                                                            label= "Add Confidence Limit Values",
                                                            value = FALSE,
                                                            width = NULL)))),
+                     
                    fluidRow(
                      column(3, offset = 1,
                             conditionalPanel(condition="input.plotbtn",
@@ -1975,17 +1976,18 @@ server <- function(input, output, session) {
                                             'Estimate.P', 'StdError.P', paste0('LCB', cival, 'Pct.P'),
                                             paste0('UCB', cival, 'Pct.P')))
 
-      Dataset$LCB95Pct.P <- with(Dataset, ifelse(LCB95Pct.P < 0, 0, LCB95Pct.P))
-      Dataset$UCB95Pct.P <- with(Dataset, ifelse(UCB95Pct.P > 100, 100, UCB95Pct.P))
+      names(Dataset)[names(Dataset) == paste0("LCB", cival, "Pct.P")] <- "LCB"
+      names(Dataset)[names(Dataset) == paste0("UCB", cival, "Pct.P")] <- "UCB"
+      
+      Dataset$LCB <- with(Dataset, ifelse(LCB < 0, 0, LCB))
+      Dataset$UCB <- with(Dataset, ifelse(UCB > 100, 100, UCB))
       Dataset$Estimate.P <- with(Dataset, round(Estimate.P, 0))
-      Dataset$UCB95Pct.P <- with(Dataset, round(UCB95Pct.P, 0))
-      Dataset$LCB95Pct.P <- with(Dataset, round(LCB95Pct.P, 0))
+      Dataset$UCB <- with(Dataset, round(UCB, 0))
+      Dataset$LCB <- with(Dataset, round(LCB, 0))
 
 
       names(Dataset)[names(Dataset) == "Estimate.P"] <- "Estimate"
       names(Dataset)[names(Dataset) == "StdError.P"] <- "StdError"
-      names(Dataset)[names(Dataset) == paste0("LCB", cival, "Pct.P")] <- paste0("LCB", cival)
-      names(Dataset)[names(Dataset) == paste0("UCB", cival, "Pct.P")] <- paste0("UCB", cival)
 
     } else {
       Dataset <- plotDataset()
@@ -2123,11 +2125,11 @@ server <- function(input, output, session) {
       names(Dataset)[names(Dataset) == paste0('LCB', cival, 'Pct.P')] <- "LCB"
       names(Dataset)[names(Dataset) == paste0('UCB', cival, 'Pct.P')] <- "UCB"
       
-      Dataset$LCBPct.P <- with(Dataset, ifelse(LCB < 0, 0, LCB))
-      Dataset$UCBPct.P <- with(Dataset, ifelse(UCB > 100, 100, UCB))
+      Dataset$LCB <- with(Dataset, ifelse(LCB < 0, 0, LCB))
+      Dataset$UCB <- with(Dataset, ifelse(UCB > 100, 100, UCB))
       Dataset$Estimate.P <- with(Dataset, round(Estimate.P, 0))
-      Dataset$UCBPct.P <- with(Dataset, round(UCB, 0))
-      Dataset$LCBPct.P <- with(Dataset, round(LCB, 0))
+      Dataset$UCB <- with(Dataset, round(UCB, 0))
+      Dataset$LCB <- with(Dataset, round(LCB, 0))
 
 
       names(Dataset)[names(Dataset) == "Estimate.P"] <- "Estimate"
@@ -2352,6 +2354,21 @@ server <- function(input, output, session) {
     if(input$coninput == "Current Estimate Data" && input$cdf_pct=='cdf') {
       dataEst()[['estOut']]
     } else {
+      cival <- str_extract(colnames(userCDFEst()), '[:digit:][:digit:]') %>%
+        unique()
+      
+      cival <- subset(cival, !is.na(cival))
+      
+      validate(need(length(cival)==1, message = 'More than one confidence level included. Must only have values from a single confidence level.'))
+      
+      necVars <- c('Type', 'Indicator', 'Subpopulation', 'Value', 'Estimate.P',
+                   'StdError.P', paste0('LCB', cival, 'Pct.P'), 
+                   paste0('UCB', cival, 'Pct.P'), 'Estimate.U',
+                   'StdError.U', paste0('LCB', cival, 'Pct.U'), 
+                   paste0('UCB', cival, 'Pct.U'))
+      
+      validate(need(all(necVars %in% colnames(userCDFEst())),
+                    message = "Dataset does not include all variables in standardized output from spsurvey."))
       CDFOut <- userCDFEst()
 
     }})
@@ -2393,12 +2410,20 @@ server <- function(input, output, session) {
   })
 
   CDF_subplot <- reactive({
+    
+    cival <- str_extract(colnames(CDFDataset()), '[:digit:][:digit:]') %>%
+      unique()
+    
+    cival <- subset(cival, !is.na(cival))
+    
     req(input$plotbtncon, input$SubPop_Con)
     necVars <- c('Type', 'Subpopulation', 'Indicator', 'Value',
                  'Estimate.P', 'Estimate.U',
-                 'StdError.P', 'StdError.U', 'LCB95Pct.P',
-                 'UCB95Pct.P', 'LCB95Pct.U',
-                 'UCB95Pct.U')
+                 'StdError.P', 'StdError.U', 
+                 paste0('LCB', cival, 'Pct.P'), 
+                 paste0('UCB', cival, 'Pct.P'), 
+                 paste0('LCB', cival, 'Pct.U'), 
+                 paste0('UCB', cival, 'Pct.U'))
 
     validate(need(all(necVars %in% colnames(CDFDataset())),
                   message = "Dataset does not include all variables in standardized output from spsurvey."))
@@ -2408,15 +2433,15 @@ server <- function(input, output, session) {
     if (input$Estimate_CDF == "P Estimates_CDF") {
       names(CDFDataset)[names(CDFDataset) == "Estimate.P"] <- "Estimate"
       names(CDFDataset)[names(CDFDataset) == "StdError.P"] <- "StdError"
-      names(CDFDataset)[names(CDFDataset) == "LCB95Pct.P"] <- "LCB95"
-      names(CDFDataset)[names(CDFDataset) == "UCB95Pct.P"] <- "UCB95"
-      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
+      names(CDFDataset)[names(CDFDataset) == paste0("LCB", cival, "Pct.P")] <- "LCB"
+      names(CDFDataset)[names(CDFDataset) == paste0("UCB", cival, "Pct.P")] <- "UCB"
+      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate', 'StdError', 'LCB', 'UCB'))
     } else {
       names(CDFDataset)[names(CDFDataset) == "Estimate.U"] <- "Estimate"
       names(CDFDataset)[names(CDFDataset) == "StdError.U"] <- "StdError"
-      names(CDFDataset)[names(CDFDataset) == "LCB95Pct.U"] <- "LCB95"
-      names(CDFDataset)[names(CDFDataset) == "UCB95Pct.U"] <- "UCB95"
-      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
+      names(CDFDataset)[names(CDFDataset) == paste0("LCB", cival, "Pct.U")] <- "LCB"
+      names(CDFDataset)[names(CDFDataset) == paste0("UCB", cival, "Pct.U")] <- "UCB"
+      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate', 'StdError', 'LCB', 'UCB'))
     }
 
     CDFDataset <- subset(CDFDataset, Indicator == input$Ind_Con & Subpopulation %in% input$SubPop_Con)
@@ -2457,7 +2482,7 @@ server <- function(input, output, session) {
       g <- g + geom_vline(xintercept = input$Thresh, color = "red", size = 1, linetype = "longdash")
     }
     if (input$conflim == TRUE) {
-      g <- g + geom_ribbon(aes(ymin = LCB95, ymax = UCB95, fill = Subpopulation), alpha = 0.2,
+      g <- g + geom_ribbon(aes(ymin = LCB, ymax = UCB, fill = Subpopulation), alpha = 0.2,
                            colour = "transparent", show.legend = FALSE)
     }
     if (input$log == TRUE) {
@@ -2469,21 +2494,27 @@ server <- function(input, output, session) {
 
   Dist_plot <- reactive({
     req(input$plotbtncon)
+    
+    cival <- str_extract(colnames(CDFDataset()), '[:digit:][:digit:]') %>%
+      unique()
+    
+    cival <- subset(cival, !is.na(cival))
+    
     CDFDataset <- CDFDataset()
     if (input$Estimate_CDF == "P Estimates_CDF") {
 
       names(CDFDataset)[names(CDFDataset) == "Estimate.P"] <- "Estimate"
       names(CDFDataset)[names(CDFDataset) == "StdError.P"] <- "StdError"
-      names(CDFDataset)[names(CDFDataset) == "LCB95Pct.P"] <- "LCB95"
-      names(CDFDataset)[names(CDFDataset) == "UCB95Pct.P"] <- "UCB95"
-      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
+      names(CDFDataset)[names(CDFDataset) == paste0("LCB", cival, "Pct.P")] <- "LCB"
+      names(CDFDataset)[names(CDFDataset) == paste0("UCB", cival, "Pct.P")] <- "UCB"
+      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate', 'StdError', 'LCB', 'UCB'))
     } else {
 
       names(CDFDataset)[names(CDFDataset) == "Estimate.U"] <- "Estimate"
       names(CDFDataset)[names(CDFDataset) == "StdError.U"] <- "StdError"
-      names(CDFDataset)[names(CDFDataset) == "LCB95Pct.U"] <- "LCB95"
-      names(CDFDataset)[names(CDFDataset) == "UCB95Pct.U"] <- "UCB95"
-      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate', 'StdError', 'LCB95', 'UCB95'))
+      names(CDFDataset)[names(CDFDataset) == paste0("LCB", cival, "Pct.U")] <- "LCB"
+      names(CDFDataset)[names(CDFDataset) == paste0("UCB", cival, "Pct.U")] <- "UCB"
+      CDFDataset <- subset(CDFDataset, select = c('Type', 'Subpopulation', 'Indicator', 'Value', 'Estimate', 'StdError', 'LCB', 'UCB'))
     }
 
     CDFDataset <- subset(CDFDataset, Indicator == input$Ind_Con & Subpopulation %in% input$SubPop_Con)
