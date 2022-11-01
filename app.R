@@ -224,7 +224,7 @@ ui <- fluidPage(
 # Instructions ------------------------------------------------------------
    # titlePanel(span("NARS Population Estimate Calculation Tool (v. 2.0.1)",
    #            style = "font-weight: bold; font-size: 28px")),
-   navbarPage(title=span("NARS Population Estimate Calculation Tool (v. 2.0.1)",
+   navbarPage(title=span("NARS Population Estimate Calculation Tool (v. 2.0.2)",
                          style = "font-weight: bold; font-size: 24px"),         
               header = # Individual Page Header
                 HTML(
@@ -317,6 +317,8 @@ ui <- fluidPage(
                bsCollapsePanel(title = h4(strong("Run Population Estimates")),
                tags$ol(
                  tags$li("Select the type of analysis (categorical or continuous)."),
+                 tags$li("Select the confidence level for estimating confidence intervals (90% or 95%).
+                         The default is 95%."),
                  tags$li("If year or design cycle variable was selected on the Prepare Data for
                  Analysis tab, select year or cycle of interest."),
                  tags$li("For continuous analysis, select either CDFs (cumulative distribution
@@ -328,22 +330,148 @@ ui <- fluidPage(
                          to several minutes."),
                  tags$li("If desired, download results to a comma-delimited file by clicking
                          the Save Results button.")
-               )),
+               ),
+               tags$ol(strong("Outputs for categorical analysis:")),
+                  tags$li("Type = Subpopulation group"),
+                  tags$li("Subpopulation = Subpopulation name"),
+                  tags$li("Indicator = Name of indicator"),
+                  tags$li("Category = Category of indicator or Total"),
+                  tags$li("nResp = Number of responses in category"),
+                  tags$li("Estimate.P = Estimated percent of resource in category"),
+                  tags$li("StdError.P = Estimated standard error of percent estimate"),
+                  tags$li("MarginofError.P = Margin of error of percent estimate, representing difference between estimate and confidence bounds"),
+                  tags$li("LCBXXPct.P = Lower confidence bound for percent, where XX represents the confidence level"),
+                  tags$li("UCBXXPct.P = Upper confidence bound for percent, where XX represents the confidence level"),
+                  tags$li("Estimate.U = Estimated amount of resource in category in same units as weights used"),
+                  tags$li("StdError.U = Estimated standard error of amount of resource estimate"),
+                  tags$li("MarginofError.U = Margin of error of amount of resource estimate, representing 
+                          difference between estimate and confidence bounds"),
+                  tags$li("LCBXXPct.U = Lower confidence bound for amount of resource, where XX represents the 
+                          confidence level"),
+                  tags$li("UCBXXPct.U = Upper confidence bound for amount of resource, where XX represents the 
+                          confidence level"),
+               br(),
+               tags$ol(strong("Outputs for continuous analysis:")),
+                   tags$li("Type = Subpopulation group"),
+                   tags$li("Subpopulation = Subpopulation name"),
+                   tags$li("Indicator = Name of indicator"),
+                   tags$li("Value = Value of indicator (CDF only)"),
+                   tags$li("Statistic = Value of indicator (Percentiles only)"),
+                   tags$li("nResp = Number of responses in category"),
+                   tags$li("Estimate.P = Estimated percent of resource at or below value (CDF only)"),
+                   tags$li("Estimate = Estimated value for given percentile (Percentiles only)"),
+                   tags$li("StdError.P = Estimated standard error of percent estimate (CDF only)"),
+                   tags$li("StdError = Estimated standard error of mean, variance, or standard deviation 
+                           estimate (Percentiles only)"),
+                   tags$li("LCBXXPct.P = Lower confidence bound for percent, where XX represents the confidence level (CDF only)"),
+                   tags$li("UCBXXPct.P = Upper confidence bound for percent, where XX represents the confidence level (CDF only"),
+                   tags$li("LCBXXPct = Lower confidence bound for percentile estimate, where XX represents the 
+                           confidence level (Percentiles only)"),
+                   tags$li("UCBXXPct = Upper confidence bound for percentile estimate, where XX represents the 
+                           confidence level (Percentiles only)"),
+                   tags$li("Estimate.U = Estimated amount of resource at or below value in same units as weights 
+                           used (CDF only)"),
+                   tags$li("StdError.U = Estimated standard error of amount of resource at or below estimate (CDF only)"),
+                   
+                   tags$li("LCBXXPct.U = Lower confidence bound for amount of resource, where XX represents the 
+                           confidence level (CDF only)"),
+                   tags$li("UCBXXPct.U = Upper confidence bound for amount of resource, where XX represents the 
+                           confidence level (CDF only)")
+               ),
                bsCollapsePanel(title = h4(strong("Run Change Analysis")),
                tags$ol(
                  tags$li("First select the two years (or sets of years) to compare."),
                  tags$li("Select type of data to analyze (categorical or continuous)."),
+                 tags$li("Select the confidence level for estimating confidence intervals (90% or 95%).
+                         The default is 95%."),
                  tags$li("If continuous data are selected, select parameter on which to test
                          for differences (mean or median)."),
-                 # tags$li("If repeated visits to sites are included in dataset across years or
-                 #         cycles, check box. If selected, note that site ID variable selected
-                 #         must contain the same value for both years or cycles of data."),
                  tags$li("Click on the Run/Refresh Estimates button. Depending on the number of
                  responses, subpopulations, and type of analysis, it may take a few
                          seconds to several minutes."),
                  tags$li("If any data are changed in the Prepare Data for Analysis tab, years
                          must be re-selected before running analysis.")
-               )),
+               ),
+               tags$ul(strong("Outputs for Categorical Analysis:"),
+                       tags$li("Survey_1 = Year or design cycle of first survey"),
+                       tags$li("Survey_2 = Year or design cycle of second survey"),
+                       tags$li("Type = Subpopulation group"),
+                       tags$li("Subpopulation = Subpopulation name"),
+                       tags$li("Indicator = Name of indicator"),
+                       tags$li("Category = Category of indicator or Total"),
+                       tags$li("DiffEst.P = Estimate of difference in percentage (Survey_2 - Survey_1)"),
+                       tags$li("StdError.P = Estimated standard error of change percent estimate"),
+                       tags$li("MarginofError.P = Margin of error of change percent estimate, representing 
+                               difference between estimate and confidence bounds"),
+                       tags$li("LCBXXPct.P = Lower confidence bound for change percent, where XX represents 
+                               the confidence level"),
+                       tags$li("UCBXXPct.P = Upper confidence bound for change percent, where XX represents 
+                               the confidence level"),
+                       tags$li("DiffEst.U = Estimated amount of change in resource in category in same units 
+                               as weights used"),
+                       tags$li("StdError.U = Estimated standard error of amount of change in resource estimate"),
+                       tags$li("MarginofError.U = Margin of error of amount of change in resource estimate, representing 
+                          difference between estimate and confidence bounds"),
+                       tags$li("LCBXXPct.U = Lower confidence bound for amount of change resource, where XX represents the 
+                          confidence level"),
+                       tags$li("UCBXXPct.U = Upper confidence bound for amount of change resource, where XX represents the 
+                          confidence level"),
+                       tags$li("nResp_1, nResp_2 = Number of responses in category in survey 1 and survey 2, respectively"),
+                       tags$li("Estimate.P_1, Estimate.P_2 = Estimated percent of resource in category in survey 1 
+                               and survey 2, respectively"),
+                       tags$li("StdError.P_1, StdError.P_2 = Estimated standard error of percent estimate in survey 1 
+                               and survey 2, respectively"),
+                       tags$li("MarginofError.P_1, MarginofError.P_2 = Margin of error of percent estimate, 
+                               representing difference between estimate and confidence bounds in survey 1 
+                               and survey 2, respectively"),
+                       tags$li("LCBXXPct.P_1, LCBXXPct.P_2 = Lower confidence bound for percent, where XX represents 
+                               the confidence level in survey 1 and survey 2, respectively"),
+                       tags$li("UCBXXPct.P_1, UCBXXPct.P_2 = Upper confidence bound for percent, where XX represents 
+                               the confidence level in survey 1 and survey 2, respectively"),
+                       tags$li("Estimate.U_1, Estimate.U_2 = Estimated amount of resource in category in same units 
+                               as weights used, in survey 1 and survey 2, respectively"),
+                       tags$li("StdError.U_1, StdError.U_2 = Estimated standard error of amount of resource estimate 
+                               in survey 1 and survey 2, respectively"),
+                       tags$li("MarginofError.U_1, MarginofError.U_2 = Margin of error of amount of resource estimate,
+                               representing difference between estimate and confidence bounds in survey 1 and survey 2,
+                               respectively"),
+                       tags$li("LCBXXPct.U_1, LCBXXPct.U_2 = Lower confidence bound for amount of resource, where 
+                               XX represents the confidence level in survey 1 and survey 2, respectively"),
+                       tags$li("UCBXXPct.U_1, UCBXXPct.U_2 = Upper confidence bound for amount of resource, 
+                               where XX represents the confidence level in survey 1 and survey 2, respectively")
+                       ),
+               tags$ul(strong("Outputs for Continuous Analysis (Means):"),
+                       tags$li("Survey_1 = Year or design cycle of first survey"),
+                       tags$li("Survey_2 = Year or design cycle of second survey"),
+                       tags$li("Type = Subpopulation group"),
+                       tags$li("Subpopulation = Subpopulation name"),
+                       tags$li("Indicator = Name of indicator"),
+                       tags$li("DiffEst = Estimate of difference in mean for indicator (Survey_2 - Survey_1)"),
+                       tags$li("StdError = Estimated standard error of change estimate"),
+                       tags$li("MarginofError = Margin of error of estimated mean, representing 
+                                       difference between estimate and confidence bounds"),
+                       tags$li("LCBXXPct = Lower confidence bound for estimated mean, where XX represents 
+                                       the confidence level"),
+                       tags$li("UCBXXPct = Upper confidence bound for estimated mean, where XX represents 
+                                       the confidence level"),
+                       tags$li("nResp_1, nResp_2 = Number of responses for indicator in survey 1 and survey 2, respectively"),
+                       tags$li("Estimate_1, Estimate_2 = Estimated mean of resource for indicator in survey 1 
+                                       and survey 2, respectively"),
+                       tags$li("StdError_1, StdError_2 = Estimated standard error of estimated mean in survey 1 
+                                       and survey 2, respectively"),
+                       tags$li("MarginofError_1, MarginofError_2 = Margin of error of estimated mean, 
+                                       representing difference between estimate and confidence bounds in survey 1 
+                                       and survey 2, respectively"),
+                       tags$li("LCBXXPct_1, LCBXXPct_2 = Lower confidence bound for indicator mean, where XX represents 
+                                       the confidence level in survey 1 and survey 2, respectively"),
+                       tags$li("UCBXXPct_1, UCBXXPct_2 = Upper confidence bound for indicator mean, where XX represents 
+                                       the confidence level in survey 1 and survey 2, respectively"),
+                       ),
+               tags$ul(strong("Outputs for Continuous Analysis (Medians):"),
+                       tags$li("All of the output variable names match those for Categorical Change Analysis (see above)"),
+                       tags$li("The two categories for this output are Greater_Than_Median and Less_Than_Median, 
+                               but the interpretations are the same")
+                       )),
 
                bsCollapsePanel(title = h4(strong("Plot Categorical Estimates")),
                   tags$ol(
@@ -351,8 +479,9 @@ ui <- fluidPage(
                             app or import results into the app."),
                     tags$li("Variables in dataset must match those expected as output from
                             spsurvey::cat_analysis function:", strong("Type, Subpopulation, Indicator,
-                            Category, Estimate.P, StdError.P, LCB95Pct.P, UCB95Pct.P, Estimate.U,
-                            StdError.U,	LCB95Pct.U,	UCB95Pct.U")),
+                            Category, Estimate.P, StdError.P, LCBXXPct.P, UCBXXPct.P, Estimate.U,
+                            StdError.U,	LCBXXPct.U,	UCBXXPct.U, where XX represents the confidence
+                                                                      level.")),
                     tags$li("Select either proportion or unit estimates to plot from Estimate Type."),
                     tags$li("Select Category values that represent Good, Fair, Poor, Not Assessed,
                             and Other condition classes. More than one value per condition class
@@ -383,8 +512,8 @@ ui <- fluidPage(
                              CDF estimates within the app, or import results into the app."),
                      tags$li("Variables in dataset must match those expected as output from
                 spsurvey::cont_analysis function:", strong("Type, Subpopulation, Indicator,
-                Value, Estimate.P, StdError.P, LCB95Pct.P, UCB95Pct.P, Estimate.U,
-                StdError.U,	LCB95Pct.U,	UCB95Pct.U")),
+                Value, Estimate.P, StdError.P, LCBXXPct.P, UCBXXPct.P, Estimate.U,
+                StdError.U,	LCBXXPct.U,	UCBXXPct.U, where XX represents the confidence level.")),
                      tags$li("Select either proportion or unit estimates to plot
                              from Estimate Type."),
                      tags$li(strong("Optional:"), "Add plot title, indicator units,
