@@ -2,9 +2,9 @@
 applications:
 - name: nars-popest-dev
   memory: 750M
+  disk_quota: 2G
   routes:
     - route: nars-popest-dev.app.cloud.gov
-  disk_quota: 2G
   buildpacks:
      - r_buildpack
   command: R -f shiny.R
