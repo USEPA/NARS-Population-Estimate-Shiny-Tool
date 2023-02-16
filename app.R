@@ -685,7 +685,8 @@ ui <- fluidPage(
              shinyjs::disabled(actionButton('runBtn', "Run/Refresh estimates")),
              hr(),
              # Click to download results into a comma-delimited file
-             shinyjs::disabled(downloadButton("dwnldcsv","Save Results as .csv file"))),
+             shinyjs::disabled(downloadButton("dwnldcsv","Save Results as .csv file")),
+             shinyjs::disabled(downloadButton("popcallcsv", "Save version info and the R code used for analysis"))),
              # Show results here
              column(8,
                     h4("If output is not as expected, be sure you chose the correct ",
@@ -1613,7 +1614,7 @@ server <- function(input, output, session) {
                                   paste(input$respVar, collapse = "','"), "')",  
                                   ", \nsubpops = ", 
                                   ifelse(is.null(subpops.in), "NULL", 
-                                         paste0("('", paste0(subpops.in, collapse = "','"), "')")),
+                                         paste0("c('", paste0(subpops.in, collapse = "','"), "')")),
                                   ", \nsurvey_names = c('", 
                                   paste(survey_names, collapse = "','"), "')",
                                   ", \nsite_ID = '", input$siteVar, 
@@ -1651,7 +1652,7 @@ server <- function(input, output, session) {
                                   ", test = '", eval(ttype), 
                                   "', \nsubpops = ", 
                                   ifelse(is.null(subpops.in), "NULL", 
-                                         paste0("('", paste0(subpops.in, collapse = "','"), "')")),
+                                         paste0("c('", paste0(subpops.in, collapse = "','"), "')")),
                                   ", \nsurvey_names = c('", 
                                   paste(survey_names, collapse = "','"), "')",
                                   ", \nsite_ID = '", input$siteVar, 
@@ -1667,7 +1668,7 @@ server <- function(input, output, session) {
                                     "NULL", paste0("'", stratum.in, "'")), 
                                   ", \nvartype = '", vartype, 
                                   "', \nAll_Sites = ", all_sites,
-                                  ", \nconf = '", conf.in, ")\n", 
+                                  ", \nconf = ", conf.in, ")\n", 
                                   "using ", R.version.string, 
                                   ", spsurvey v.", as.character(packageVersion("spsurvey")), 
                                   " in ", "NARS Population Estimate Calculation Tool (v. 2.2.0)")
@@ -1809,13 +1810,13 @@ server <- function(input, output, session) {
         stratum.in <- input$stratumVar
       }
 
-      if(is.null(input$coordxVar)){
+      if(input$locvar != 'local'){
         xcoord.in <- NULL
       }else{
         xcoord.in <- input$coordxVar
       }
 
-      if(is.null(input$coordyVar)){
+      if(input$locvar != 'local'){
         ycoord.in <- NULL
       }else{
         ycoord.in <- input$coordyVar
@@ -1835,6 +1836,30 @@ server <- function(input, output, session) {
                                    # sizeweight = sizeweight.in, sweight = sweight.in,
                                    stratumID = stratum.in, vartype=vartype,
                                    conf = conf.in, All_Sites = all_sites)
+            
+            popCallInfo <- paste0("Code used to run analysis: 
+                                  \ncat_analysis(dframe = dfIn, siteID = '", 
+                                  input$siteVar, "', subpops = ",
+                                  ifelse(is.null(subpops.in), "NULL", 
+                                         paste0("c('", paste0(subpops.in, collapse = "','"), "')")),
+                                  ", \nvars = c('", 
+                                  paste(input$respVar, collapse = "','"), "')",  
+                                  ", weight = '", input$weightVar, 
+                                  "', \nxcoord = ", 
+                                  ifelse(is.null(xcoord.in), "NULL",
+                                         paste0("'", xcoord.in, "'")), 
+                                  ", \nycoord = ", 
+                                  ifelse(is.null(ycoord.in), "NULL", 
+                                         paste0("'", ycoord.in, "'")),
+                                  ", \nstratumID = ", 
+                                  ifelse(is.null(stratum.in),
+                                         "NULL", paste0("'", stratum.in, "'")), 
+                                  ", \nvartype = '", vartype, 
+                                  "', \nAll_Sites = ", all_sites,
+                                  ", \nconf = ", conf.in, ")\n", 
+                                  "using ", R.version.string, 
+                                  ", spsurvey v.", as.character(packageVersion("spsurvey")), 
+                                  " in ", "NARS Population Estimate Calculation Tool (v. 2.2.0)")
 
       }else{
 
@@ -1846,6 +1871,31 @@ server <- function(input, output, session) {
                                       stratumID = stratum.in, vartype=vartype,
                                       conf = conf.in, All_Sites = all_sites,
                                       statistics = 'CDF')$CDF
+              
+              popCallInfo <- paste0("Code used to run analysis: 
+                                  \ncont_analysis(dframe = dfIn, siteID = '", 
+                     input$siteVar, "', subpops = ",
+                     ifelse(is.null(subpops.in), "NULL", 
+                            paste0("c('", paste0(subpops.in, collapse = "','"), "')")),
+                     ", \nvars = c('", 
+                     paste(input$respVar, collapse = "','"), "')",  
+                     ", weight = '", input$weightVar, 
+                     "', \nxcoord = ", 
+                     ifelse(is.null(xcoord.in), "NULL",
+                            paste0("'", xcoord.in, "'")), 
+                     ", \nycoord = ", 
+                     ifelse(is.null(ycoord.in), "NULL", 
+                            paste0("'", ycoord.in, "'")),
+                     ", \nstratumID = ", 
+                     ifelse(is.null(stratum.in),
+                            "NULL", paste0("'", stratum.in, "'")), 
+                     ", \nvartype = '", vartype, 
+                     "', \nAll_Sites = ", all_sites,
+                     ", \nconf = ", conf.in, 
+                     ", statistics = 'CDF')$CDF ", 
+                     "\nusing ", R.version.string, 
+                     ", spsurvey v.", as.character(packageVersion("spsurvey")), 
+                     " in ", "NARS Population Estimate Calculation Tool (v. 2.2.0)")
 
             }else if(input$cdf_pct=='pct'){ # Just produce percentiles
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in,
@@ -1855,6 +1905,31 @@ server <- function(input, output, session) {
                                       stratumID = stratum.in, vartype=vartype,
                                       conf = conf.in, All_Sites = all_sites,
                                       statistics = c('Pct'))$Pct
+              
+              popCallInfo <- paste0("Code used to run analysis: 
+                                  \ncont_analysis(dframe = dfIn, siteID = '", 
+                                    input$siteVar, "', subpops = ",
+                                    ifelse(is.null(subpops.in), "NULL", 
+                                           paste0("c('", paste0(subpops.in, collapse = "','"), "')")),
+                                    ", \nvars = c('", 
+                                    paste(input$respVar, collapse = "','"), "')",  
+                                    ", weight = '", input$weightVar, 
+                                    "', \nxcoord = ", 
+                                    ifelse(is.null(xcoord.in), "NULL",
+                                           paste0("'", xcoord.in, "'")), 
+                                    ", \nycoord = ", 
+                                    ifelse(is.null(ycoord.in), "NULL", 
+                                           paste0("'", ycoord.in, "'")),
+                                    ", \nstratumID = ", 
+                                    ifelse(is.null(stratum.in),
+                                           "NULL", paste0("'", stratum.in, "'")), 
+                                    ", \nvartype = '", vartype, 
+                                    "', \nAll_Sites = ", all_sites,
+                                    ", \nconf = ", conf.in, 
+                                    ", statistics = 'Pct')$Pct ", 
+                                    "\nusing ", R.version.string, 
+                                    ", spsurvey v.", as.character(packageVersion("spsurvey")), 
+                                    " in ", "NARS Population Estimate Calculation Tool (v. 2.2.0)")
             }else if(input$cdf_pct=='mean'){
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in,
                                       vars=input$respVar, weight = input$weightVar,
@@ -1863,6 +1938,31 @@ server <- function(input, output, session) {
                                       stratumID = stratum.in, vartype=vartype,
                                       conf = conf.in, All_Sites = all_sites,
                                       statistics = c('Mean'))$Mean
+              
+              popCallInfo <- paste0("Code used to run analysis: 
+                                  \ncont_analysis(dframe = dfIn, siteID = '", 
+                                    input$siteVar, "', subpops = ",
+                                    ifelse(is.null(subpops.in), "NULL", 
+                                           paste0("c('", paste0(subpops.in, collapse = "','"), "')")),
+                                    ", \nvars = c('", 
+                                    paste(input$respVar, collapse = "','"), "')",  
+                                    ", weight = '", input$weightVar, 
+                                    "', \nxcoord = ", 
+                                    ifelse(is.null(xcoord.in), "NULL",
+                                           paste0("'", xcoord.in, "'")), 
+                                    ", \nycoord = ", 
+                                    ifelse(is.null(ycoord.in), "NULL", 
+                                           paste0("'", ycoord.in, "'")),
+                                    ", \nstratumID = ", 
+                                    ifelse(is.null(stratum.in),
+                                           "NULL", paste0("'", stratum.in, "'")), 
+                                    ", \nvartype = '", vartype, 
+                                    "', \nAll_Sites = ", all_sites,
+                                    ", \nconf = ", conf.in, 
+                                    ", statistics = 'Mean')$Mean ", 
+                                    "\nusing ", R.version.string, 
+                                    ", spsurvey v.", as.character(packageVersion("spsurvey")), 
+                                    " in ", "NARS Population Estimate Calculation Tool (v. 2.2.0)")
             }else{
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in,
                                       vars=input$respVar, weight = input$weightVar,
@@ -1871,6 +1971,31 @@ server <- function(input, output, session) {
                                       stratumID = stratum.in, vartype=vartype,
                                       conf = conf.in, All_Sites = all_sites,
                                       statistics = c('Total'))$Total
+              
+              popCallInfo <- paste0("Code used to run analysis: 
+                                  \ncont_analysis(dframe = dfIn, siteID = '", 
+                                    input$siteVar, "', subpops = ",
+                                    ifelse(is.null(subpops.in), "NULL", 
+                                           paste0("c('", paste0(subpops.in, collapse = "','"), "')")),
+                                    ", \nvars = c('", 
+                                    paste(input$respVar, collapse = "','"), "')",  
+                                    ", weight = '", input$weightVar, 
+                                    "', \nxcoord = ", 
+                                    ifelse(is.null(xcoord.in), "NULL",
+                                           paste0("'", xcoord.in, "'")), 
+                                    ", \nycoord = ", 
+                                    ifelse(is.null(ycoord.in), "NULL", 
+                                           paste0("'", ycoord.in, "'")),
+                                    ", \nstratumID = ", 
+                                    ifelse(is.null(stratum.in),
+                                           "NULL", paste0("'", stratum.in, "'")), 
+                                    ", \nvartype = '", vartype, 
+                                    "', \nAll_Sites = ", all_sites,
+                                    ", \nconf = ", conf.in, 
+                                    ", statistics = 'Total')$Total ", 
+                                    "\nusing ", R.version.string, 
+                                    ", spsurvey v.", as.character(packageVersion("spsurvey")), 
+                                    " in ", "NARS Population Estimate Calculation Tool (v. 2.2.0)")
             }
           # }
       }
@@ -1878,9 +2003,11 @@ server <- function(input, output, session) {
       remove_modal_spinner()
 
     if(exists('warn_df') && ncol(warn_df)>1){
-      outdf <- list(estOut=estOut, warndf=warn_df)
+      outdf <- list(estOut=estOut, warndf=warn_df,
+                    popCall = popCallInfo)
     }else{
-      outdf <- list(estOut=estOut, warndf=data.frame(warnings='none'))
+      outdf <- list(estOut=estOut, warndf=data.frame(warnings='none'),
+                    popCall = popCallInfo)
     }
 
 
@@ -1921,6 +2048,15 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       write.csv(dataEst()[['estOut']], file, row.names = FALSE)
+    }
+  )
+  
+  observe({shinyjs::toggleState('popcallcsv',length(dataEst()[['estOut']])!=0)})
+  # Name output file based on type of analysis selected and write to comma-delimited file
+  output$popcallcsv <- downloadHandler(
+    filename = paste0("NARSPopEst_PopulationEstimate_Code_", Sys.Date(), ".txt"),
+    content = function(file) {
+      writeLines(dataEst()[['popCall']], file)
     }
   )
 
