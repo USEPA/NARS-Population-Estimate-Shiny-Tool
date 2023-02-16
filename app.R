@@ -224,7 +224,7 @@ ui <- fluidPage(
 # Instructions ------------------------------------------------------------
    # titlePanel(span("NARS Population Estimate Calculation Tool (v. 2.0.1)",
    #            style = "font-weight: bold; font-size: 28px")),
-   navbarPage(title=span("NARS Population Estimate Calculation Tool (v. 2.1.0)",
+   navbarPage(title=span("NARS Population Estimate Calculation Tool (v. 2.2.0)",
                          style = "font-weight: bold; font-size: 24px"),         
               header = # Individual Page Header
                 HTML(
@@ -626,10 +626,10 @@ ui <- fluidPage(
                    conditionalPanel(condition = "input.locvar == 'local'",
                                     selectizeInput("coordxVar","Select the X coordinate variable (or longitude)
                                                    (required only for local neighborhood variance)",
-                                                   choices=NULL, multiple=FALSE),
+                                                   choices=NULL, multiple=FALSE, selected=NULL),
                                     selectizeInput("coordyVar","Select the Y coordinate variable (or latitude)
                                                    (required only for local neighborhood variance)",
-                                                   choices=NULL, multiple=FALSE)
+                                                   choices=NULL, multiple=FALSE, selected=NULL)
 
                                                       ),
 
@@ -735,7 +735,8 @@ ui <- fluidPage(
                  shinyjs::disabled(actionButton('chgBtn', "Run/Refresh estimates")),
                  hr(),
                  # Click to download results into a comma-delimited file
-                 shinyjs::disabled(downloadButton("chgcsv","Save Change Results as .csv file"))),
+                 shinyjs::disabled(downloadButton("chgcsv","Save Change Results as .csv file")),
+                 shinyjs::disabled(downloadButton("chgcallcsv", "Save version info and the R code used for analysis"))),
                  column(8,
                          h4("Warnings"),
                         DT::dataTableOutput("warnchg"),
@@ -1258,6 +1259,7 @@ server <- function(input, output, session) {
     shinyjs::enable('chgBtn')
     shinyjs::enable('runBtn')
     shinyjs::disable('chgcsv')
+    shinyjs::disable('chgcallcsv')
     if(input$disp == 'head'){
       output$contents <- DT::renderDataTable({head(dataOut())}, options = list(digits=5, rownames=F,
                                              scrollX=TRUE, scrollY=TRUE))
@@ -1528,8 +1530,6 @@ server <- function(input, output, session) {
       # Need to order by siteID, yearVar
       chgIn <- chgIn[order(chgIn[,input$yearVar],chgIn[,input$siteVar]),]
 
-      # print(input$chgYear1[[1]])
-      # print(input$chgYear1[[2]])
       surveyID <- input$yearVar
       survey_names <- c(input$chgYear1[[1]], input$chgYear1[[2]])
       validate(
@@ -1568,13 +1568,13 @@ server <- function(input, output, session) {
         stratum.in <- input$stratumVar
       }
 
-      if(is.null(input$coordxVar)){
+      if(input$locvar != 'local'){
         xcoord.in <- NULL
       }else{
         xcoord.in <- input$coordxVar
       }
 
-      if(is.null(input$coordyVar)){
+      if(input$locvar != 'local'){
         ycoord.in <- NULL
       }else{
         ycoord.in <- input$coordyVar
@@ -1607,6 +1607,33 @@ server <- function(input, output, session) {
                                       stratumID = stratum.in,
                                       vartype = vartype, All_Sites = all_sites,
                                       conf = conf.in)
+            
+            chgCallInfo <- paste0("Code used to run analysis: 
+                                  \nchange_analysis(dframe = chgIn, vars_cat = c('", 
+                                  paste(input$respVar, collapse = "','"), "')",  
+                                  ", \nsubpops = ", 
+                                  ifelse(is.null(subpops.in), "NULL", 
+                                         paste0("('", paste0(subpops.in, collapse = "','"), "')")),
+                                  ", \nsurvey_names = c('", 
+                                  paste(survey_names, collapse = "','"), "')",
+                                  ", \nsite_ID = '", input$siteVar, 
+                                  "', \nweight = '", input$weightVar,
+                                  "', \nxcoord = ", 
+                                  ifelse(is.null(xcoord.in), "NULL",
+                                         paste0("'", xcoord.in, "'")), 
+                                  ", \nycoord = ", 
+                                  ifelse(is.null(ycoord.in), "NULL", 
+                                         paste0("'", ycoord.in, "'")),
+                                  ", \nstratumID = ", 
+                                  ifelse(is.null(stratum.in),
+                                         "NULL", paste0("'", stratum.in, "'")), 
+                                  ", \nvartype = '", vartype, 
+                                  "', \nAll_Sites = ", all_sites,
+                                  ", \nconf = ", conf.in, ")\n", 
+                                  "using ", R.version.string, 
+                                  ", spsurvey v.", as.character(packageVersion("spsurvey")), 
+                                  " in ", "NARS Population Estimate Calculation Tool (v. 2.2.0)")
+            
           }else{
             chgOut <- change_analysis(dframe = chgIn, vars_cont = input$respVar, 
                                       test = ttype,
@@ -1617,8 +1644,36 @@ server <- function(input, output, session) {
                                       stratumID = stratum.in,
                                       vartype = vartype, All_Sites = all_sites,
                                       conf = conf.in)
+            
+            chgCallInfo <- paste0("Code used to run analysis: 
+                                  \nchange_analysis(dframe = chgIn, vars_cont = c('", 
+                                  paste(input$respVar, collapse = "','"), "')",  
+                                  ", test = '", eval(ttype), 
+                                  "', \nsubpops = ", 
+                                  ifelse(is.null(subpops.in), "NULL", 
+                                         paste0("('", paste0(subpops.in, collapse = "','"), "')")),
+                                  ", \nsurvey_names = c('", 
+                                  paste(survey_names, collapse = "','"), "')",
+                                  ", \nsite_ID = '", input$siteVar, 
+                                  "', \nweight = '", input$weightVar,
+                                  "', \nxcoord = ", 
+                                  ifelse(is.null(xcoord.in), "NULL",
+                                         paste0("'", xcoord.in, "'")), 
+                                  ", \nycoord = ", 
+                                  ifelse(is.null(ycoord.in), "NULL", 
+                                         paste0("'", ycoord.in, "'")),
+                                  ", \nstratumID = ", 
+                                  ifelse(is.null(stratum.in),
+                                    "NULL", paste0("'", stratum.in, "'")), 
+                                  ", \nvartype = '", vartype, 
+                                  "', \nAll_Sites = ", all_sites,
+                                  ", \nconf = '", conf.in, ")\n", 
+                                  "using ", R.version.string, 
+                                  ", spsurvey v.", as.character(packageVersion("spsurvey")), 
+                                  " in ", "NARS Population Estimate Calculation Tool (v. 2.2.0)")
+            
           }
-
+      
       remove_modal_spinner()
 
     if(input$chgCatCont == 'chgCat'){
@@ -1649,9 +1704,10 @@ server <- function(input, output, session) {
     }
 
     if(exists('warn_df') && ncol(warn_df)>1){
-      outdf <- list(chgOut=chgOut.1, warndf=warn_df)
+      outdf <- list(chgOut=chgOut.1, warndf=warn_df, fxnCall = chgCallInfo)
     }else{
-      outdf <- list(chgOut=chgOut.1, warndf=data.frame(warnings='none'))
+      outdf <- list(chgOut=chgOut.1, warndf=data.frame(warnings='none'),
+                    fxnCall = chgCallInfo)
     }
 
 
@@ -1665,7 +1721,8 @@ server <- function(input, output, session) {
     chgEst()[['warndf']]
   }, options = list(scrollX=TRUE, scrollY=TRUE, rownames=F, searching=FALSE))
 
-
+  
+  
 # Single Year Population Estimates ----------------------------------------
 
 
@@ -1868,7 +1925,7 @@ server <- function(input, output, session) {
   )
 
   # Only enable download button once population estimates are produced
-  observe({shinyjs::toggleState('chgcsv',length(chgEst()[['chgOut']])!=0)})
+  observe({shinyjs::toggleState('chgcsv', length(chgEst()[['chgOut']])!=0)})
   # Name output file based on type of analysis selected and write to comma-delimited file
   output$chgcsv <- downloadHandler(
     filename = function() {
@@ -1882,10 +1939,20 @@ server <- function(input, output, session) {
         }
       }
     },
-    content = function(file) {
-      write.csv(chgEst()[['chgOut']], file, row.names = FALSE)
-    }
+  content = function(file) {
+    write.csv(chgEst()[['chgOut']], file, row.names = FALSE)
+  }
   )
+    
+    # Only enable download button once population estimates are produced
+  observe({shinyjs::toggleState('chgcallcsv', length(chgEst()[['chgOut']])!=0)})
+    # Name output file based on type of analysis selected and write to comma-delimited file
+  output$chgcallcsv <- downloadHandler(
+    filename = paste0("NARSPopEst_ChangeAnalysis_Code_", Sys.Date(), ".txt"),
+    content = function(file) {
+      writeLines(chgEst()[['fxnCall']], file)
+    }
+  )   
 
   ###################################### Categorical Plots Server ######################
   userEst <- reactive({
