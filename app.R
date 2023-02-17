@@ -2361,7 +2361,7 @@ server <- function(input, output, session) {
       geom_bar(aes(fill = Category, color = Category), alpha = 0.5,
                stat="identity", position = position_dodge()) +
       geom_errorbar(aes(ymin = LCB, ymax = UCB, color = Category),
-                    size=2, width=0) +
+                    linewidth=2, width=0) +
       scale_fill_manual(values = colors) +
       scale_color_manual(values = colors) +
       scale_x_discrete(labels = function(x) str_wrap(x, width = 15)) +
@@ -2542,7 +2542,7 @@ server <- function(input, output, session) {
     P2 <- ggplot(data = popest2, aes(x = Subpopulation, y = Estimate)) +
       geom_bar(aes(fill = Category, color = Category), alpha = 0.5, stat="identity",
                position = position_dodge()) +
-      geom_errorbar(aes(ymin = LCB, ymax = UCB, color = Category), size=2, width=0) +
+      geom_errorbar(aes(ymin = LCB, ymax = UCB, color = Category), linewidth=2, width=0) +
       scale_fill_manual(values = colors) +
       scale_color_manual(values = colors) +
       scale_x_discrete(labels = function(x) str_wrap(x, width = 14)) +
@@ -2811,7 +2811,8 @@ server <- function(input, output, session) {
     }
 
     if (is.numeric(input$Thresh)) {
-      g <- g + geom_vline(xintercept = input$Thresh, color = "red", size = 1, linetype = "longdash")
+      g <- g + geom_vline(xintercept = input$Thresh, color = "red", 
+                          linewidth = 1, linetype = "longdash")
     }
     if (input$conflim == TRUE) {
       g <- g + geom_ribbon(aes(ymin = LCB, ymax = UCB, fill = Subpopulation), alpha = 0.2,
