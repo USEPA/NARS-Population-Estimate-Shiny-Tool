@@ -1257,6 +1257,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$subsetBtn, {
     shinyjs::disable('dwnldcsv')
+    shinyjs::disable('popcallcsv')
     shinyjs::enable('chgBtn')
     shinyjs::enable('runBtn')
     shinyjs::disable('chgcsv')
