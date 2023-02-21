@@ -2,7 +2,7 @@
 applications:
 - name: nars-popest
   memory: 750M
-  disk quota: 2G
+  disk_quota: 2G
   routes:
     - route: nars-popest.app.cloud.gov
   buildpacks:
