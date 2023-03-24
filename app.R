@@ -624,10 +624,10 @@ ui <- fluidPage(
                                 select = 'local'),
                    # If local, user must select x and y coordinates and convert to Albers if in lat/long
                    conditionalPanel(condition = "input.locvar == 'local'",
-                                    selectizeInput("coordxVar","Select the X coordinate variable (or longitude)
+                                    selectizeInput("coordxVar","Select the X coordinate variable
                                                    (required only for local neighborhood variance)",
                                                    choices=NULL, multiple=FALSE, selected=NULL),
-                                    selectizeInput("coordyVar","Select the Y coordinate variable (or latitude)
+                                    selectizeInput("coordyVar","Select the Y coordinate variable
                                                    (required only for local neighborhood variance)",
                                                    choices=NULL, multiple=FALSE, selected=NULL)
 
