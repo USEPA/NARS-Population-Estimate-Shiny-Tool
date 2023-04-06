@@ -1,0 +1,14 @@
+{
+  "name": "NARS Population Estimate Shiny Tool",
+  "description": "Contains R Shiny code to calculate probability-based population estimates and plot results as used in National Aquatic Resource Surveys (NARS).",
+  "name": "MIT",
+  "URL":"https://github.com/USEPA/NARS-Population-Estimate-Shiny-Tool/blob/main/license.md",
+  "usageType": "openSource",
+  "tags": [
+    "EPA",
+    "opensource"
+  ],
+  "contact": {
+    "email": "blocksom.karen@epa.gov"
+  }
+}
