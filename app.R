@@ -1291,10 +1291,10 @@ server <- function(input, output, session) {
     updateSelectizeInput(session, 'respVar', 'Select up to 10 response variables - All must be either categorical or numeric',
                          choices=vars, selected = NULL,
                          options = list(maxItems=10))
-    updateSelectizeInput(session, 'coordxVar', "Select the X coordinate variable (or longitude) \n(required only
+    updateSelectizeInput(session, 'coordxVar', "Select the X coordinate variable \n(required only
                          for local neighborhood variance)",
                          choices=vars, selected = NULL)
-    updateSelectizeInput(session, 'coordyVar', "Select the Y coordinate variable (or latitude) \n(required only
+    updateSelectizeInput(session, 'coordyVar', "Select the Y coordinate variable\n(required only
                          for local neighborhood variance)",
                          choices=vars, selected = NULL)
     updateSelectizeInput(session, 'siteVar', 'Select site variable', choices=vars)
