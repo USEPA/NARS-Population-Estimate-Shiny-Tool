@@ -2781,7 +2781,7 @@ server <- function(input, output, session) {
     CDFDataset$Subpopulation <-factor(CDFDataset$Subpopulation, levels = rev(unique(CDFDataset$Subpopulation)))
 
     g <- ggplot(CDFDataset, aes(y=Estimate, x=Value, color = Subpopulation, fill = Subpopulation)) +
-      geom_step(size=1) +
+      geom_step(linewidth=1) +
       scale_colour_viridis_d("Population", guide = guide_legend(reverse = TRUE)) +
       scale_fill_viridis_d() +
       theme_bw() +
