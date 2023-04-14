@@ -1291,10 +1291,10 @@ server <- function(input, output, session) {
     updateSelectizeInput(session, 'respVar', 'Select up to 10 response variables - All must be either categorical or numeric',
                          choices=vars, selected = NULL,
                          options = list(maxItems=10))
-    updateSelectizeInput(session, 'coordxVar', "Select the X coordinate variable (or longitude) \n(required only
+    updateSelectizeInput(session, 'coordxVar', "Select the X coordinate variable \n(required only
                          for local neighborhood variance)",
                          choices=vars, selected = NULL)
-    updateSelectizeInput(session, 'coordyVar', "Select the Y coordinate variable (or latitude) \n(required only
+    updateSelectizeInput(session, 'coordyVar', "Select the Y coordinate variable\n(required only
                          for local neighborhood variance)",
                          choices=vars, selected = NULL)
     updateSelectizeInput(session, 'siteVar', 'Select site variable', choices=vars)
@@ -2781,7 +2781,7 @@ server <- function(input, output, session) {
     CDFDataset$Subpopulation <-factor(CDFDataset$Subpopulation, levels = rev(unique(CDFDataset$Subpopulation)))
 
     g <- ggplot(CDFDataset, aes(y=Estimate, x=Value, color = Subpopulation, fill = Subpopulation)) +
-      geom_step(size=1) +
+      geom_step(linewidth=1) +
       scale_colour_viridis_d("Population", guide = guide_legend(reverse = TRUE)) +
       scale_fill_viridis_d() +
       theme_bw() +
@@ -2886,17 +2886,17 @@ server <- function(input, output, session) {
     }
 
     if (length(input$SubPop_Con) == 1 && input$Estimate_CDF == "U Estimates_CDF") {
-      g + geom_density_ridges(scale = 100000, size = 0.9, jittered_points = TRUE,
+      g + geom_density_ridges(scale = 100000, jittered_points = TRUE,
                               position = position_points_jitter(width = 0.5, height = 0),
                               point_shape = "|", point_size = 3,
                               quantile_lines = TRUE, alpha=0.8)
     } else if (length(input$SubPop_Con) == 1)  {
-      g + geom_density_ridges(scale = 50, size = 0.5, jittered_points = TRUE,
+      g + geom_density_ridges(scale = 50, jittered_points = TRUE,
                               position = position_points_jitter(width = 0.5, height = 0),
                               point_shape = "|", point_size = 3,
                               quantile_lines = TRUE, alpha=0.8)
     } else {
-      g + geom_density_ridges(size = 1, rel_min_height = 0.03, jittered_points = TRUE,
+      g + geom_density_ridges(scale = 1, rel_min_height = 0.03, jittered_points = TRUE,
                               position = position_points_jitter(width = 0.5, height = 0),
                               point_shape = "|", point_size = 3,
                               quantile_lines = TRUE, alpha=0.8)
