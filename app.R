@@ -2886,17 +2886,17 @@ server <- function(input, output, session) {
     }
 
     if (length(input$SubPop_Con) == 1 && input$Estimate_CDF == "U Estimates_CDF") {
-      g + geom_density_ridges(scale = 100000, size = 0.9, jittered_points = TRUE,
+      g + geom_density_ridges(scale = 100000, jittered_points = TRUE,
                               position = position_points_jitter(width = 0.5, height = 0),
                               point_shape = "|", point_size = 3,
                               quantile_lines = TRUE, alpha=0.8)
     } else if (length(input$SubPop_Con) == 1)  {
-      g + geom_density_ridges(scale = 50, size = 0.5, jittered_points = TRUE,
+      g + geom_density_ridges(scale = 50, jittered_points = TRUE,
                               position = position_points_jitter(width = 0.5, height = 0),
                               point_shape = "|", point_size = 3,
                               quantile_lines = TRUE, alpha=0.8)
     } else {
-      g + geom_density_ridges(size = 1, rel_min_height = 0.03, jittered_points = TRUE,
+      g + geom_density_ridges(scale = 1, rel_min_height = 0.03, jittered_points = TRUE,
                               position = position_points_jitter(width = 0.5, height = 0),
                               point_shape = "|", point_size = 3,
                               quantile_lines = TRUE, alpha=0.8)
