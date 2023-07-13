@@ -2819,9 +2819,11 @@ server <- function(input, output, session) {
       g <- g + geom_ribbon(aes(ymin = LCB, ymax = UCB, fill = Subpopulation), alpha = 0.2,
                            colour = "transparent", show.legend = FALSE)
     }
-    if (input$log == TRUE) {
-      g <-  g + scale_x_continuous(trans='log10')
+    if (input$log == TRUE) {      
+      g <-  g + scale_x_continuous(trans='log10') +
+        annotation_logticks(sides='b')         
     }
+    
 
     g
   })
