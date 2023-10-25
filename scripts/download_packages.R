@@ -1,9 +1,11 @@
 library(stringr)
+library(rjson)
+library(dplyr)
 
 args <- commandArgs(trailingOnly = TRUE)
 
 options(repos =
-    "https://packagemanager.rstudio.com/cran/__linux__/jammy/latest")
+    "https://packagemanager.posit.co/cran/__linux__/jammy/latest")
 
 # Test if a package destination directory was passed as an argument
 if (length(args) == 0) {
@@ -42,10 +44,23 @@ get_package_deps <- function(packs, github, to_build_cran) {
             refs[match(p[1], refs)] <- p[2]
         }
     }
-    message("Getting the package dependencies")
-    deps <- pak::pkg_deps(refs)
-    deps["cran_build"] <- c(FALSE, TRUE)[mapply(`%in%`, deps["package"],
-        to_build_cran) + 1]
+    message("Getting the package dependencies for: ")
+    message(paste(refs, sep = ", "))
+
+    # Pulls pkg_deps for each of refs
+    deps <- pak::pkg_deps(refs[1])
+    for (row in 2:length(refs)) {
+        deps <- rbind(deps, pak::pkg_deps(refs[row]))
+    }
+    deps <- distinct(deps, package, .keep_all = TRUE)
+
+    deps["cran_build"] <- FALSE
+    cran_deps <- mapply(`%in%`, deps["package"], to_build_cran)
+    for (row in 1:nrow(cran_deps)) {
+        if (any(cran_deps[row, ])) {
+            deps[row, "cran_build"] <- TRUE
+        }
+    }
     deps["require_build"] <- deps["type"] == "github" |
         deps["cran_build"] == TRUE
     deps
@@ -55,11 +70,22 @@ get_package_deps <- function(packs, github, to_build_cran) {
 packages <- get_package_deps(input_packs, github_packages_list,
     packages_needing_to_be_built)
 
+dir.create("debug-outputs", recursive = TRUE)
+json_data <- toJSON(packages)
+write(json_data, "debug-outputs/Packages_to_pull.json")
+writeLines(input_packs, "debug-outputs/Inputs.txt")
+sink("debug-outputs/Github_packages.txt")
+print(github_packages_list)
+sink()
+sink("debug-outputs/To_build_cran.txt")
+print(packages_needing_to_be_built)
+sink()
+
 # Download the packages from the Posit repository
 message(paste("Downloading the packages and dependencies to",
     args[1], sep = " "))
-download.packages(packages["ref"][packages["require_build"] == FALSE],
-    destdir = args[1])
+no_build <- subset(packages, (require_build == FALSE))
+download.packages(no_build$package, destdir = args[1])
 
 message(paste("Github packages needed are:",
     packages["ref"][packages["type"] == "github"], sep = " "))
