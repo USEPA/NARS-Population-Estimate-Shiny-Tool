@@ -103,7 +103,6 @@ jobs:
         Rscript scripts/download_packages.R vendor_r/src/contrib ${{ env.packs }}
         cd vendor_r/src/contrib
         if ls sf_* >/dev/null 2>&1; then echo needs_geo=true; else echo needs_geo=false; fi >> $GITHUB_ENV
-        if ls rmarkdown_* >/dev/null 2>&1; then echo needs_pandoc=true; else echo needs_pandoc=false; fi >> $GITHUB_ENV
         if ls *_R_x86_64-pc-linux-gnu.tar.gz >/dev/null 2>&1; then 
           find -name '*_R_x86_64-pc-linux-gnu.tar.gz' -print0 | sed -ze "p;s/\_R_x86_64-pc-linux-gnu//" | xargs -0 -n2 mv;
         fi
@@ -125,14 +124,6 @@ jobs:
         git add lib
       env:
         LIBS: libudunits2.so.0 libgeos_c.so libproj.so.22 proj.db libgdal.so.30
-  
-    - name: Copy pandoc executable
-      if: ${{ env.needs_pandoc == 'true' && inputs.build_bins }}
-      run: |
-        if [ -d "bin" ]; then rm -fr bin; fi
-        mkdir bin
-        tar -czvf bin/pandoc.tar.gz /usr/bin/pandoc
-        git add bin
         
     - name: Add additional files to repo if not already there
       run: |
