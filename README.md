@@ -1,4 +1,4 @@
-# NARS_PopEst
+# NARS-Population-Estimate-Shiny-Tool
 Repository for Shiny app that serves as a wrapper for spsurvey package used in population estimates for NARS studies. Updated to v. 2.2.0 as of February 2023 to use the updated spsurvey package (v.5.4.1). 
 
 ## Description
