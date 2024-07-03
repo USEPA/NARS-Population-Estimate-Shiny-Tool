@@ -1,4 +1,4 @@
-name: Copy R Shiny app to cloud-gov branch and prepare for deployment
+name: Copy R Shiny app to cloud-gov branch and request push to dev
 
 on:
   workflow_dispatch:
@@ -6,6 +6,12 @@ on:
       build_deps:
         description: 'Also build R dependencies?'
         required: true
+        default: true
+        type: boolean
+      build_bins:
+        description: 'Also build binaries?'
+        required: true
+        default: false
         type: boolean
 
 permissions:
@@ -18,7 +24,7 @@ jobs:
 
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 1
         ref: cloud-gov
@@ -29,7 +35,7 @@ jobs:
         if [ -d "main-branch" ]; then rm -fr main-branch; fi
 
     - name: Checkout default branch to main-branch path
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 1
         path: main-branch
@@ -38,7 +44,8 @@ jobs:
       if: ${{ success() }}
       run: |
         mkdir shiny-app
-        find main-branch/* -maxdepth 0 ! -name ".git*" -print0 | xargs -0 cp -r -t shiny-app
+        find main-branch/* -maxdepth 0 ! -name ".git*" -print0 ! -name ".devcontainer" -print0 | xargs -0 cp -r -t shiny-app
+        cp main-branch/.gitignore shiny-app/.gitignore 
         git config user.name github-actions
         git config user.email github-actions@github.com
         git add shiny-app
@@ -52,17 +59,10 @@ jobs:
     needs: copy_code_to_cloud-gov
     runs-on: ubuntu-latest
     name: Compile and vendor R dependencies for cloud.gov
-    defaults:
-      run:
-        working-directory: /workspace
-    container:
-      image: cloudfoundry/cflinuxfs4
-      volumes: 
-       - ${{ github.workspace }}:/workspace
 
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 1
         ref: cloud-gov
@@ -77,7 +77,6 @@ jobs:
     - name: Setup R
       uses: r-lib/actions/setup-r@v2
       with:
-        r-version: 4.2.2
         use-public-rspm: true
 
     - name: Setup pandoc
@@ -91,6 +90,8 @@ jobs:
           devtools
           rlist
           sf
+          rjson
+          dplyr
 
     - name: List R dependencies
       run: |
@@ -102,7 +103,6 @@ jobs:
         Rscript scripts/download_packages.R vendor_r/src/contrib ${{ env.packs }}
         cd vendor_r/src/contrib
         if ls sf_* >/dev/null 2>&1; then echo needs_geo=true; else echo needs_geo=false; fi >> $GITHUB_ENV
-        if ls rmarkdown_* >/dev/null 2>&1; then echo needs_pandoc=true; else echo needs_pandoc=false; fi >> $GITHUB_ENV
         if ls *_R_x86_64-pc-linux-gnu.tar.gz >/dev/null 2>&1; then 
           find -name '*_R_x86_64-pc-linux-gnu.tar.gz' -print0 | sed -ze "p;s/\_R_x86_64-pc-linux-gnu//" | xargs -0 -n2 mv;
         fi
@@ -111,27 +111,19 @@ jobs:
         GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Run lib_tar.sh to extract each of the libraries needed by sf
-      if: ${{ env.needs_geo == 'true' }}
+      if: ${{ env.needs_geo == 'true' && inputs.build_bins }}
       run: |
-        if [ -d "r-lib" ]; then rm -fr r-lib; fi
-        mkdir r-lib
+        if [ -d "lib" ]; then rm -fr lib; fi
+        mkdir lib
         chmod +x scripts/lib_tar.sh
         for L in $LIBS
         do
           find / -iname $L 2>/dev/null | xargs -I {} scripts/lib_tar.sh {}
         done
         scripts/lib_tar.sh /usr/lib/x86_64-linux-gnu/libsqlite3.so.0    # Another libsqlite3.so.0 exists on the image
-        git add r-lib
+        git add lib
       env:
         LIBS: libudunits2.so.0 libgeos_c.so libproj.so.22 proj.db libgdal.so.30
-
-    - name: Copy pandoc executable
-      if: ${{ env.needs_pandoc == 'true' }}
-      run: |
-        if [ -d "r-bin" ]; then rm -fr r-bin; fi
-        mkdir r-bin
-        cp /usr/bin/pandoc r-bin
-        git add r-bin
         
     - name: Add additional files to repo if not already there
       run: |
@@ -147,6 +139,12 @@ jobs:
           mv scripts/include/shiny.R .
           git add shiny.R
         fi
+      
+    - name: Upload folder debug-outputs to an artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-outputs
+        path: debug-outputs
 
     - name: Commit & Push
       if: ${{ success() }}
@@ -154,3 +152,26 @@ jobs:
         git add vendor_r
         git diff-index --quiet HEAD || git commit -m "Automated workflow from GitHub Actions to vendor R dependencies"
         git push
+
+  request_copy:
+    # Note: this step will fail if OWSHINY_ACTION secret is not set up in the repo and should be removed
+    name: Request copy uploaded to deployment repo if permitted
+    needs: [copy_code_to_cloud-gov, download_and_vendor_dependencies]
+    if: always() && !contains(needs.*.result, 'failure')
+    # Needs to run even if download_and_vendor_dependencies was skipped
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Workflow to copy for deployment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.OWSHINY_ACTION }}
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: 'USEPA',
+              repo: 'OWShiny',
+              workflow_id: 'copy_repo.yml',
+              ref: 'develop',
+              inputs: {
+                "repo_to_copy": context.repo.owner + "/" + context.repo.repo
+              }
+            })
