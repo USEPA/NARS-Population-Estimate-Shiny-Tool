@@ -1,0 +1,13 @@
+name: nars_popest
+title: NARS_PopEst
+username: Karen
+account: Karen
+server: rstudio-connect.dmap-stage.aws.epa.gov
+hostUrl: https://rstudio-connect.dmap-stage.aws.epa.gov/__api__
+appId: 517
+bundleId: 3295
+url: https://rstudio-connect.dmap-stage.aws.epa.gov/NARS_Population_Estimates_Tool/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .github/workflows/build-cloud-gov.yml|style.css
