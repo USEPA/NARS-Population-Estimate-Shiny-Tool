@@ -23,7 +23,7 @@ ui <- fluidPage(
 # Instructions ------------------------------------------------------------
    # titlePanel(span("NARS Population Estimate Calculation Tool (v. 2.0.1)",
    #            style = "font-weight: bold; font-size: 28px")),
-   navbarPage(title=span("NARS Population Estimate Calculation Tool (v. 2.2.0)",
+   navbarPage(title=span("NARS Population Estimate Calculation Tool (v. 2.2.1)",
                          style = "font-weight: bold; font-size: 24px"),         
   #             header = # Individual Page Header
   #               HTML(
