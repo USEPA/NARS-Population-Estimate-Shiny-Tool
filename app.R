@@ -21,36 +21,9 @@ ui <- fluidPage(
    # Application title
 
 # Instructions ------------------------------------------------------------
-   # titlePanel(span("NARS Population Estimate Calculation Tool (v. 2.0.1)",
-   #            style = "font-weight: bold; font-size: 28px")),
-   navbarPage(title=span("NARS Population Estimate Calculation Tool (v. 2.2.1)",
+    navbarPage(title=span("NARS Population Estimate Calculation Tool (v. 2.3.0)",
                          style = "font-weight: bold; font-size: 24px"),         
-  #             header = # Individual Page Header
-  #               HTML(
-  #                 '<div class="l-page  has-footer">
-  #     <div class="l-constrain">
-  #       <div class="l-page__header">
-  #         <div class="l-page__header-first">
-  #           <div class="web-area-title"></div>
-  #         </div>
-  #         <div class="l-page__header-last">
-  #           <a href="https://www.epa.gov/national-aquatic-resource-surveys/forms/contact-us-about-national-aquatic-resource-surveys" class="header-link">Contact Us</a>
-  #         </div>
-  #       </div>
-  #       <article class="article">'
-  #               ),
-  # 
-  #             footer = HTML(
-  #               '</article>
-  #   </div>
-  #   <div class="l-page__footer">
-  #     <div class="l-constrain">
-  #       <p><a href="https://www.epa.gov/national-aquatic-resource-surveys/forms/contact-us-about-national-aquatic-resource-surveys">Contact Us</a> to ask a question, provide feedback, or report a problem.</p>
-  #     </div>
-  #   </div>
-  # </div>'
-  #             ),
-              selected='instructions',position='static-top',
+               selected='instructions',position='static-top',
       # Panel with instructions for using this tool
       tabPanel(title='Instructions for Use',value='instructions',
                h2("Overview"),
@@ -548,6 +521,46 @@ ui <- fluidPage(
                )
 
           ),
+# Trend Analysis ------------------------------
+tabPanel(title="Run Trend Analysis", value='trend',
+         fluidRow(
+           h3("Use for categorical analysis only - Please note:"),
+           tags$ul(
+             tags$li("This is only designed for analysis of categorical 
+             variables and may convert any numerical variable to categorical. 
+             Any subsetting of data to align different years or cycles
+             must be done either on the", strong("Prepare Data for Analysis"),
+             "tab or before importing the dataset."),
+             br(),
+            tags$li("If a different set of 
+             response variables from those
+             used in the population or change estimates is desired,
+             return to the", strong("Prepare Data for Analysis"),
+             "tab to re-select variables. Then click the button to
+             prepare data for analysis again."),
+            br(),
+            tags$li("If the", strong("Run/Refresh Estimates"), "button is grayed out, return to the",
+             strong("Prepare Data for Analysis"), "tab and click the button that says",
+             strong("Click HERE to prepare data for analysis"))
+            ),
+           column(3,
+                  # Once data are prepared, user needs to click to run estimates, or rerun estimates on refreshed data
+                  shinyjs::disabled(actionButton('trendBtn', "Run/Refresh estimates")),
+                  hr(),
+                  # Click to download results into a comma-delimited file
+                  shinyjs::disabled(downloadButton("trendcsv","Save Trend Results as .csv file")),
+                  shinyjs::disabled(downloadButton("trendcallcsv", "Save version info and the R code used for analysis"))),
+           column(8,
+                  h4("Warnings"),
+                  DT::dataTableOutput("warntrend"),
+                  
+                  h4("Trend Analysis Output"),
+                  DT::dataTableOutput("trends")
+           )
+           
+         ) 
+          ),
+
 
 # Plot Data ---------------------------------------------------------------
 
@@ -1650,6 +1663,19 @@ server <- function(input, output, session) {
     dataEst()[['warndf']]
   }, options = list(scrollX=TRUE, scrollY=TRUE, rownames=F, searching=FALSE))
 
+  
+# Run Trend Analysis ------------------------------
+  trendEst <- eventReactive(input$chgBtn,{
+    
+    if(exists("warn_df") && is.data.frame(get("warn_df"))){
+      rm("warn_df", envir=.GlobalEnv)
+    }
+    
+    trendIn <- dataOut()
+    
+    
+    
+  })
 
 # Download Analysis Results -----------------------------------------------
 
