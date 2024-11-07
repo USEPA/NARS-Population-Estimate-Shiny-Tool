@@ -901,6 +901,9 @@ server <- function(input, output, session) {
     shinyjs::enable('runBtn')
     shinyjs::disable('chgcsv')
     shinyjs::disable('chgcallcsv')
+    shinyjs::enable('trendBtn')
+    shinyjs::disable('trendcsv')
+    shinyjs::disable('trendcallcsv')
     if(input$disp == 'head'){
       output$contents <- DT::renderDataTable({head(dataOut())}, options = list(digits=5, rownames=F,
                                              scrollX=TRUE, scrollY=TRUE))
@@ -1273,7 +1276,7 @@ server <- function(input, output, session) {
                                   ", \nconf = ", conf.in, ")\n", 
                                   "using ", R.version.string, 
                                   ", spsurvey v.", as.character(packageVersion("spsurvey")), 
-                                  " in ", "NARS Population Estimate Calculation Tool (v. 2.2.0)")
+                                  " in ", "NARS Population Estimate Calculation Tool (v. 2.3.0)")
             
           }else{
             chgOut <- change_analysis(dframe = chgIn, vars_cont = input$respVar, 
@@ -1311,7 +1314,7 @@ server <- function(input, output, session) {
                                   ", \nconf = ", conf.in, ")\n", 
                                   "using ", R.version.string, 
                                   ", spsurvey v.", as.character(packageVersion("spsurvey")), 
-                                  " in ", "NARS Population Estimate Calculation Tool (v. 2.2.0)")
+                                  " in ", "NARS Population Estimate Calculation Tool (v. 2.3.0)")
             
           }
       
@@ -1499,7 +1502,7 @@ server <- function(input, output, session) {
                                   ", \nconf = ", conf.in, ")\n", 
                                   "using ", R.version.string, 
                                   ", spsurvey v.", as.character(packageVersion("spsurvey")), 
-                                  " in ", "NARS Population Estimate Calculation Tool (v. 2.2.0)")
+                                  " in ", "NARS Population Estimate Calculation Tool (v. 2.3.0)")
 
       }else{
 
@@ -1535,7 +1538,7 @@ server <- function(input, output, session) {
                      ", statistics = 'CDF')$CDF ", 
                      "\nusing ", R.version.string, 
                      ", spsurvey v.", as.character(packageVersion("spsurvey")), 
-                     " in ", "NARS Population Estimate Calculation Tool (v. 2.2.0)")
+                     " in ", "NARS Population Estimate Calculation Tool (v. 2.3.0)")
 
             }else if(input$cdf_pct=='pct'){ # Just produce percentiles
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in,
@@ -1569,7 +1572,7 @@ server <- function(input, output, session) {
                                     ", statistics = 'Pct')$Pct ", 
                                     "\nusing ", R.version.string, 
                                     ", spsurvey v.", as.character(packageVersion("spsurvey")), 
-                                    " in ", "NARS Population Estimate Calculation Tool (v. 2.2.0)")
+                                    " in ", "NARS Population Estimate Calculation Tool (v. 2.3.0)")
             }else if(input$cdf_pct=='mean'){
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in,
                                       vars=input$respVar, weight = input$weightVar,
@@ -1602,7 +1605,7 @@ server <- function(input, output, session) {
                                     ", statistics = 'Mean')$Mean ", 
                                     "\nusing ", R.version.string, 
                                     ", spsurvey v.", as.character(packageVersion("spsurvey")), 
-                                    " in ", "NARS Population Estimate Calculation Tool (v. 2.2.0)")
+                                    " in ", "NARS Population Estimate Calculation Tool (v. 2.3.0)")
             }else{
               estOut <- cont_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in,
                                       vars=input$respVar, weight = input$weightVar,
@@ -1635,7 +1638,7 @@ server <- function(input, output, session) {
                                     ", statistics = 'Total')$Total ", 
                                     "\nusing ", R.version.string, 
                                     ", spsurvey v.", as.character(packageVersion("spsurvey")), 
-                                    " in ", "NARS Population Estimate Calculation Tool (v. 2.2.0)")
+                                    " in ", "NARS Population Estimate Calculation Tool (v. 2.3.0)")
             }
           # }
       }
@@ -1665,7 +1668,7 @@ server <- function(input, output, session) {
 
   
 # Run Trend Analysis ------------------------------
-  trendEst <- eventReactive(input$chgBtn,{
+  trendEst <- eventReactive(input$trendBtn,{
     
     if(exists("warn_df") && is.data.frame(get("warn_df"))){
       rm("warn_df", envir=.GlobalEnv)
@@ -1673,9 +1676,125 @@ server <- function(input, output, session) {
     
     trendIn <- dataOut()
     
+    # Check for duplicate rows for siteID
+    freqSiteTrend <- as.data.frame(table(siteID = trendIn[,input$siteVar],Year = trendIn[,input$yearVar]))
     
+    validate(
+      need(nrow(subset(freqSiteTrend, Freq>1))==0,
+           paste("There are", nrow(subset(freqSiteTrend, Freq>1)),
+                 "duplicated sites in this dataset within years or cycles.
+                   Only one row per site-design cycle combination is permitted in the input data."))
+    )
     
+    validate(
+      need(all('character' %in% lapply(trendIn[,input$respVar], class)),
+           'At least one response variable is numeric data. Please select only 
+           categorical variables for trend analysis.')
+    )
+    
+    show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait.')
+    
+    if(input$natpop==TRUE & input$subpop==TRUE){
+      all_sites <- TRUE
+    }else{
+      all_sites <- FALSE
+    }
+    
+    if(input$locvar == 'local'){
+      vartype <- 'Local'
+    }else{
+      vartype <- 'SRS'
+    }
+    
+    if(input$subpop == FALSE){
+      subpops.in <- NULL
+    }else{
+      subpops.in <- input$subpopVar
+    }
+    
+    if(input$stratumVar=='None'){
+      stratum.in <- NULL
+    }else{
+      stratum.in <- input$stratumVar
+    }
+    
+    if(input$locvar != 'local'){
+      xcoord.in <- NULL
+    }else{
+      xcoord.in <- input$coordxVar
+    }
+    
+    if(input$locvar != 'local'){
+      ycoord.in <- NULL
+    }else{
+      ycoord.in <- input$coordyVar
+    }
+    
+    trendOut <- trend_analysis(
+      dframe = trendIn,
+      vars_cat = input$respVar,
+      siteID=input$siteVar, 
+      yearID = input$yearVar,
+      subpops=subpops.in,
+      weight = input$weightVar,
+      xcoord = xcoord.in, 
+      ycoord = ycoord.in,
+      stratumID = stratum.in, 
+      vartype = vartype,
+      conf = 95, 
+      All_Sites = all_sites,
+      model_cat = 'SLR'
+    )$catsum
+    
+    print(unique(trendIn[, input$yearVar]))
+    
+    trendCallInfo <- paste0("Code used to run analysis: 
+                            \ntrend_analysis(\ndframe = trendIn,\nvars_cat = c('", 
+                          paste(input$respVar, collapse = "','"), "')",  
+                          ", \nsite_ID = '", input$siteVar,
+                          "', \nyearID = '", input$yearVar,
+                          "', \nsubpops = ", 
+                          ifelse(is.null(subpops.in), "NULL", 
+                                 paste0("c('", paste0(subpops.in, collapse = "','"), "')")),
+                          ", \nweight = '", input$weightVar,
+                          "', \nxcoord = ", 
+                          ifelse(is.null(xcoord.in), "NULL",
+                                 paste0("'", xcoord.in, "'")), 
+                          ", \nycoord = ", 
+                          ifelse(is.null(ycoord.in), "NULL", 
+                                 paste0("'", ycoord.in, "'")),
+                          ", \nstratumID = ", 
+                          ifelse(is.null(stratum.in),
+                                 "NULL", paste0("'", stratum.in, "'")), 
+                          ", \nvartype = '", vartype, 
+                          "', \nAll_Sites = ", all_sites,
+                          ", \nconf = 95)\n", 
+                          "using ", R.version.string, 
+                          ", spsurvey v.", as.character(packageVersion("spsurvey")), 
+                          " in ", "NARS Population Estimate Calculation Tool (v. 2.3.0)")
+    
+    remove_modal_spinner()
+    
+    if(exists('warn_df') && ncol(warn_df)>1){
+      outdf <- list(trendOut = trendOut, 
+                    warndf = warn_df,
+                    trendCall = trendCallInfo)
+    }else{
+      outdf <- list(trendOut = trendOut, 
+                    warndf = data.frame(warnings='none'),
+                    trendCall = trendCallInfo)
+    } 
   })
+  
+  # Use change output to create a table
+  output$trends <- DT::renderDataTable({
+    trendEst()[['trendOut']]
+  }, options = list(scrollX=TRUE, scrollY=TRUE, rownames=F, searching=FALSE))
+  
+  output$warntrend <- DT::renderDataTable({
+    trendEst()[['warndf']]
+  }, options = list(scrollX=TRUE, scrollY=TRUE, rownames=F, searching=FALSE))
+  
 
 # Download Analysis Results -----------------------------------------------
 
@@ -1743,6 +1862,27 @@ server <- function(input, output, session) {
     }
   )   
 
+  observe({shinyjs::toggleState('trendcsv', length(trendEst()[['trendOut']])!=0)})
+  # Name output file based on type of analysis selected and write to comma-delimited file
+  output$trendcsv <- downloadHandler(
+    filename = function() {
+        paste("Trend_Categ_Est_Output_",Sys.Date(), ".csv", sep = "")
+      },
+    content = function(file) {
+      write.csv(trendEst()[['trendOut']], file, row.names = FALSE)
+    }
+  )
+  
+  # Only enable download button once population estimates are produced
+  observe({shinyjs::toggleState('trendcallcsv', length(trendEst()[['trendOut']])!=0)})
+  # Name output file based on type of analysis selected and write to comma-delimited file
+  output$trendcallcsv <- downloadHandler(
+    filename = paste0("NARSPopEst_TrendAnalysis_Code_", Sys.Date(), ".txt"),
+    content = function(file) {
+      writeLines(trendEst()[['trendCall']], file)
+    }
+  )   
+  
   ###################################### Categorical Plots Server ######################
   userEst <- reactive({
       estOut <- read.csv(req(input$userinput$datapath))
