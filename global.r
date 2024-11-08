@@ -9,6 +9,7 @@ library(ggplot2)
 library(ggridges)
 library(stringr)
 library(shinyBS)
+library(dplyr)
 library(DT)
 
 # options(shiny.maxRequestSize = 20*1024^2) #Allows an upload of up to 20mb. 

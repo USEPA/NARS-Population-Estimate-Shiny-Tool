@@ -1692,6 +1692,19 @@ server <- function(input, output, session) {
            categorical variables for trend analysis.')
     )
     
+    # Check yearVar to see if it is numeric or can easily be converted to numeric
+    # If not, try to extract first year from year range
+    # If this can't be done, trigger an error and ask user to create a 
+    # numeric year variable
+    trendIn <- as.data.frame(trendIn)
+    trendIn$year <- as.integer(trendIn[, input$yearVar])
+    
+    validate(
+      need(all(!is.na(trendIn$year)),
+           'The year variable cannot be converted to numeric. Please provide a 
+           single numeric value for each row in the column used as year.')
+    )
+    
     show_modal_spinner(spin = 'flower', text = 'This might take a while...please wait.')
     
     if(input$natpop==TRUE & input$subpop==TRUE){
@@ -1746,8 +1759,29 @@ server <- function(input, output, session) {
       model_cat = 'SLR'
     )$catsum
     
-    print(unique(trendIn[, input$yearVar]))
-    
+    # Create table of sample size by indicator and category and subpopulation
+trendCts <- data.frame() # SORT OF WORKS BUT NEED to REVISE COLUMN NAMES AND ADD VARIABLES WITH RESPONSE AND SUBPOP NAMES
+  if(input$subpop==TRUE){
+    for(i in 1:length(input$subpopVar)){
+      for(j in 1:length(input$respVar)){
+        tempdf <- count(nla_in, eval(as.name(input$subpopVar[i])),
+                        eval(as.name(input$respVar[j])),
+                        eval(as.name(input$yearVar)), sort = TRUE)
+        trendCts <- bind_rows(trendCts, tempdf)
+      }
+
+    }
+  }else{
+      for(i in 1:length(input$respVar)){
+          tempdf <- count(eval(as.name(input$respVar[i])),
+                          eval(as.name(input$yearVar)), sort = TRUE)
+          trendCts <- bind_rows(trendCts, tempdf)
+        }
+      }
+  
+
+    print(trendCts)
+
     trendCallInfo <- paste0("Code used to run analysis: 
                             \ntrend_analysis(\ndframe = trendIn,\nvars_cat = c('", 
                           paste(input$respVar, collapse = "','"), "')",  
