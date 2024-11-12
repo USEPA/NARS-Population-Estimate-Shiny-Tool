@@ -466,7 +466,8 @@ ui <- fluidPage(
                        style="color:#225D9D"),
                     h4("Warnings"),
                     DT::dataTableOutput("warnest"),
-
+                    br(),
+                    br(),
                     h4("Analysis Output"),
                     DT::dataTableOutput("popest")
                     )
@@ -512,7 +513,8 @@ ui <- fluidPage(
                  column(8,
                          h4("Warnings"),
                         DT::dataTableOutput("warnchg"),
-
+                        br(),
+                        br(),
                         h4("Change Analysis Output"),
                         DT::dataTableOutput("changes")
                         )
@@ -1168,6 +1170,16 @@ server <- function(input, output, session) {
         )
       }
 
+      for(i in length(input$chgYear1)){
+        for(j in length(input$respVar)){
+          chgSub <- subset(chgIn, eval(as.name(input$yearVar)) == input$chgYear1[[i]])
+          validate(
+            need(!all(is.na(chgSub[, input$respVar[j]])),
+                 paste0('The variable ', input$respVar[j], ' has all missing values for', input$chgYear1[[i]], '. Return to Prepare Data tab to remove any response variables not in year selected.')
+            )
+          )
+        }
+      }
       # Need to order by siteID, yearVar
       chgIn <- chgIn[order(chgIn[,input$yearVar],chgIn[,input$siteVar]),]
 
@@ -1396,8 +1408,7 @@ server <- function(input, output, session) {
 
     validate(
       need(nrow(subset(freqSite, Freq>1))==0,
-           paste("There are", nrow(subset(freqSite, Freq>1)),"duplicated sites in this dataset.
-                 Only one row per site permitted in the input data."))
+           paste("There are", nrow(subset(freqSite, Freq>1)),"duplicated sites in this dataset. Only one row per site permitted in the input data."))
     )
 
     # VALIDATION of variable types
@@ -1413,6 +1424,15 @@ server <- function(input, output, session) {
       validate(
         need(all('numeric' %in% lapply(dfIn[,input$respVar], class)),
              'At least one response variable is character. Do you mean to run CATEGORICAL analysis?')
+      )
+    }
+    
+    # Check each response variable to make sure all values are not missing
+    for(i in length(input$respVar)){
+      validate(
+        need(!all(is.na(dfIn[, input$respVar[i]])),
+             paste('The variable', input$respVar[i], 'has all missing values for the year selected. Return to Prepare Data tab to remove any response variables not in year selected.')
+        )
       )
     }
 
@@ -1473,6 +1493,7 @@ server <- function(input, output, session) {
         conf.in = 90
       }
 
+    
        # User selected categorical analysis, set up cat.analysis function depending on previous selections
       if(input$atype=='categ'){
             estOut <- cat_analysis(dframe = dfIn, siteID=input$siteVar, subpops=subpops.in,
