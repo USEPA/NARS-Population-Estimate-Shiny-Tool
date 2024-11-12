@@ -457,8 +457,8 @@ ui <- fluidPage(
              shinyjs::disabled(actionButton('runBtn', "Run/Refresh estimates")),
              hr(),
              # Click to download results into a comma-delimited file
-             shinyjs::disabled(downloadButton("dwnldcsv","Save Results as .csv file")),
-             shinyjs::disabled(downloadButton("popcallcsv", "Save version info and the R code used for analysis"))),
+             shinyjs::disabled(downloadButton("dwnldcsv","Save estimates, data, and code to a .zip file"))),
+
              # Show results here
              column(8,
                     h4("If output is not as expected, be sure you chose the correct ",
@@ -508,8 +508,7 @@ ui <- fluidPage(
                  shinyjs::disabled(actionButton('chgBtn', "Run/Refresh estimates")),
                  hr(),
                  # Click to download results into a comma-delimited file
-                 shinyjs::disabled(downloadButton("chgcsv","Save Change Results as .csv file")),
-                 shinyjs::disabled(downloadButton("chgcallcsv", "Save version info and the R code used for analysis"))),
+                 shinyjs::disabled(downloadButton("chgcsv","Save change estimates, data, and code as .zip file"))),
                  column(8,
                          h4("Warnings"),
                         DT::dataTableOutput("warnchg"),
@@ -896,11 +895,9 @@ server <- function(input, output, session) {
 
   observeEvent(input$subsetBtn, {
     shinyjs::disable('dwnldcsv')
-    shinyjs::disable('popcallcsv')
     shinyjs::enable('chgBtn')
     shinyjs::enable('runBtn')
     shinyjs::disable('chgcsv')
-    shinyjs::disable('chgcallcsv')
     shinyjs::enable('trendBtn')
     shinyjs::disable('trendcsv')
 
@@ -1348,10 +1345,15 @@ server <- function(input, output, session) {
     }
 
     if(exists('warn_df') && ncol(warn_df)>1){
-      outdf <- list(chgOut=chgOut.1, warndf=warn_df, fxnCall = chgCallInfo)
+      outdf <- list(chgOut=chgOut.1, 
+                    warndf=warn_df, 
+                    chgCall = chgCallInfo,
+                    chgData = chgIn)
     }else{
-      outdf <- list(chgOut=chgOut.1, warndf=data.frame(warnings='none'),
-                    fxnCall = chgCallInfo)
+      outdf <- list(chgOut=chgOut.1, 
+                    warndf=data.frame(warnings='none'),
+                    chgCall = chgCallInfo,
+                    chgData = chgIn)
     }
 
 
@@ -1646,11 +1648,15 @@ server <- function(input, output, session) {
       remove_modal_spinner()
 
     if(exists('warn_df') && ncol(warn_df)>1){
-      outdf <- list(estOut=estOut, warndf=warn_df,
-                    popCall = popCallInfo)
+      outdf <- list(estOut=estOut, 
+                    warndf=warn_df,
+                    popCall = popCallInfo,
+                    popData = dfIn)
     }else{
-      outdf <- list(estOut=estOut, warndf=data.frame(warnings='none'),
-                    popCall = popCallInfo)
+      outdf <- list(estOut=estOut, 
+                    warndf=data.frame(warnings='none'),
+                    popCall = popCallInfo,
+                    popData = dfIn)
     }
 
 
@@ -1853,39 +1859,58 @@ server <- function(input, output, session) {
 
 # Download Analysis Results -----------------------------------------------
 
-## Single estimates ----
+## Single estimates -----
   # Only enable download button once population estimates are produced
   observe({shinyjs::toggleState('dwnldcsv',length(dataEst()[['estOut']])!=0)})
   # Name output file based on type of analysis selected and write to comma-delimited file
   output$dwnldcsv <- downloadHandler(
     filename = function() {
       if(input$atype=='categ'){
-        paste("Categorical_PopEstOutput_",Sys.Date(), ".csv", sep = "")
+        paste("Categorical_PopEstOutput_",Sys.Date(), ".zip", sep = "")
       }else{
         if(input$cdf_pct=='cdf'){
-          paste("Continuous_CDF_Output_",Sys.Date(), ".csv", sep = "")
+          paste("Continuous_CDF_Output_",Sys.Date(), ".zip", sep = "")
         }else if(input$cdf_pct=='pct'){
-          paste("Continuous_Percentiles_Output_",Sys.Date(), ".csv", sep = "")
+          paste("Continuous_Percentiles_Output_",Sys.Date(), ".zip", sep = "")
         }else if(input$cdf_pct=='mean'){
-          paste("Continuous_Means_Output_", Sys.Date(), ".csv", sep="")
+          paste("Continuous_Means_Output_", Sys.Date(), ".zip", sep="")
         }else{
-          paste("Continuous_Totals_Output_", Sys.Date(), ".csv", sep='')
+          paste("Continuous_Totals_Output_", Sys.Date(), ".zip", sep='')
         }
       }
     },
     content = function(file) {
-      write.csv(dataEst()[['estOut']], file, row.names = FALSE)
-    }
+      if(input$atype=='categ'){
+        pref_name <- "Categorical_PopEstOutput_"
+      }else{
+        if(input$cdf_pct=='cdf'){
+          pref_name <- "Continuous_CDF_Output_"
+        }else if(input$cdf_pct=='pct'){
+          pref_name <- "Continuous_Percentiles_Output_"
+        }else if(input$cdf_pct=='mean'){
+          pref_name <- "Continuous_Means_Output_"
+        }else{
+          pref_name <- "Continuous_Totals_Output_"
+        }
+      }
+      path_est <- paste0(pref_name, "_Output_", Sys.Date(), ".csv")
+      path_data <- paste0(pref_name, "_Data_", Sys.Date(), ".csv")
+      path_code <- paste0(pref_name, "_Code_", Sys.Date(), ".txt")
+      
+      write.csv(dataEst()[['estOut']], path_est, row.names = FALSE)
+      writeLines(dataEst()[['popCall']], path_code)
+      write.csv(dataEst()[['popData']], path_data, row.names = FALSE)
+      
+      zip::zipr(zipfile = file, 
+                files = c(path_est, path_data, path_code))
+      
+      file.remove(path_est)
+      file.remove(path_data)
+      file.remove(path_code)
+    },
+    contentType = "applications/zip"     
   )
-## Single estimates code ----  
-  observe({shinyjs::toggleState('popcallcsv',length(dataEst()[['estOut']])!=0)})
-  # Name output file based on type of analysis selected and write to comma-delimited file
-  output$popcallcsv <- downloadHandler(
-    filename = paste0("NARSPopEst_PopulationEstimate_Code_", Sys.Date(), ".txt"),
-    content = function(file) {
-      writeLines(dataEst()[['popCall']], file)
-    }
-  )
+
 ## Change estimates ----
   # Only enable download button once population estimates are produced
   observe({shinyjs::toggleState('chgcsv', length(chgEst()[['chgOut']])!=0)})
@@ -1893,30 +1918,43 @@ server <- function(input, output, session) {
   output$chgcsv <- downloadHandler(
     filename = function() {
       if(input$chgCatCont == 'chgCat'){
-        paste("Change_Categ_Est_Output_",Sys.Date(), ".csv", sep = "")
+        paste("Change_Categ_Est_Output_",Sys.Date(), ".zip", sep = "")
       }else{
         if(input$testType == 'mean'){
-          paste("Change_Contin_Mean_Est_Output_",Sys.Date(), ".csv", sep = "")
+          paste("Change_Contin_Mean_Est_Output_",Sys.Date(), ".zip", sep = "")
         }else{
-          paste("Change_Contin_Median_Est_Output_",Sys.Date(), ".csv", sep = "")
+          paste("Change_Contin_Median_Est_Output_",Sys.Date(), ".zip", sep = "")
         }
       }
     },
   content = function(file) {
-    write.csv(chgEst()[['chgOut']], file, row.names = FALSE)
-  }
+    if(input$chgCatCont == 'chgCat'){
+      pref_name <- "Change_Categ_Est"
+    }else{
+      if(input$testType == 'mean'){
+        pref_name = "Change_Contin_Mean_Est"
+      }else{
+        pref_name = "Change_Contin_Median_Est"
+      }
+    }
+    path_est <- paste0(pref_name, "_Output_", Sys.Date(), ".csv")
+    path_data <- paste0(pref_name, "_Data_", Sys.Date(), ".csv")
+    path_code <- paste0(pref_name, "_Code_", Sys.Date(), ".txt")
+    
+    write.csv(chgEst()[['chgOut']], path_est, row.names = FALSE)
+    writeLines(chgEst()[['chgCall']], path_code)
+    write.csv(chgEst()[['chgData']], path_data, row.names = FALSE)
+    
+    zip::zipr(zipfile = file, 
+              files = c(path_est, path_data, path_code))
+    
+    file.remove(path_est)
+    file.remove(path_data)
+    file.remove(path_code)
+  },
+    contentType = "applications/zip"
   )
     
-## Change estimates code ----
-      # Only enable download button once population estimates are produced
-  observe({shinyjs::toggleState('chgcallcsv', length(chgEst()[['chgOut']])!=0)})
-    # Name output file based on type of analysis selected and write to comma-delimited file
-  output$chgcallcsv <- downloadHandler(
-    filename = paste0("NARSPopEst_ChangeAnalysis_Code_", Sys.Date(), ".txt"),
-    content = function(file) {
-      writeLines(chgEst()[['fxnCall']], file)
-    }
-  )   
 ## Trend analysis output ----
   observe({shinyjs::toggleState('trendcsv', length(trendEst()[['trendOut']])!=0)})
   # Name output file based on type of analysis selected and write to comma-delimited file
