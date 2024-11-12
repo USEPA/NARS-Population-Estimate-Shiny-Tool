@@ -1697,10 +1697,10 @@ server <- function(input, output, session) {
     # If this can't be done, trigger an error and ask user to create a 
     # numeric year variable
     trendIn <- as.data.frame(trendIn)
-    trendIn$year <- as.integer(trendIn[, input$yearVar])
+    trendIn$Year <- as.integer(trendIn[, input$yearVar])
     
     validate(
-      need(all(!is.na(trendIn$year)),
+      need(all(!is.na(trendIn$Year)),
            'The year variable cannot be converted to numeric. Please provide a 
            single numeric value for each row in the column used as year.')
     )
@@ -1747,7 +1747,7 @@ server <- function(input, output, session) {
       dframe = trendIn,
       vars_cat = input$respVar,
       siteID=input$siteVar, 
-      yearID = input$yearVar,
+      yearID = 'Year',
       subpops=subpops.in,
       weight = input$weightVar,
       xcoord = xcoord.in, 
@@ -1760,27 +1760,44 @@ server <- function(input, output, session) {
     )$catsum
     
     # Create table of sample size by indicator and category and subpopulation
-trendCts <- data.frame() # SORT OF WORKS BUT NEED to REVISE COLUMN NAMES AND ADD VARIABLES WITH RESPONSE AND SUBPOP NAMES
-  if(input$subpop==TRUE){
-    for(i in 1:length(input$subpopVar)){
-      for(j in 1:length(input$respVar)){
-        tempdf <- count(nla_in, eval(as.name(input$subpopVar[i])),
-                        eval(as.name(input$respVar[j])),
-                        eval(as.name(input$yearVar)), sort = TRUE)
-        trendCts <- bind_rows(trendCts, tempdf)
-      }
-
-    }
-  }else{
-      for(i in 1:length(input$respVar)){
-          tempdf <- count(eval(as.name(input$respVar[i])),
-                          eval(as.name(input$yearVar)), sort = TRUE)
-          trendCts <- bind_rows(trendCts, tempdf)
+    trendCts <- data.frame() # SORT OF WORKS BUT NEED to REVISE COLUMN NAMES AND ADD VARIABLES WITH RESPONSE AND SUBPOP NAMES
+    if(input$subpop==TRUE){
+      for(i in 1:length(input$subpopVar)){
+        for(j in 1:length(input$respVar)){
+          tempdf <- group_by(trendIn, eval(as.name(input$subpopVar[i])),
+                   eval(as.name(input$respVar[j]))) |> 
+            count(Year, 
+                  name = 'Count',
+                  sort = TRUE) |> 
+            ungroup() |> 
+            rename(c(Subpopulation = 'eval(as.name(input$subpopVar[i]))',
+                   Category = 'eval(as.name(input$respVar[j]))')) |> 
+            mutate(Indicator = input$respVar[j],
+                   Type = input$subpopVar[i])
+          # tempin <- subset(trendIn, select(input$subpopVar[i], input$respVar[j]))
+          # tempdf <- count(trendIn, eval(as.name(input$yearVar)), 
+          #                 name = "Year",
+          #                          sort = TRUE)
+          
+          trendCts <- bind_rows(trendCts, tempdf) |> 
+            arrange(Indicator, Type, Subpopulation, Category, Year)
         }
-      }
   
-
-    print(trendCts)
+      }
+    }else{
+        for(i in 1:length(input$respVar)){
+          tempdf <- group_by(trendIn, eval(as.name(input$respVar[i]))) |> 
+            count(Year, 
+                  name = 'Count',
+                  sort = TRUE) |> 
+            ungroup() |> 
+            rename(c(Category = 'eval(as.name(input$respVar[i]))')) |> 
+            mutate(Indicator = input$respVar[i])
+            trendCts <- bind_rows(trendCts, tempdf) |> 
+              arrange(Indicator, Category, Year)
+          }
+        }
+    
 
     trendCallInfo <- paste0("Code used to run analysis: 
                             \ntrend_analysis(\ndframe = trendIn,\nvars_cat = c('", 
