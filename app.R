@@ -548,8 +548,8 @@ tabPanel(title="Run Trend Analysis", value='trend',
                   shinyjs::disabled(actionButton('trendBtn', "Run/Refresh estimates")),
                   hr(),
                   # Click to download results into a comma-delimited file
-                  shinyjs::disabled(downloadButton("trendcsv","Save Trend Results as .csv file")),
-                  shinyjs::disabled(downloadButton("trendcallcsv", "Save version info and the R code used for analysis"))),
+                  shinyjs::disabled(downloadButton("trendcsv","Save trend results, data, code, and sample sizes as .zip file"))),
+                  
            column(8,
                   h4("Warnings"),
                   DT::dataTableOutput("warntrend"),
@@ -903,7 +903,7 @@ server <- function(input, output, session) {
     shinyjs::disable('chgcallcsv')
     shinyjs::enable('trendBtn')
     shinyjs::disable('trendcsv')
-    shinyjs::disable('trendcallcsv')
+
     if(input$disp == 'head'){
       output$contents <- DT::renderDataTable({head(dataOut())}, options = list(digits=5, rownames=F,
                                              scrollX=TRUE, scrollY=TRUE))
@@ -1829,11 +1829,15 @@ server <- function(input, output, session) {
     if(exists('warn_df') && ncol(warn_df)>1){
       outdf <- list(trendOut = trendOut, 
                     warndf = warn_df,
-                    trendCall = trendCallInfo)
+                    trendCall = trendCallInfo,
+                    trendCounts = trendCts,
+                    trendIn = trendIn)
     }else{
       outdf <- list(trendOut = trendOut, 
                     warndf = data.frame(warnings='none'),
-                    trendCall = trendCallInfo)
+                    trendCall = trendCallInfo,
+                    trendCounts = trendCts,
+                    trendIn = trendIn)
     } 
   })
   
@@ -1849,7 +1853,7 @@ server <- function(input, output, session) {
 
 # Download Analysis Results -----------------------------------------------
 
-
+## Single estimates ----
   # Only enable download button once population estimates are produced
   observe({shinyjs::toggleState('dwnldcsv',length(dataEst()[['estOut']])!=0)})
   # Name output file based on type of analysis selected and write to comma-delimited file
@@ -1873,7 +1877,7 @@ server <- function(input, output, session) {
       write.csv(dataEst()[['estOut']], file, row.names = FALSE)
     }
   )
-  
+## Single estimates code ----  
   observe({shinyjs::toggleState('popcallcsv',length(dataEst()[['estOut']])!=0)})
   # Name output file based on type of analysis selected and write to comma-delimited file
   output$popcallcsv <- downloadHandler(
@@ -1882,7 +1886,7 @@ server <- function(input, output, session) {
       writeLines(dataEst()[['popCall']], file)
     }
   )
-
+## Change estimates ----
   # Only enable download button once population estimates are produced
   observe({shinyjs::toggleState('chgcsv', length(chgEst()[['chgOut']])!=0)})
   # Name output file based on type of analysis selected and write to comma-delimited file
@@ -1903,7 +1907,8 @@ server <- function(input, output, session) {
   }
   )
     
-    # Only enable download button once population estimates are produced
+## Change estimates code ----
+      # Only enable download button once population estimates are produced
   observe({shinyjs::toggleState('chgcallcsv', length(chgEst()[['chgOut']])!=0)})
     # Name output file based on type of analysis selected and write to comma-delimited file
   output$chgcallcsv <- downloadHandler(
@@ -1912,28 +1917,36 @@ server <- function(input, output, session) {
       writeLines(chgEst()[['fxnCall']], file)
     }
   )   
-
+## Trend analysis output ----
   observe({shinyjs::toggleState('trendcsv', length(trendEst()[['trendOut']])!=0)})
   # Name output file based on type of analysis selected and write to comma-delimited file
   output$trendcsv <- downloadHandler(
     filename = function() {
-        paste("Trend_Categ_Est_Output_",Sys.Date(), ".csv", sep = "")
+        paste("Trend_Categ_Est_Output_",Sys.Date(), ".zip", sep = "")
       },
     content = function(file) {
-      write.csv(trendEst()[['trendOut']], file, row.names = FALSE)
-    }
+
+      path_est <- paste0("Trend_Categ_Est_Output_", Sys.Date(), ".csv")
+      path_cts <- paste0("Trend_Categ_Est_Counts_", Sys.Date(), ".csv")
+      path_data <- paste0("Trend_Categ_Est_Data_", Sys.Date(), ".csv")
+      path_code <- paste0("Trend_Categ_Est_Code_", Sys.Date(), ".txt")
+      
+      write.csv(trendEst()[['trendOut']], path_est, row.names = FALSE)
+      write.csv(trendEst()[['trendCounts']], path_cts, row.names = FALSE)
+      write.csv(trendEst()[['trendIn']], path_data, row.names = FALSE)
+      writeLines(trendEst()[['trendCall']], path_code)
+      
+      zip::zipr(zipfile = file, 
+                files = c(path_est, path_cts, path_data, path_code))
+      
+      file.remove(path_est)
+      file.remove(path_cts)
+      file.remove(path_data)
+      file.remove(path_code)
+    },
+    contentType = "applications/zip"
   )
-  
-  # Only enable download button once population estimates are produced
-  observe({shinyjs::toggleState('trendcallcsv', length(trendEst()[['trendOut']])!=0)})
-  # Name output file based on type of analysis selected and write to comma-delimited file
-  output$trendcallcsv <- downloadHandler(
-    filename = paste0("NARSPopEst_TrendAnalysis_Code_", Sys.Date(), ".txt"),
-    content = function(file) {
-      writeLines(trendEst()[['trendCall']], file)
-    }
-  )   
-  
+
   ###################################### Categorical Plots Server ######################
   userEst <- reactive({
       estOut <- read.csv(req(input$userinput$datapath))
