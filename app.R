@@ -1170,16 +1170,7 @@ server <- function(input, output, session) {
         )
       }
 
-      for(i in length(input$chgYear1)){
-        for(j in length(input$respVar)){
-          chgSub <- subset(chgIn, eval(as.name(input$yearVar)) == input$chgYear1[[i]])
-          validate(
-            need(!all(is.na(chgSub[, input$respVar[j]])),
-                 paste0('The variable ', input$respVar[j], ' has all missing values for', input$chgYear1[[i]], '. Return to Prepare Data tab to remove any response variables not in year selected.')
-            )
-          )
-        }
-      }
+      
       # Need to order by siteID, yearVar
       chgIn <- chgIn[order(chgIn[,input$yearVar],chgIn[,input$siteVar]),]
 
@@ -1189,6 +1180,17 @@ server <- function(input, output, session) {
         need(length(survey_names)==2,
              paste("Select years or design cycles to compare."))
       )
+      
+      for(i in 1:2){
+        for(j in length(input$respVar)){
+          chgSub <- subset(chgIn, eval(as.name(input$yearVar)) == survey_names[i])
+          validate(
+            need(!all(is.na(chgSub[, input$respVar[j]])),
+                 paste0('The variable ', input$respVar[j], ' has all missing values for ', survey_names[i], '. Return to Prepare Data tab to remove any response variables not in both selected years.')
+            )
+          )
+        }
+      }
 
       if(input$natpop==TRUE & input$subpop==TRUE){
         all_sites <- TRUE
@@ -1902,7 +1904,7 @@ server <- function(input, output, session) {
     },
     content = function(file) {
       if(input$atype=='categ'){
-        pref_name <- "Categorical_PopEstOutput_"
+        pref_name <- "Categorical_PopEst_Output_"
       }else{
         if(input$cdf_pct=='cdf'){
           pref_name <- "Continuous_CDF_Output_"
@@ -1914,9 +1916,9 @@ server <- function(input, output, session) {
           pref_name <- "Continuous_Totals_Output_"
         }
       }
-      path_est <- paste0(pref_name, "_Output_", Sys.Date(), ".csv")
-      path_data <- paste0(pref_name, "_Data_", Sys.Date(), ".csv")
-      path_code <- paste0(pref_name, "_Code_", Sys.Date(), ".txt")
+      path_est <- paste0(pref_name, "Output_", Sys.Date(), ".csv")
+      path_data <- paste0(pref_name, "Data_", Sys.Date(), ".csv")
+      path_code <- paste0(pref_name, "Code_", Sys.Date(), ".txt")
       
       write.csv(dataEst()[['estOut']], path_est, row.names = FALSE)
       writeLines(dataEst()[['popCall']], path_code)
