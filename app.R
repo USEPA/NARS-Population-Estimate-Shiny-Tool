@@ -59,11 +59,11 @@ ui <- fluidPage(
                         Finally, select one or more categories by which to subset data."),
                 tags$li("Click on the left hand button to view the full dataset if necessary."),
                tags$li("Click on the right hand button above the data to subset the data before
-                       proceeding to the Run Population Estimates tab.")
+                       proceeding to the analysis tabs.")
                )),
                bsCollapsePanel(title = h4(strong("Minimum Requirements for Analysis")),
                                tags$ul(
-                                 tags$li("The R package", strong("spsurvey, v.5.0 or later"),
+                                 tags$li("The R package", strong("spsurvey, v.5.5 or later"),
                                          "is required.
                                 Be sure to update this package if an older version is
                                 already installed." ),
@@ -82,7 +82,7 @@ ui <- fluidPage(
                                  tags$li("If variance based on a simple random sample is desired (or if
                                  coordinates are not available), the design stratum should be provided
                                  to better estimate variance."),
-                                 tags$li("If change analysis is intended, all desired years of data must be
+                                 tags$li("If change or trend analysis is intended, all desired years of data must be
                                  contained in one file, with a single variable that identifies
                                          the individual years or survey cycles included.")
                                )),
@@ -100,8 +100,8 @@ ui <- fluidPage(
                  tags$li("Click on the Run/Refresh Estimates button. Depending on the number of
                          responses, subpopulations, and type of analysis, it may take a few seconds
                          to several minutes."),
-                 tags$li("If desired, download results to a comma-delimited file by clicking
-                         the Save Results button.")
+                 tags$li("If desired, download results, data used in analysis, and code to a zip file by clicking
+                         the button labeled", strong("Save estimates, data, and code to a .zip file."))
                ),
                tags$ol(strong("Outputs for categorical analysis:")),
                   tags$li("Type = Subpopulation group"),
@@ -150,7 +150,7 @@ ui <- fluidPage(
                    tags$li("UCBXXPct.U = Upper confidence bound for amount of resource, where XX represents the 
                            confidence level (CDF only)")
                ),
-               bsCollapsePanel(title = h4(strong("Run Change Analysis")),
+            bsCollapsePanel(title = h4(strong("Run Change Analysis")),
                tags$ol(
                  tags$li("First select the two years (or sets of years) to compare."),
                  tags$li("Select type of data to analyze (categorical or continuous)."),
@@ -162,7 +162,8 @@ ui <- fluidPage(
                  responses, subpopulations, and type of analysis, it may take a few
                          seconds to several minutes."),
                  tags$li("If any data are changed in the Prepare Data for Analysis tab, years
-                         must be re-selected before running analysis.")
+                         must be re-selected before running analysis."),
+                 tags$li("To save outputs, including estimates, data used in analysis, and code, click the button labeled", strong("Save change estimates, data, and code as .zip file."))
                ),
                tags$ul(strong("Outputs for Categorical Analysis:"),
                        tags$li("Survey_1 = Year or design cycle of first survey"),
@@ -244,7 +245,36 @@ ui <- fluidPage(
                        tags$li("The two categories for this output are Greater_Than_Median and Less_Than_Median, 
                                but the interpretations are the same")
                        )),
-
+            bsCollapsePanel(title = h4(strong("Run Trend Analysis")),
+               tags$ol(
+                 tags$li("Trend analysis runs on only categorical response variables, using options selected on data preparation tab."),
+                 tags$li("Trend will be run using all years in the dataset."),
+                 tags$li("If a response is missing for all observations in a particular year, that year will be excluded from the analysis of that response and a warning will be displayed."),
+                 tags$li("The confidence level for trend analysis is set at 95%."),
+                 tags$li("Click on the Run/Refresh Estimates button. Depending on the number of
+                 responses and subpopulations, it may take a few seconds to several minutes to run."),
+                 tags$li("To save outputs, including estimates, data used in analysis, code, and sample sizes by year and response variable, click the button labeled", strong("Save trend results, data, code, and sample sizes as .zip file."))
+                 ),
+               tags$ul(strong("Outputs for Categorical Trend Analysis:"),
+                 tags$li("Survey_1 = Year or design cycle of first survey"),
+                 tags$li("Survey_2 = Year or design cycle of second survey"),
+                 tags$li("Type = Subpopulation group"),
+                 tags$li("Subpopulation = Subpopulation name"),
+                 tags$li("Indicator = Name of indicator or response variable"),
+                 tags$li("Category = Category of indicator"),
+                 tags$li("Trend_Estimate = estimate of trend slope"),
+                 tags$li("Trend_Std_Error = standard error of trend slope"),
+                 tags$li("Trend_LCB95Pct = lower 95% confidence bound of trend slope"),
+                 tags$li("Trend_UCB95Pct = upper 95% confidence bound of trend slope"),
+                 tags$li("Trend_p_Value = p-value for trend slope"),
+                 tags$li("Intercept_Estimate = estimate of trend intercept"),
+                 tags$li("Intercept_Std_Error = standard error of trend intercept"),
+                 tags$li("Intercept_LCB95Pct = lower 95% confidence bound of trend intercept"),
+                 tags$li("Intercept_UCB95Pct = upper 95% confidence bound of trend intercept"),
+                 tags$li("Intercept_p_Value = p-value for trend intercept"),
+                 tags$li("R_Squared = R-squared for trend"),
+                 tags$li("Adj_R_Squared = Adjusted R-squared for trend"))
+                  ),
                bsCollapsePanel(title = h4(strong("Plot Categorical Estimates")),
                   tags$ol(
                     tags$li("Either run population estimates on categorical data either within the
