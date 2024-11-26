@@ -21,7 +21,7 @@ ui <- fluidPage(
    # Application title
 
 # Instructions ------------------------------------------------------------
-    navbarPage(title=span("NARS Population Estimate Calculation Tool (v. 2.3.0)",
+    navbarPage(title=span("NARS Population Estimate Calculation Tool (v. 2.3.1)",
                          style = "font-weight: bold; font-size: 24px"),         
                selected='instructions',position='static-top',
       # Panel with instructions for using this tool
@@ -1843,6 +1843,21 @@ server <- function(input, output, session) {
         }
   
       }
+      if(input$natpop == TRUE){
+        for(i in 1:length(input$respVar)){
+          tempdf <- group_by(trendIn, eval(as.name(input$respVar[i]))) |> 
+            count(Year, 
+                  name = 'Count',
+                  sort = TRUE) |> 
+            ungroup() |> 
+            rename(c(Category = 'eval(as.name(input$respVar[i]))')) |> 
+            mutate(Indicator = input$respVar[i],
+                   Type = 'All Sites',
+                   Subpopulation = 'All Sites')
+          trendCts <- bind_rows(trendCts, tempdf) |> 
+            arrange(Indicator, Type, Subpopulation, Category, Year)
+        }
+      }
     }else{
         for(i in 1:length(input$respVar)){
           tempdf <- group_by(trendIn, eval(as.name(input$respVar[i]))) |> 
@@ -1855,7 +1870,7 @@ server <- function(input, output, session) {
             trendCts <- bind_rows(trendCts, tempdf) |> 
               arrange(Indicator, Category, Year)
           }
-        }
+    }
     
 
     trendCallInfo <- paste0("Code used to run analysis: 
