@@ -21,7 +21,7 @@ ui <- fluidPage(
    # Application title
 
 # Instructions ------------------------------------------------------------
-    navbarPage(title=span("NARS Population Estimate Calculation Tool (v. 2.3.1)",
+    navbarPage(title=span("NARS Population Estimate Calculation Tool (v. 2.3.2)",
                          style = "font-weight: bold; font-size: 24px"),         
                selected='instructions',position='static-top',
       # Panel with instructions for using this tool
@@ -351,25 +351,17 @@ ui <- fluidPage(
             # Input: Select a file ---
             column(3,
                 add_busy_spinner(spin='fading-circle', position='full-page'),
-                checkboxInput("websource", 'Input file from URL instead of local directory', FALSE),
                 # Read in file from local computer
-                conditionalPanel(condition="input.websource == false",
                   fileInput(inputId='file1', buttonLabel='Browse...',
                       label='Select a delimited file for analysis',
                       multiple=FALSE, accept=c('text/csv','text/comma-separated-values,text/plain','.csv')
-                      )),
-                # Read in file from website URL - need to add a button to signal it should start uploading
-                conditionalPanel(condition="input.websource == true",
-                                 textInput("urlfile", "Paste or enter full URL here."),
-                                 actionButton("urlbtn", "Load file from URL")),
+                      ),
                 # Horizontal line ----
                 tags$hr(),
-                # Input: checkbox if file has header, default to TRUE ----
-                checkboxInput('header','Header',TRUE),
+                
                 # Input: Select delimiter ----
-                radioButtons("sep","Separator",
+                radioButtons("sep","Delimiter",
                              choices = c(Comma = ",",
-                                         Semicolon = ";",
                                          Tab = "\t"),
                              selected = ","),
 
@@ -378,7 +370,7 @@ ui <- fluidPage(
 
                 # Input: Select number of rows to display
                 radioButtons("disp","Display",
-                             choices = c(Head = 'head',
+                             choices = c('First 6 lines' = 'head',
                                          All = 'all'),
                              selected='head'),
                 checkboxInput("subcheck","Subset data using a single categorical variable", FALSE),
@@ -902,23 +894,15 @@ server <- function(input, output, session) {
 
   # Read in data file as selected
   dataIn <- reactive({
-    if(input$websource==FALSE){
       file1 <- input$file1
       req(file1)
-      df <- read.table(input$file1$datapath,
-                     header = input$header,
-                     sep = input$sep,
-                     stringsAsFactors=F)
-
-    }else{
-      if(input$urlbtn>0){
-        df <- read.table(url(input$urlfile),
-                         header = input$header,
-                         sep = input$sep,
-                         stringsAsFactors=F)
+      if(input$sep == "\t"){ # tab-delimited
+        df <- readr::read_tsv(input$file1$datapath,
+                              show_col_types = FALSE)
+      }else{ # other option is comma-delimited
+        df <- readr::read_csv(input$file1$datapath,
+                              show_col_types = FALSE)
       }
-    }
-
     df
 
   })

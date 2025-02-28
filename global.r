@@ -12,5 +12,6 @@ library(shinyBS)
 library(dplyr)
 library(DT)
 library(zip)
+library(readr)
 # options(shiny.maxRequestSize = 20*1024^2) #Allows an upload of up to 20mb. 
 options(scipen = 100)

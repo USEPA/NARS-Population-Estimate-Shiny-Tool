@@ -1,3 +1,13 @@
+# NARS Population Estimate Calculation Tool (v. 2.3.2)
+
+## Change log
+
+* Removed ability to import web data into app
+
+* Removed ability to import files with semi-colon delimiter
+
+* Removed header checkbox because unnecessary
+
 # NARS Population Estimate Calculation Tool (v. 2.2.0)
 
 ## Change log
