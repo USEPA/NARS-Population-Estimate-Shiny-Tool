@@ -898,10 +898,12 @@ server <- function(input, output, session) {
       req(file1)
       if(input$sep == "\t"){ # tab-delimited
         df <- readr::read_tsv(input$file1$datapath,
-                              show_col_types = FALSE)
+                              show_col_types = FALSE) |> 
+          as.data.frame()
       }else{ # other option is comma-delimited
         df <- readr::read_csv(input$file1$datapath,
-                              show_col_types = FALSE)
+                              show_col_types = FALSE) |> 
+          as.data.frame()
       }
     df
 
@@ -1949,9 +1951,9 @@ server <- function(input, output, session) {
       path_data <- paste0(pref_name, "Data_", Sys.Date(), ".csv")
       path_code <- paste0(pref_name, "Code_", Sys.Date(), ".txt")
       
-      write.csv(dataEst()[['estOut']], path_est, row.names = FALSE)
+      write_csv(dataEst()[['estOut']], path_est)
       writeLines(dataEst()[['popCall']], path_code)
-      write.csv(dataEst()[['popData']], path_data, row.names = FALSE)
+      write_csv(dataEst()[['popData']], path_data)
       
       zip::zipr(zipfile = file, 
                 files = c(path_est, path_data, path_code))
@@ -1993,9 +1995,9 @@ server <- function(input, output, session) {
     path_data <- paste0(pref_name, "_Data_", Sys.Date(), ".csv")
     path_code <- paste0(pref_name, "_Code_", Sys.Date(), ".txt")
     
-    write.csv(chgEst()[['chgOut']], path_est, row.names = FALSE)
+    write_csv(chgEst()[['chgOut']], path_est)
     writeLines(chgEst()[['chgCall']], path_code)
-    write.csv(chgEst()[['chgData']], path_data, row.names = FALSE)
+    write_csv(chgEst()[['chgData']], path_data)
     
     zip::zipr(zipfile = file, 
               files = c(path_est, path_data, path_code))
@@ -2021,9 +2023,9 @@ server <- function(input, output, session) {
       path_data <- paste0("Trend_Categ_Est_Data_", Sys.Date(), ".csv")
       path_code <- paste0("Trend_Categ_Est_Code_", Sys.Date(), ".txt")
       
-      write.csv(trendEst()[['trendOut']], path_est, row.names = FALSE)
-      write.csv(trendEst()[['trendCounts']], path_cts, row.names = FALSE)
-      write.csv(trendEst()[['trendIn']], path_data, row.names = FALSE)
+      write_csv(trendEst()[['trendOut']], path_est)
+      write_csv(trendEst()[['trendCounts']], path_cts)
+      write_csv(trendEst()[['trendIn']], path_data)
       writeLines(trendEst()[['trendCall']], path_code)
       
       zip::zipr(zipfile = file, 
