@@ -2554,8 +2554,8 @@ server <- function(input, output, session) {
 
   output$plot <- renderPlot({
     Est_plot()
-
-  })
+  },
+    alt = "Bar chart of Single subpopulation condition classes")
 
   calcheight <- reactive({
     popest <- plotDataset()
@@ -2578,7 +2578,9 @@ server <- function(input, output, session) {
     req(calcheight())
     calcheight <- calcheight()
     SubEst_plot()
-  }, height = calcheight)
+  }, height = calcheight,
+  ,
+  alt = "Bar chart of single condition class across all subpopulations")
 
 
   output$downloadPlot1 <- downloadHandler(
@@ -2856,7 +2858,8 @@ server <- function(input, output, session) {
   output$CDFsubplot <- renderPlot({
     req(input$plotbtncon)
     CDF_subplot()
-  })
+  },
+  alt = "CDF plot of continuous variable for selected subpopulation(s)")
 
 
   output$download1 <- downloadHandler(
@@ -2881,7 +2884,8 @@ server <- function(input, output, session) {
     req(calcheight2())
     calcheight <- calcheight2()
     Dist_plot()
-  }, height = calcheight2)
+  }, height = calcheight2,
+  alt = "Density distribution based on CDF estimates by subpopulation")
 
   output$download2 <- downloadHandler(
     filename = function() {paste("CDF_Distribution-", Sys.Date(), ".png", sep="")},
